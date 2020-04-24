@@ -22,7 +22,7 @@ public class SpatialStream implements Serializable {
             pointStream = inputStream.map(new GeoJSONToSpatial(uGrid));
         }
         else if (inputType.equals("CSV")){
-            pointStream = inputStream.map(new GeoJSONToSpatial(uGrid));
+            pointStream = inputStream.map(new CSVToSpatial(uGrid));
         }
 
         return pointStream;
