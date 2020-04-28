@@ -30,6 +30,7 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple4;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.RestOptions;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
@@ -59,6 +60,7 @@ public class StreamingJob implements Serializable {
 
 		Configuration config = new Configuration();
 		config.setBoolean(ConfigConstants.LOCAL_START_WEBSERVER, true);
+		config.setString(RestOptions.BIND_PORT, "8081-8099");  // Can be commented if default port is available
 
 		// set up the streaming execution environment
 		final StreamExecutionEnvironment env;
@@ -104,7 +106,7 @@ public class StreamingJob implements Serializable {
 
 			env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(config);
 
-			queryOption = 1; //1,2 Range Query, 4, 5 kNN Query, 7, 8 Spatial Join
+			queryOption = 2;
 			radius =  0.004;
 			uniformGridSize = 150;
 			windowSize = 10;
@@ -137,14 +139,12 @@ public class StreamingJob implements Serializable {
 		DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(topicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 		//DataStream csvStream  = env.addSource(new FlinkKafkaConsumer<>(topicName, new SimpleStringSchema(), kafkaProperties).setStartFromEarliest());
 
-		// Control Tuple to Exit Execution for Evaluation
-		geoJSONStream.filter(new HelperClass.checkExitControlTuple()).name("Check For Control Tuple for Evaluation");
-
 		// Converting GeoJSON,CSV stream to Spatial data stream (point)
 		DataStream<Point> spatialStream = SpatialStream.PointStream(geoJSONStream, "GeoJSON", uGrid);
 		//DataStream<Point> spatialStream = SpatialStream.PointStream(csvStream, "CSV", uGrid);
 
 		Point queryPoint = new Point(116.414899, 39.920374, uGrid);
+		System.out.println("Query Point" + queryPoint);
 
 		switch(queryOption) {
 

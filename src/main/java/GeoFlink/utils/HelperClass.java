@@ -84,8 +84,7 @@ public class HelperClass {
 
     public static double computeEuclideanDistance(Double lon, Double lat, Double lon1, Double lat1) {
 
-        return Math.sqrt((lat1 - lat) * (lat1 - lat) + (lon1 - lon) * (lon1 - lon));
-
+        return Math.sqrt( Math.pow((lat1 - lat),2) + Math.pow((lon1 - lon),2));
     }
 
     public static double computeHaverSine(Double lon, Double lat, Double lon1, Double lat1) {
