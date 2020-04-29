@@ -1,4 +1,6 @@
-# GeoFlink Readme
+# GeoFlink 
+
+GeoFlink extends Apache Flink to support spatial data types, index and continuous queries over data streams. To enable the efficient processing of continuous spatial queries and for the effective data distribution among the Flink cluster nodes, a gird-based index is used. GeoFlink currently supports spatial range, spatial kNN and spatial join queries on point data type.
 
 ## A sample GeoFlink code written in Java to execute Range Query on a spatial data stream
 
