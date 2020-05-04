@@ -2,7 +2,7 @@
 
 GeoFlink is a Java and Scala based extension of Apache Flink --  a scalable opensource distributed streaming engine -- for the real-time processing of bounded and unbounded spatial streams. GeoFlink leverages a grid-based index for preserving spatial data proximity and pruning of objects which cannot be part of a spatial query result thus providing effective data distribution that guarantees reduced query processing time.
 
-GeoFlink supports spatial range, spatial $k$NN and spatial join queries. Details of GeoFlink architecture and experimental study demonstrating GeoFlink achieving higher query performance than other ordinary distributed approaches on real spatial data streams is available here:
+GeoFlink supports spatial range, spatial *k*NN and spatial join queries. Details of GeoFlink architecture and experimental study demonstrating GeoFlink achieving higher query performance than other ordinary distributed approaches on real spatial data streams is available here:
 
 [https://arxiv.org/abs/2004.03352v1](https://arxiv.org/abs/2004.03352v1) 
 
