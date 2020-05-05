@@ -1,10 +1,32 @@
 # GeoFlink: A Scalable Framework for the Real-Time Processing of Spatial Data Streams
 
-GeoFlink is an extension of Apache Flink --  a scalable opensource distributed streaming engine -- for the real-time processing of unbounded spatial streams. GeoFlink leverages a grid-based index for preserving spatial data proximity and pruning of objects which cannot be part of a spatial query result. Thus, providing effective data distribution that guarantees reduced query processing time.
+GeoFlink is an extension of Apache Flink ---  a scalable opensource distributed streaming engine --- for the real-time processing of unbounded spatial streams. GeoFlink leverages a grid-based index for preserving spatial data proximity and pruning of objects which cannot be part of a spatial query result. Thus, providing effective data distribution that guarantees reduced query processing time.
 
 GeoFlink supports spatial range, spatial *k*NN and spatial join queries. Details of GeoFlink architecture and experimental study demonstrating GeoFlink achieving higher query performance than other ordinary distributed approaches is available here:
 
 [https://arxiv.org/abs/2004.03352v1](https://arxiv.org/abs/2004.03352v1) 
+
+## Getting Started
+ ### Requirements:
+ - Java 8
+ - Maven 3.0.4 (or higher)
+- Scala 2.11 or 2.12 (optional for running Scala API)
+- Apache Flink cluster v.1.9.x or higher
+- Apache Kafka cluster  v.2.x.x
+
+Please ensure your Apache Flink and Kafka clusters are configured correctly before running GeoFlink. 
+
+## Running Your First Streaming Job
+Set up your Kafka cluster to stream the Beijing Dataset under the topic name "TaxiDrive17MillionGeoJSON" (**link to dataset or GeoJSON input**)
+
+Flink's Command Line Interface (CLI) can be used to to run streaming jobs that must be packaged as JAR files. We recommend using maven to do this.
+
+To run the provided GeoFlink example queries, go to the project directory(**is this correct directory???**) and run ```mvn clean package``` to convert 'StreamingJob.java' into a ```.jar``` file. Then run it on the cluster with the following command:
+```
+./bin/flink run ./StreamingJob.jar <True> <Query_number> <Radius> <Grid_size> <Window_size> <Slide_step>
+```
+
+
 
 # Spatial Streaming in GeoFlink
 
@@ -15,7 +37,7 @@ All queries illustrated in this section make use of aggregation windows and are 
 In the following code snippets, longitude is referred as X and latitude as Y. 
 
 ## Defining Spatial Boundaries & Creating a Grid Index
-Before running queries on GeoFlink, a Grid index needs to be defined. These are the spatial bounds where all of the spatial objects and query points are expected to lie.  This step generates a grid index, which forms the backbone of GeoFlink's optimized query processing. 
+Before running queries on GeoFlink, a grid index needs to be defined. These are the spatial bounds where all of the spatial objects and query points are expected to lie.  This step generates a grid index, which forms the backbone of GeoFlink's optimized query processing. 
 
 The Grid index is constructed by partitioning the 2D space given by its boundary *(MinX, MinY), (MaxX, MaxY)*  *(MaxX-MinX = MaxY-MinY)* into square shaped cells of length *l*. Smaller *l* results in the finer data distribution and pruning. However, very small *l* increases number of cells exponentially incurring higher processing costs and lowering throughput. 
 
