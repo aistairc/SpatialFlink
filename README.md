@@ -7,7 +7,7 @@ GeoFlink supports spatial range, spatial *k*NN and spatial join queries. Details
 [https://arxiv.org/abs/2004.03352v1](https://arxiv.org/abs/2004.03352v1) 
 
 ## Getting Started
- ### Requirements:
+ ### Requirements
  - Java 8
  - Maven 3.0.4 (or higher)
 - Scala 2.11 or 2.12 (optional for running Scala API)
@@ -16,7 +16,7 @@ GeoFlink supports spatial range, spatial *k*NN and spatial join queries. Details
 
 Please ensure your Apache Flink and Kafka clusters are configured correctly before running GeoFlink. 
 
-## Running Your First Streaming Job
+### Running Your First Streaming Job
 Set up your Kafka cluster to stream the Beijing Dataset under the topic name "TaxiDrive17MillionGeoJSON" (**link to dataset or GeoJSON input**)
 
 Flink's Command Line Interface (CLI) can be used to to run streaming jobs that must be packaged as JAR files. We recommend using maven to do this.
