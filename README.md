@@ -1,34 +1,12 @@
+
 # GeoFlink: A Scalable Framework for the Real-Time Processing of Spatial Data Streams
 
 GeoFlink is an extension of Apache Flink ---  a scalable opensource distributed streaming engine --- for the real-time processing of unbounded spatial streams. GeoFlink leverages a grid-based index for preserving spatial data proximity and pruning of objects which cannot be part of a spatial query result. Thus, providing effective data distribution that guarantees reduced query processing time.
 
-GeoFlink supports spatial range, spatial *k*NN and spatial join queries. Details of GeoFlink architecture and experimental study demonstrating GeoFlink achieving higher query performance than other ordinary distributed approaches is available here:
-
-[https://arxiv.org/abs/2004.03352v1](https://arxiv.org/abs/2004.03352v1) 
-
-## Getting Started
- ### Requirements
- - Java 8
- - Maven 3.0.4 (or higher)
-- Scala 2.11 or 2.12 (optional for running Scala API)
-- Apache Flink cluster v.1.9.x or higher
-- Apache Kafka cluster  v.2.x.x
-
-Please ensure your Apache Flink and Kafka clusters are configured correctly before running GeoFlink. 
-
-### Running Your First Streaming Job
-Set up your Kafka cluster to stream the Beijing Dataset under the topic name "TaxiDrive17MillionGeoJSON" (**link to dataset or GeoJSON input**)
-
-Flink's Command Line Interface (CLI) can be used to to run streaming jobs that must be packaged as JAR files. We recommend using maven to do this.
-
-To run the provided GeoFlink example queries, go to the project directory(**is this correct directory???**) and run ```mvn clean package``` to convert 'StreamingJob.java' into a ```.jar``` file. Then run it on the cluster with the following command:
-```
-./bin/flink run ./StreamingJob.jar <True> <Query_number> <Radius> <Grid_size> <Window_size> <Slide_step>
-```
+GeoFlink supports spatial range, spatial *k*NN and spatial join queries. Details of GeoFlink architecture and experimental study demonstrating GeoFlink achieving higher query performance than other ordinary distributed approaches.
 
 
-
-# Spatial Streaming in GeoFlink
+# Spatial Stream Processing via GeoFlink
 
 GeoFlink currently supports CSV and GeoJSON input formats from Apache Kafka and Point spatial object. Future releases will extend support to other input formats and spatial object types including line and polygon.
 
@@ -36,7 +14,7 @@ All queries illustrated in this section make use of aggregation windows and are 
 
 In the following code snippets, longitude is referred as X and latitude as Y. 
 
-## Defining Spatial Boundaries & Creating a Grid Index
+## Creating a Grid Index
 Before running queries on GeoFlink, a grid index needs to be defined. These are the spatial bounds where all of the spatial objects and query points are expected to lie.  This step generates a grid index, which forms the backbone of GeoFlink's optimized query processing. 
 
 The Grid index is constructed by partitioning the 2D space given by its boundary *(MinX, MinY), (MaxX, MaxY)*  *(MaxX-MinX = MaxY-MinY)* into square shaped cells of length *l*. Smaller *l* results in the finer data distribution and pruning. However, very small *l* increases number of cells exponentially incurring higher processing costs and lowering throughput. 
@@ -126,9 +104,26 @@ where *spatialStream* and *queryStream* denote the ordinary stream and query str
  The query output is generated continuously for each window slide based on the *windowSize* and *windowSlideStep*.
 
 
+## Getting Started
+ ### Requirements
+ - Java 8
+ - Maven 3.0.4 (or higher)
+- Scala 2.11 or 2.12 (optional for running Scala API)
+- Apache Flink cluster v.1.9.x or higher
+- Apache Kafka cluster  v.2.x.x
 
+Please ensure that your Apache Flink and Apache Kafka clusters are configured correctly before running GeoFlink. 
 
-## Sample GeoFlink Code for a Spatial Range Query
+### Running Your First GeoFlink Job
+- Set up your Kafka cluster and load it with a spatial data stream 
+- Download or clone the GeoFlink from [https://github.com/salmanahmedshaikh/GeoFlink](https://github.com/salmanahmedshaikh/GeoFlink)
+- Use your favourite IDE to open the downloaded GeoFlink project. We recommend using intelliJ Idea IDE
+- Use ``` StreamingJob ``` class to write your custom code utilizing the GeoFlink's methods discussed above. In the following we provide a sample GeoFlink code for a spatial range query.
+- One can use IntelliJ GUI to execute the GeoFlink's project on a single node.
+- For a cluster execution, a project's jar file need to be created. To generate the ```.jar``` file, go to the project directory through command line and run ```mvn clean package```
+- The ```.jar``` file can be uploaded and executed through the flink WebUI usually available at [http://localhost:8081](http://localhost:8081/).  
+
+### Sample GeoFlink Code for a Spatial Range Query
 
 
 A sample GeoFlink code written in Java to execute Range Query on a spatial data stream
@@ -149,3 +144,8 @@ A sample GeoFlink code written in Java to execute Range Query on a spatial data 
     int windowSlideStep = 5; // window slide step in seconds
     int queryRadius = 0.5;
     DataStream<Point> rNeighborsStream = RangeQuery.SpatialRangeQuery(spatialStream, queryPoint, radius, windowSize, windowSlideStep, uGrid); 
+
+
+## Publications
+
+ - GeoFlink @ arXiv [https://arxiv.org/abs/2004.03352v1](https://arxiv.org/abs/2004.03352v1) 
