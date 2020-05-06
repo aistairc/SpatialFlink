@@ -8,7 +8,25 @@ GeoFlink supports spatial range, spatial *k*NN and spatial join queries. Details
 
 # Spatial Stream Processing via GeoFlink
 
-GeoFlink currently supports CSV and GeoJSON input formats from Apache Kafka and Point spatial object. Future releases will extend support to other input formats and spatial object types including line and polygon.
+GeoFlink currently supports GeoJSON and CSV input formats from Apache Kafka and Point spatial object. Future releases will extend support to other input formats and spatial object types including line and polygon.
+
+GeoJSON is a format for encoding a variety of geographic data structures. Its basic element consists of the *type*, *geometry* and *properties* members. The geometry member contains its type (`Point`, `LineString`, `Polygon`, `MultiPoint`, `MultiLineString`, and `MultiPolygon`) and coordinates [longitude, latitude]. For details, please see [https://geojson.org/](https://geojson.org/).
+
+
+```json
+{
+  "type": "Feature",
+  "geometry": {
+    "type": "Point",
+    "coordinates": [139.8107, 35.7101]
+  },
+  "properties": {
+    "name": "Tokyo Skytree"
+  }
+}
+```
+
+As for the stream in CSV format, the first and second attribute must be longitude and latitude, respectively.
 
 All queries illustrated in this section make use of aggregation windows and are continuous in nature, i.e., they generate window-based continuous results on the continuous data stream. Namely, one output is generated per window aggregation.
 
@@ -44,8 +62,8 @@ Given a data stream *S*, query point *q*, radius *r* and window parameters, rang
 To execute a spatial range query via GeoFlink, Java/Scala API  *SpatialRangeQuery* method of the *RangeQuery* class is used.
 
 ```
-// Query point creation
-Point queryPoint = new Point(116.414899, 39.920374, uGrid);
+// Query point creation using coordinates (longitude, latitude)
+Point queryPoint = new Point(116.414899, 39.920374, uGrid); 
 
 // Continous range query 
 int windowSize = 10; // window size in seconds
