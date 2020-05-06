@@ -42,37 +42,24 @@ public class Point extends SpatialObject implements Serializable {
 
     public Point() {}; // required for POJO
 
-    public Point(int objID, double x, double y, String timeStamp, UniformGrid uGrid) {
+    public Point(double x, double y, String gridID) {
         GeometryFactory geofact = new GeometryFactory();
         //create geotools point object
         point = geofact.createPoint(new Coordinate(x, y));
-        this.objID = objID;
-        this.timeStamp = timeStamp;
-        assignGridID(uGrid);
-    }
-
-    public Point(int oID, double x, double y, String gridID) {
-        GeometryFactory geofact = new GeometryFactory();
-        //create geotools point object
-        point = geofact.createPoint(new Coordinate(x, y));
-        this.objID = oID;
         this.gridID = gridID;
     }
 
     public Point(double x, double y, UniformGrid uGrid) {
         GeometryFactory geofact = new GeometryFactory();
         point = geofact.createPoint(new Coordinate(x, y));
-        //assignGridID(uGrid, gridCellIDMap, gridCellRTree);
         assignGridID(uGrid);
     }
 
     // To print the point coordinates
     @Override
     public String toString() {
-        return "[" + this.objID + ", " + point.getX() + ", " + point.getY() + ", " + this.gridID + "]";
+        return "[" + point.getX() + ", " + point.getY() + ", " + this.gridID + "]";
     }
-
-
 
 
     //getters
@@ -90,13 +77,6 @@ public class Point extends SpatialObject implements Serializable {
         }
     }
 
-
-    public static class getoID implements MapFunction<Point, Integer> {
-        @Override
-        public Integer map(Point p) throws Exception {
-            return p.objID;
-        }
-    }
 
     public static class getGridID implements MapFunction<Point, String> {
         @Override
@@ -162,7 +142,7 @@ public class Point extends SpatialObject implements Serializable {
         }
     }
 
-    //private void assignGridID(UniformGrid uGrid, BidiMap gridCellIDMap, STRtree gridCellRTree) {
+
     private void assignGridID(UniformGrid uGrid) {
 
         // Direct approach to compute the cellIDs (Key)

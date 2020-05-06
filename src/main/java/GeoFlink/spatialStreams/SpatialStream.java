@@ -59,12 +59,10 @@ public class SpatialStream implements Serializable {
         @Override
         public Point map(ObjectNode json) throws Exception {
 
-            int objID = json.get("value").get("properties").get("oID").asInt();
             String objType = json.get("value").get("geometry").get("type").asText();
-            String timeStamp = json.get("value").get("properties").get("timestamp").asText();
-            Point myPoint = new Point(objID, json.get("value").get("geometry").get("coordinates").get(0).asDouble(), json.get("value").get("geometry").get("coordinates").get(1).asDouble(), timeStamp, uGrid);
+            Point spatialPoint = new Point(json.get("value").get("geometry").get("coordinates").get(0).asDouble(), json.get("value").get("geometry").get("coordinates").get(1).asDouble(), uGrid);
 
-            return myPoint;
+            return spatialPoint;
         }
     }
 
@@ -85,11 +83,9 @@ public class SpatialStream implements Serializable {
 
             List<String> strArrayList = Arrays.asList(strTuple.toString().split("\\s*,\\s*"));
 
-            int objID = Integer.parseInt(strArrayList.get(0));
-            String timeStamp = strArrayList.get(1);
-            Point myPoint = new Point(objID, Double.parseDouble(strArrayList.get(2)), Double.parseDouble(strArrayList.get(3)), timeStamp, uGrid);
+            Point spatialPoint = new Point(Double.parseDouble(strArrayList.get(0)), Double.parseDouble(strArrayList.get(1)), uGrid);
 
-            return myPoint;
+            return spatialPoint;
         }
     }
 

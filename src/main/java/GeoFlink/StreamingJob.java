@@ -150,15 +150,18 @@ public class StreamingJob implements Serializable {
 
 			case 1: { // Range Query (Grid-based)
 				DataStream<Point> rNeighbors= RangeQuery.SpatialRangeQuery(spatialStream, queryPoint, radius, windowSize, windowSlideStep, uGrid);  // better than equivalent GB approach
+				rNeighbors.print();
 				break;}
 			case 2: { // KNN (Grid based - Iterative approach)
 				DataStream < PriorityQueue < Tuple2 < Point, Double >>> kNNPQStream = KNNQuery.SpatialKNNQuery(spatialStream, queryPoint, k, windowSize, windowSlideStep, uGrid);
+				kNNPQStream.print();
 				break;}
 			case 3: { // Spatial Join (Grid-based)
 				DataStream geoJSONQueryStream  = env.addSource(new FlinkKafkaConsumer<>("TaxiDriveQueries1MillionGeoJSON_Live", new JSONKeyValueDeserializationSchema(false),kafkaProperties).setStartFromLatest());
 				//DataStream<Point> queryStream = queryStreamJSON.map(new SpatialStream.GeoJSONToSpatial(uGrid)).startNewChain();
 				DataStream<Point> queryStream = SpatialStream.PointStream(geoJSONQueryStream, "GeoJSON", uGrid);
 				DataStream<Tuple2<String, String>> spatialJoinStream = JoinQuery.SpatialJoinQuery(spatialStream, queryStream, radius, windowSize, windowSlideStep, uGrid);
+				spatialJoinStream.print();
 				break;}
 			default:
 				System.out.println("Input Unrecognized. Please select option from 1-3.");

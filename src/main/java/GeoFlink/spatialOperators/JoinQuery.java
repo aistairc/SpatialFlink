@@ -78,8 +78,8 @@ public class JoinQuery implements Serializable {
                 HashSet<String> neighboringCells = uGrid.getNeighboringCells(queryRadius, queryPoint);
 
                 // Create duplicated query points
-                for (String cellID: neighboringCells) {
-                    Point p = new Point(queryPoint.objID, queryPoint.point.getX(), queryPoint.point.getY(), cellID);
+                for (String gridID: neighboringCells) {
+                    Point p = new Point(queryPoint.point.getX(), queryPoint.point.getY(), gridID);
                     out.collect(p);
                 }
             }

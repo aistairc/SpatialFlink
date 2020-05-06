@@ -59,9 +59,9 @@ public class KNNQuery implements Serializable {
             public boolean filter(Point p) throws Exception {
 
                 // Recompute filterationCellsSet on the arrival of control tuple
-                if(p.objID == -99999){
+                if(p.gridID.equals("9999999999")){
                     filterationNeighboringLayers = uGrid.getCandidateNeighboringLayers(p.point.getX() * queryRadiusMultFactor);
-                    //System.out.println("Received feedback tuple, filterationNeighboringLayers: " + filterationNeighboringLayers);
+                    //System.out.println("Received feedback tuple");
                     return false;
                 }
 
@@ -143,7 +143,8 @@ public class KNNQuery implements Serializable {
 
                         // Adding the control tuple
                         double largestDistInkNNPQ = kNNPQWinAll.peek().f1;
-                        Point feedbackTuple = new Point(-99999, largestDistInkNNPQ, largestDistInkNNPQ, "9999999999" );
+                        //Point feedbackTuple = new Point(-99999, largestDistInkNNPQ, largestDistInkNNPQ, "9999999999" );
+                        Point feedbackTuple = new Point(largestDistInkNNPQ, largestDistInkNNPQ, "9999999999" );
                         controlPQ.offer(new Tuple2<Point, Double>(feedbackTuple, -99999.99999));
 
                         output.collect(controlPQ);
