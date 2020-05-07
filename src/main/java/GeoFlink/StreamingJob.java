@@ -31,106 +31,46 @@ import org.apache.flink.api.java.tuple.Tuple4;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.RestOptions;
+import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
 import org.apache.flink.streaming.util.serialization.JSONKeyValueDeserializationSchema;
 import scala.Serializable;
-
-
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Properties;
 
-/**
- * Skeleton for a Flink Streaming Job.
- *
- * <p>For a tutorial how to write a Flink streaming application, check the
- * tutorials and examples on the <a href="http://flink.apache.org/docs/stable/">Flink Website</a>.
- *
- * <p>To package your application into a JAR file for execution, run
- * 'mvn clean package' on the command line.
- *
- * <p>If you change the name of the main class (with the public static void main(String[] args))
- * method, change the respective entry in the POM.xml file (simply search for 'mainClass').
- */
+
 public class StreamingJob implements Serializable {
 
 	public static void main(String[] args) throws Exception {
 
 		Configuration config = new Configuration();
 		config.setBoolean(ConfigConstants.LOCAL_START_WEBSERVER, true);
-		config.setString(RestOptions.BIND_PORT, "8081-8099");  // Can be commented if default port is available
+		config.setString(RestOptions.BIND_PORT, "8081");
 
 		// set up the streaming execution environment
-		final StreamExecutionEnvironment env;
+		final StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(config);
+		env.setStreamTimeCharacteristic(TimeCharacteristic.ProcessingTime);
 
-		//INPUT FORMAT FOR CLUSTER: <True> <Query_number> <Radius> <Grid_size> <Window_size> <Slide_step>
-		if(args.length < 1)
-		{
-			System.out.println("At-leaset one argument must be provided. |true| for cluster and |false| for local processing");
-			System.exit(0);
-		}
-
-		boolean onCluster = Boolean.parseBoolean(args[0]);
-		String topicName;
-		String bootStrapServers;
+		String topicName = "sparkStream";
+		String bootStrapServers = "localhost:9092";
 		int queryOption = 1;
-		double radius = 0;
+		double radius =  0.004;
 		int uniformGridSize = 100;
-		int windowSlideStep = 0;
-		int windowSize = 0;
-		int k = 3; // default value
+		int windowSize = 10; // in seconds
+		int windowSlideStep = 5; // in seconds
+		int k = 3;
 
-		if (onCluster) {
-
-			if(args.length < 7)
-			{
-				System.out.println("Input argument if onCluster (true/false) and the query option.");
-				System.out.println("INPUT FORMAT FOR CLUSTER: <True> <Query_number> <Radius> <Grid_size> <Window_size> <Slide_step> <k>, E.g.: True 1 0.01 100 1 1 3");
-				System.exit(0);
-			}
-
-			env = StreamExecutionEnvironment.getExecutionEnvironment();
-
-			queryOption =  Integer.parseInt(args[1]);
-			radius =  Double.parseDouble(args[2]);
-			uniformGridSize = Integer.parseInt(args[3]);
-			windowSize = Integer.parseInt(args[4]);
-			windowSlideStep = Integer.parseInt(args[5]);
-			k = Integer.parseInt(args[6]);
-			bootStrapServers = "172.16.0.64:9092, 172.16.0.81:9092";
-			topicName = "TaxiDriveGeoJSON_17M_R2_P60";
-
-		}else{
-
-			env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(config);
-
-			queryOption = 2;
-			radius =  0.004;
-			uniformGridSize = 150;
-			windowSize = 10;
-			windowSlideStep = 5;
-			k = 3;
-			bootStrapServers = "localhost:9092";
-			topicName = "TaxiDrive17MillionGeoJSON";
-		}
-
-		// Defining Grid
-
-		// Boundaries for Foursquare check-in datasets
-		//double maxX = -73.683825;       //X - East-West longitude
-		//double minX = -74.274766;
-		//double maxY = 40.988332;        //Y - North-South latitude
-		//double minY = 40.550852;
-
-		// Boundaries for Taxi Drive datasets
+		// Boundaries for Taxi Drive dataset
 		double minX = 115.50000;     //X - East-West longitude
 		double maxX = 117.60000;
 		double minY = 39.60000;     //Y - North-South latitude
 		double maxY = 41.10000;
-		UniformGrid uGrid = new UniformGrid(uniformGridSize, minX, maxX, minY, maxY);
 
+		// Defining Grid
+		UniformGrid uGrid = new UniformGrid(uniformGridSize, minX, maxX, minY, maxY);
 
 		// Preparing Kafka Connection to Get Stream Tuples
 		Properties kafkaProperties = new Properties();
@@ -139,12 +79,12 @@ public class StreamingJob implements Serializable {
 		DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(topicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 		//DataStream csvStream  = env.addSource(new FlinkKafkaConsumer<>(topicName, new SimpleStringSchema(), kafkaProperties).setStartFromEarliest());
 
-		// Converting GeoJSON,CSV stream to Spatial data stream (point)
+		// Converting GeoJSON,CSV stream to point spatial data stream
 		DataStream<Point> spatialStream = SpatialStream.PointStream(geoJSONStream, "GeoJSON", uGrid);
 		//DataStream<Point> spatialStream = SpatialStream.PointStream(csvStream, "CSV", uGrid);
 
+		// Creating a query point
 		Point queryPoint = new Point(116.414899, 39.920374, uGrid);
-		System.out.println("Query Point" + queryPoint);
 
 		switch(queryOption) {
 
@@ -158,13 +98,12 @@ public class StreamingJob implements Serializable {
 				break;}
 			case 3: { // Spatial Join (Grid-based)
 				DataStream geoJSONQueryStream  = env.addSource(new FlinkKafkaConsumer<>("TaxiDriveQueries1MillionGeoJSON_Live", new JSONKeyValueDeserializationSchema(false),kafkaProperties).setStartFromLatest());
-				//DataStream<Point> queryStream = queryStreamJSON.map(new SpatialStream.GeoJSONToSpatial(uGrid)).startNewChain();
 				DataStream<Point> queryStream = SpatialStream.PointStream(geoJSONQueryStream, "GeoJSON", uGrid);
 				DataStream<Tuple2<String, String>> spatialJoinStream = JoinQuery.SpatialJoinQuery(spatialStream, queryStream, radius, windowSize, windowSlideStep, uGrid);
 				spatialJoinStream.print();
 				break;}
 			default:
-				System.out.println("Input Unrecognized. Please select option from 1-3.");
+				System.out.println("Input Unrecognized. Please select an option from 1-3.");
 		}
 
 		// execute program
