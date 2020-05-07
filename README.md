@@ -1,5 +1,5 @@
 
-# GeoFlink: A Scalable Framework for the Real-Time Processing of Spatial Data Streams
+# GeoFlink: A Distributed Framework for the Real-Time Processing of Spatial Data Streams
 
 ## Table of Contents
 1. [ Introduction ](#intro)
