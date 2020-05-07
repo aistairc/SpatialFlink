@@ -7,9 +7,9 @@
 
     1. [ Creating a Grid Index ](#gridIndex)
     2. [ Defining a Spatial Data Stream ](#defineSpatialStream)
-    3. [ Continuous Range Query ](#range)
-    4. [ Continuous *k*NN Query ](#kNN)
-    5. [ Continuous Join Query ](#join)
+    3. [ Continuous Spatial Range Query ](#range)
+    4. [ Continuous Spatial *k*NN Query ](#kNN)
+    5. [ Continuous Spatial Join Query ](#join)
 3. [ Getting Started ](#gettingStarted)
     1. [ Requirements ](#requirements)
     2. [ Running Your First GeoFlink Job ](#firstJob)
@@ -77,7 +77,7 @@ DataStream<Point> spatialStream = SpatialStream.PointStream(kafkaStream, "GeoJSO
 where *uGrid* is the grid index.
 
 <a name="range"></a>
-### Continuous Range Query
+### Continuous Spatial Range Query
 Given a data stream *S*, query point *q*, radius *r* and window parameters, range query returns the *r*-neighbours of *q* in *S* for each aggregation window.
 
 To execute a spatial range query via GeoFlink, Java/Scala API  *SpatialRangeQuery* method of the *RangeQuery* class is used.
@@ -96,7 +96,7 @@ DataStream<Point> rNeighborsStream = RangeQuery.SpatialRangeQuery(spatialStream,
 where *spatialStream* is a spatial data stream, *queryPoint* denotes a query point, *radius* denotes the range query radius, *windowSize* and *windowSlideStep* denote the sliding window size and slide step respectively and *uGrid* denotes the grid index. The query output is generated continuously for each window slide based on size and slide step.
 
 <a name="kNN"></a>
-### Continuous *k*NN Query
+### Continuous Spatial *k*NN Query
 
 Given a data stream *S*, a query point *q*, a positive integer *k* and window parameters, *k*NN query returns *k* nearest neighbours of *q* in *S* for each slide of the aggregation window.
 
@@ -122,7 +122,7 @@ where *k* denotes the number of points required in the *k*NN output, *spatialStr
 
 
 <a name="join"></a>
-### Continuous Join Query
+### Continuous Spatial Join Query
 Given two streams *S1* (Ordinary stream) and *S2* (Query stream), a radius *r* and window parameters, spatial join query returns all the points in *S1* that lie within the radius *r* of *S2* points for each aggregation window.
 
 To execute a spatial join query via the GeoFlink Java/Scala API  *SpatialJoinQuery* method of the *JoinQuery* class is used. The query output is generated continuously for each window slide based on the *windowSize* and *windowSlideStep*.
@@ -157,12 +157,12 @@ Please ensure that your Apache Flink and Apache Kafka clusters are configured co
 
 <a name="firstJob"></a>
 ### Running Your First GeoFlink Job
-- Set up your Kafka cluster and load it with a spatial data stream 
-- Download or clone the GeoFlink from [https://github.com/salmanahmedshaikh/GeoFlink](https://github.com/salmanahmedshaikh/GeoFlink)
-- Use your favourite IDE to open the downloaded GeoFlink project. We recommend using intelliJ Idea IDE
+- Set up your Kafka cluster and load it with a spatial data stream.
+- Download or clone the GeoFlink from [https://github.com/salmanahmedshaikh/GeoFlink](https://github.com/salmanahmedshaikh/GeoFlink).
+- Use your favourite IDE to open the downloaded GeoFlink project. We recommend using intelliJ Idea IDE.
 - Use ``` StreamingJob ``` class to write your custom code utilizing the GeoFlink's methods discussed above. In the following we provide a sample GeoFlink code for a spatial range query.
-- One can use IntelliJ GUI to execute the GeoFlink's project on a single node.
-- For a cluster execution, a project's jar file need to be created. To generate the ```.jar``` file, go to the project directory through command line and run ```mvn clean package```
+- One can use IntelliJ IDE to execute the GeoFlink's project on a single node.
+- For a cluster execution, a project's jar file need to be created. To generate the ```.jar``` file, go to the project directory through command line and run ```mvn clean package```.
 - The ```.jar``` file can be uploaded and executed through the flink WebUI usually available at [http://localhost:8081](http://localhost:8081/).  
 
 <a name="sampleCode"></a>
