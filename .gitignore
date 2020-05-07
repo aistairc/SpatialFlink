@@ -6,6 +6,10 @@ obj/
 output/
 
 
+# Don't track the following source file #
+########################################
+src/main/java/GeoFlink/StreamingJob.java
+
 # Don't track the Compiled source #
 ##################################
 *.com

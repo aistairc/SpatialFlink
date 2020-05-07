@@ -54,6 +54,9 @@ public class StreamingJob implements Serializable {
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(config);
 		env.setStreamTimeCharacteristic(TimeCharacteristic.ProcessingTime);
 
+
+
+		String test = "";
 		String topicName = "sparkStream";
 		String bootStrapServers = "localhost:9092";
 		int queryOption = 1;
