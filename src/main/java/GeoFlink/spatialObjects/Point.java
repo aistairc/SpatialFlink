@@ -55,6 +55,14 @@ public class Point extends SpatialObject implements Serializable {
         assignGridID(uGrid);
     }
 
+    public Point(double x, double y, long timeStampMillisec, UniformGrid uGrid) {
+        GeometryFactory geofact = new GeometryFactory();
+        //create geotools point object
+        point = geofact.createPoint(new Coordinate(x, y));
+        this.timeStampMillisec = timeStampMillisec;
+        assignGridID(uGrid);
+    }
+
     // To print the point coordinates
     @Override
     public String toString() {

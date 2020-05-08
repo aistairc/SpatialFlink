@@ -23,7 +23,7 @@ import java.io.Serializable;
 public class SpatialObject extends Object implements Serializable {
 
     //TODO: Assign timestamp
-    //public String timeStamp;
+    public long timeStampMillisec;
 
     public SpatialObject() {}
 
