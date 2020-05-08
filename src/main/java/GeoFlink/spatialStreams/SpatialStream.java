@@ -66,7 +66,7 @@ public class SpatialStream implements Serializable {
         }
     }
 
-    // Assuming that csv string contains objectID, timestamp, longitude, latitude at
+    // Assuming that csv string contains longitude and latitude at positions 0 and 1, respectively
     public static class CSVToSpatial extends RichMapFunction<ObjectNode, Point> {
 
         UniformGrid uGrid;

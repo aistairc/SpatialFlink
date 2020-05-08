@@ -1,5 +1,5 @@
 
-# GeoFlink: A Scalable Framework for the Real-Time Processing of Spatial Data Streams
+# GeoFlink: A Distributed Framework for the Real-Time Processing of Spatial Data Streams
 
 ## Table of Contents
 1. [ Introduction ](#intro)
@@ -15,6 +15,7 @@
     2. [ Running Your First GeoFlink Job ](#firstJob)
 4. [ Sample GeoFlink Code for a Spatial Range Query ](#sampleCode)
 5. [ Publications ](#publications)
+6. [ Contact Us! ](#contact)
 
 
 <a name="intro"></a>
@@ -191,3 +192,8 @@ A sample GeoFlink code written in Java to execute Range Query on a spatial data 
 ## Publications
 
  - GeoFlink @ arXiv [https://arxiv.org/abs/2004.03352v1](https://arxiv.org/abs/2004.03352v1) 
+ 
+
+<a name="contact"></a>
+## Contact Us!
+For queries and suggestions, please contact us @ shaikh.salman@aist.go.jp
