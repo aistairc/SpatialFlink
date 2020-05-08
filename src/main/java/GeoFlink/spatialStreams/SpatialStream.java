@@ -59,7 +59,6 @@ public class SpatialStream implements Serializable {
         @Override
         public Point map(ObjectNode json) throws Exception {
 
-            String objType = json.get("value").get("geometry").get("type").asText();
             Point spatialPoint = new Point(json.get("value").get("geometry").get("coordinates").get(0).asDouble(), json.get("value").get("geometry").get("coordinates").get(1).asDouble(), uGrid);
 
             return spatialPoint;
@@ -82,7 +81,6 @@ public class SpatialStream implements Serializable {
         public Point map(ObjectNode strTuple) throws Exception {
 
             List<String> strArrayList = Arrays.asList(strTuple.toString().split("\\s*,\\s*"));
-
             Point spatialPoint = new Point(Double.parseDouble(strArrayList.get(0)), Double.parseDouble(strArrayList.get(1)), uGrid);
 
             return spatialPoint;
