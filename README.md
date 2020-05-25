@@ -1,4 +1,3 @@
-
 # GeoFlink: A Distributed Framework for the Real-Time Processing of Spatial Data Streams
 
 ## Table of Contents
@@ -9,6 +8,8 @@
     2. [ Defining a Spatial Data Stream ](#defineSpatialStream)
     3. [ Continuous Spatial Range Query ](#range)
     4. [ Continuous Spatial *k*NN Query ](#kNN)
+	   <!--  1. [Fixed Radius *k*NN](#FkNN)  
+	    2. [Iterative *k*NN](#IkNN) -->
     5. [ Continuous Spatial Join Query ](#join)
 3. [ Getting Started ](#gettingStarted)
     1. [ Requirements ](#requirements)
@@ -97,7 +98,32 @@ DataStream<Point> rNeighborsStream = RangeQuery.SpatialRangeQuery(spatialStream,
 where *spatialStream* is a spatial data stream, *queryPoint* denotes a query point, *radius* denotes the range query radius, *windowSize* and *windowSlideStep* denote the sliding window size and slide step respectively and *uGrid* denotes the grid index. The query output is generated continuously for each window slide based on size and slide step.
 
 <a name="kNN"></a>
+<a name="FkNN"></a>
 ### Continuous Spatial *k*NN Query
+Given a data stream *S*, a query point *q*, a query radius *r*, a positive integer *k* and window parameters, *k*NN query returns the nearest *k* *r*-neighbours of *q* in *S* for each slide of the aggregation window. If less than *k* nearest neighbours of *q* lie within the *r* distance of *q* in *S*, then all the *r*-neighbours are returned.
+
+To execute a spatial *k*NN query in GeoFlink, *SpatialKNNQuery* method of the *KNNQuery* class is used.
+```
+// Query point creation
+Point queryPoint = new Point(116.414899, 39.920374, uGrid);
+
+// Define input parameters
+k = 50
+int windowSize = 10; // window size in seconds
+int windowSlideStep = 5; // window slide step in seconds
+int queryRadius = 0.5;
+
+// Register a spatial kNN query
+DataStream <PriorityQueue<Tuple2<Point, Double>>> outputStream = KNNQuery.SpatialKNNQuery(spatialStream, queryPoint, queryRadius, k, windowSize, windowSlideStep, uGrid);
+```
+where *k* denotes the number of points required in the *k*NN output, *spatialStream* denotes a spatial data stream, *queryPoint* denotes a query point,  *queryRadius* denotes the max query radius to search for *k*NN, *windowSize* and *windowSlideStep* denote the sliding window size and slide step respectively and *uGrid* denotes the grid index. 
+
+
+ Please note that the output stream is a stream of priority queue which is a sorted list of *k*NNs with respect to the distance from the query point *q*. The query output is generated continuously for each window slide based on the *windowSize* and *windowSlideStep*.
+
+<!--
+<a name="IkNN"></a>
+### Continuous Iterative Spatial *k*NN Query
 
 Given a data stream *S*, a query point *q*, a positive integer *k* and window parameters, *k*NN query returns *k* nearest neighbours of *q* in *S* for each slide of the aggregation window.
 
@@ -120,6 +146,7 @@ where *k* denotes the number of points required in the *k*NN output, *spatialStr
 
 
  Please note that the output stream is a stream of priority queue which is a sorted list of *k*NNs with respect to the distance from the query point *q*. The query output is generated continuously for each window slide based on the *windowSize* and *windowSlideStep*.
+ -->
 
 
 <a name="join"></a>
