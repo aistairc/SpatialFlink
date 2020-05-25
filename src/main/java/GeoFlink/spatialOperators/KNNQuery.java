@@ -45,7 +45,7 @@ public class KNNQuery implements Serializable {
     public KNNQuery() {}
 
     // Grid-based approach - Iterative Distributed
-    public static DataStream<PriorityQueue<Tuple2<Point, Double>>> SpatialKNNQuery(DataStream<Point> pointStream, Point queryPoint, Integer k, int windowSize, int windowSlideStep, UniformGrid uGrid) throws IOException {
+    public static DataStream<PriorityQueue<Tuple2<Point, Double>>> SpatialIterativeKNNQuery(DataStream<Point> pointStream, Point queryPoint, Integer k, int windowSize, int windowSlideStep, UniformGrid uGrid) throws IOException {
 
         // Control tuple oID = -99999
         IterativeStream<Point> iterativeKeyedStream = pointStream.iterate();
@@ -178,7 +178,7 @@ public class KNNQuery implements Serializable {
     }
 
 
-    public static DataStream<PriorityQueue<Tuple2<Point, Double>>> SpatialFixedRadiusKNNQuery(DataStream<Point> pointStream, Point queryPoint, double queryRadius, Integer k, int windowSize, int windowSlideStep, UniformGrid uGrid) throws IOException {
+    public static DataStream<PriorityQueue<Tuple2<Point, Double>>> SpatialKNNQuery(DataStream<Point> pointStream, Point queryPoint, double queryRadius, Integer k, int windowSize, int windowSlideStep, UniformGrid uGrid) throws IOException {
 
         Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint);
         Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryPoint, guaranteedNeighboringCells);
