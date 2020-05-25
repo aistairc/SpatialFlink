@@ -2,6 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="1324c6e9-e930-41b7-8e36-209d061d1d70" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/GeoFlink/spatialOperators/KNNQuery.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/GeoFlink/spatialOperators/KNNQuery.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/GeoFlink/spatialOperators/RangeQuery.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/GeoFlink/spatialOperators/RangeQuery.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/GeoFlink/spatialStreams/SpatialStream.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/GeoFlink/spatialStreams/SpatialStream.java" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />

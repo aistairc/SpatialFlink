@@ -88,5 +88,3 @@ public class SpatialStream implements Serializable {
     }
 
 }
-
-

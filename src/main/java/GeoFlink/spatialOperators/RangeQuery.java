@@ -47,7 +47,7 @@ public class RangeQuery implements Serializable {
             }
         });
 
-        DataStream<Point> unaggregatedNeighbours = filteredPoints.keyBy(new KeySelector<Point, String>() {
+        DataStream<Point> rangeQueryNeighbours = filteredPoints.keyBy(new KeySelector<Point, String>() {
             @Override
             public String getKey(Point p) throws Exception {
                 return p.gridID;
@@ -68,16 +68,15 @@ public class RangeQuery implements Serializable {
                     }
                 }).name("Windowed (Apply) Grid Based");
 
-        DataStream<Point> AggregatedNeighbours = unaggregatedNeighbours.windowAll(SlidingProcessingTimeWindows.of(Time.seconds(windowSize), Time.seconds(slideStep)))
-                .apply(new AllWindowFunction<Point, Point, TimeWindow>() {
-                    @Override
-                    public void apply(TimeWindow timeWindow, Iterable<Point> pointIterator, Collector<Point> neighbors) throws Exception {
-                        for (Point point : pointIterator) {
-                            neighbors.collect(point);
-                        }
-                    }
-                });
-
-        return AggregatedNeighbours;
+//        DataStream<Point> aggregatedNeighbours = rangeQueryNeighbours.windowAll(SlidingProcessingTimeWindows.of(Time.seconds(windowSize), Time.seconds(slideStep)))
+//                .apply(new AllWindowFunction<Point, Point, TimeWindow>() {
+//                    @Override
+//                    public void apply(TimeWindow timeWindow, Iterable<Point> pointIterator, Collector<Point> neighbors) throws Exception {
+//                        for (Point point : pointIterator) {
+//                            neighbors.collect(point);
+//                        }
+//                    }
+//                });
+        return rangeQueryNeighbours;
     }
 }

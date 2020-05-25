@@ -22,6 +22,7 @@ import GeoFlink.utils.HelperClass;
 import GeoFlink.utils.SpatialDistanceComparator;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.FlatMapFunction;
+import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -37,6 +38,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.PriorityQueue;
+import java.util.Set;
 
 public class KNNQuery implements Serializable {
 
@@ -173,5 +175,89 @@ public class KNNQuery implements Serializable {
                 return (inputTuple.peek().f1 >= 0);
             }
         });
+    }
+
+
+    public static DataStream<PriorityQueue<Tuple2<Point, Double>>> SpatialFixedRadiusKNNQuery(DataStream<Point> pointStream, Point queryPoint, double queryRadius, Integer k, int windowSize, int windowSlideStep, UniformGrid uGrid) throws IOException {
+
+        Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint);
+        Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryPoint, guaranteedNeighboringCells);
+
+        DataStream<Point> filteredPoints = pointStream.filter(new FilterFunction<Point>() {
+            @Override
+            public boolean filter(Point point) throws Exception {
+                return ((candidateNeighboringCells.contains(point.gridID)) || (guaranteedNeighboringCells.contains(point.gridID)));
+            }
+        });
+
+        DataStream<PriorityQueue<Tuple2<Point, Double>>> windowedKNN = filteredPoints.keyBy(new KeySelector<Point, String>() {
+            @Override
+            public String getKey(Point p) throws Exception {
+                return p.gridID;
+            }
+        }).window(SlidingProcessingTimeWindows.of(Time.seconds(windowSize), Time.seconds(windowSlideStep)))
+                .apply(new WindowFunction<Point, PriorityQueue<Tuple2<Point, Double>>, String, TimeWindow>() {
+
+                    PriorityQueue<Tuple2<Point, Double>> kNNPQ = new PriorityQueue<Tuple2<Point, Double>>(k, new SpatialDistanceComparator(queryPoint));
+
+                    @Override
+                    public void apply(String gridID, TimeWindow timeWindow, Iterable<Point> inputTuples, Collector<PriorityQueue<Tuple2<Point, Double>>> outputStream) throws Exception {
+                        kNNPQ.clear();
+
+                        for (Point p : inputTuples) {
+
+                            if (kNNPQ.size() < k) {
+                                double distance = HelperClass.computeEuclideanDistance(p.point.getX(), p.point.getY(), queryPoint.point.getX(), queryPoint.point.getY());
+                                kNNPQ.offer(new Tuple2<Point, Double>(p, distance));
+                            } else {
+                                double distance = HelperClass.computeEuclideanDistance(p.point.getX(), p.point.getY(), queryPoint.point.getX(), queryPoint.point.getY());
+                                double largestDistInPQ = HelperClass.computeEuclideanDistance(kNNPQ.peek().f0.point.getX(), kNNPQ.peek().f0.point.getY(), queryPoint.point.getX(), queryPoint.point.getY());
+
+                                if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
+                                    kNNPQ.poll();
+                                    kNNPQ.offer(new Tuple2<Point, Double>(p, distance));
+                                }
+                            }
+                        }
+
+                        // Output stream
+                        outputStream.collect(kNNPQ);
+                    }
+                }).name("Windowed (Apply) Grid Based");
+
+
+        // windowAll to Generate integrated kNN -
+        DataStream<PriorityQueue<Tuple2<Point, Double>>> windowAllKNN = windowedKNN
+                .windowAll(SlidingProcessingTimeWindows.of(Time.seconds(windowSize),Time.seconds(windowSlideStep)))
+                .apply(new AllWindowFunction<PriorityQueue<Tuple2<Point, Double>>, PriorityQueue<Tuple2<Point, Double>>, TimeWindow>() {
+
+                    PriorityQueue<Tuple2<Point, Double>> kNNPQWinAll = new PriorityQueue<Tuple2<Point, Double>>(k, new SpatialDistanceComparator(queryPoint));
+
+                    @Override
+                    public void apply(TimeWindow timeWindow, Iterable<PriorityQueue<Tuple2<Point, Double>>> input, Collector<PriorityQueue<Tuple2<Point, Double>>> output) throws Exception {
+                        kNNPQWinAll.clear();
+                        // Iterate through all PriorityQueues
+                        for (PriorityQueue<Tuple2<Point, Double>> pq : input) {
+                            for(Tuple2<Point, Double> pqTuple: pq) {
+                                if (kNNPQWinAll.size() < k) {
+                                    kNNPQWinAll.offer(pqTuple);
+                                }
+                                else{
+                                    double largestDistInkNNPQ = kNNPQWinAll.peek().f1;
+                                    if(largestDistInkNNPQ > pqTuple.f1){ // remove element with the largest distance and add the new element
+                                        kNNPQWinAll.poll();
+                                        kNNPQWinAll.offer(pqTuple);
+                                    }
+                                }
+                            }
+                        }
+
+                        // Adding the windowedAll output
+                        output.collect(kNNPQWinAll);
+                    }
+                });
+
+        //Output kNN Stream
+        return windowAllKNN;
     }
 }
