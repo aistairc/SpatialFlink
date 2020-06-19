@@ -31,7 +31,6 @@ import org.apache.flink.api.java.tuple.Tuple4;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.RestOptions;
-import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
@@ -41,30 +40,67 @@ import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Properties;
 
-
 public class StreamingJob implements Serializable {
 
 	public static void main(String[] args) throws Exception {
 
 		Configuration config = new Configuration();
 		config.setBoolean(ConfigConstants.LOCAL_START_WEBSERVER, true);
-		config.setString(RestOptions.BIND_PORT, "8081");
+		config.setString(RestOptions.BIND_PORT, "8081");  // Can be commented if default port is available
 
-		// set up the streaming execution environment
-		final StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(config);
-		env.setStreamTimeCharacteristic(TimeCharacteristic.ProcessingTime);
+		// Set up the streaming execution environment
+		final StreamExecutionEnvironment env;
 
+		//INPUT FORMAT FOR CLUSTER: <True> <Query_number> <Radius> <Grid_size> <Window_size> <Slide_step>
+		if(args.length < 1)
+		{
+			System.out.println("At-leaset one argument must be provided. |true| for cluster and |false| for local processing");
+			System.exit(0);
+		}
 
-
-		String test = "";
-		String topicName = "sparkStream";
-		String bootStrapServers = "localhost:9092";
-		int queryOption = 1;
-		double radius =  0.004;
+		boolean onCluster = Boolean.parseBoolean(args[0]);
+		String topicName;
+		String bootStrapServers;
+		int queryOption = 3;
+		double radius = 0;
 		int uniformGridSize = 100;
-		int windowSize = 10; // in seconds
-		int windowSlideStep = 5; // in seconds
-		int k = 3;
+		int windowSlideStep = 0;
+		int windowSize = 0;
+		int k = 3; // default value
+
+		if (onCluster) {
+
+			if(args.length < 7)
+			{
+				System.out.println("Input argument if onCluster (true/false) and the query option.");
+				System.out.println("INPUT FORMAT FOR CLUSTER: <True> <Query_number> <Radius> <Grid_size> <Window_size> <Slide_step> <k>, E.g.: True 1 0.01 100 1 1 3");
+				System.exit(0);
+			}
+
+			env = StreamExecutionEnvironment.getExecutionEnvironment();
+
+			queryOption =  Integer.parseInt(args[1]);
+			radius =  Double.parseDouble(args[2]);
+			uniformGridSize = Integer.parseInt(args[3]);
+			windowSize = Integer.parseInt(args[4]);
+			windowSlideStep = Integer.parseInt(args[5]);
+			k = Integer.parseInt(args[6]);
+			bootStrapServers = "172.16.0.64:9092, 172.16.0.81:9092";
+			topicName = "TaxiDriveGeoJSON_17M_R2_P60";
+
+		}else{
+
+			env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(config);
+
+			queryOption = 2;
+			radius =  0.004;
+			uniformGridSize = 150;
+			windowSize = 10;
+			windowSlideStep = 5;
+			k = 3;
+			bootStrapServers = "localhost:9092";
+			topicName = "TaxiDrive17MillionGeoJSON";
+		}
 
 		// Boundaries for Taxi Drive dataset
 		double minX = 115.50000;     //X - East-West longitude
@@ -86,7 +122,6 @@ public class StreamingJob implements Serializable {
 		DataStream<Point> spatialStream = SpatialStream.PointStream(geoJSONStream, "GeoJSON", uGrid);
 		//DataStream<Point> spatialStream = SpatialStream.PointStream(csvStream, "CSV", uGrid);
 
-		// Creating a query point
 		Point queryPoint = new Point(116.414899, 39.920374, uGrid);
 
 		switch(queryOption) {
@@ -95,21 +130,25 @@ public class StreamingJob implements Serializable {
 				DataStream<Point> rNeighbors= RangeQuery.SpatialRangeQuery(spatialStream, queryPoint, radius, windowSize, windowSlideStep, uGrid);  // better than equivalent GB approach
 				rNeighbors.print();
 				break;}
-			case 2: { // KNN (Grid based - Iterative approach)
-				DataStream < PriorityQueue < Tuple2 < Point, Double >>> kNNPQStream = KNNQuery.SpatialKNNQuery(spatialStream, queryPoint, k, windowSize, windowSlideStep, uGrid);
+			case 2: { // KNN (Grid based - fixed radius)
+				DataStream < PriorityQueue < Tuple2 < Point, Double >>> kNNPQStream = KNNQuery.SpatialKNNQuery(spatialStream, queryPoint, radius, k, windowSize, windowSlideStep, uGrid);
 				kNNPQStream.print();
 				break;}
-			case 3: { // Spatial Join (Grid-based)
+			case 3: { // KNN (Grid based - Iterative approach)
+				DataStream < PriorityQueue < Tuple2 < Point, Double >>> kNNPQStream = KNNQuery.SpatialIterativeKNNQuery(spatialStream, queryPoint, k, windowSize, windowSlideStep, uGrid);
+				kNNPQStream.print();
+				break;}
+			case 4: { // Spatial Join (Grid-based)
 				DataStream geoJSONQueryStream  = env.addSource(new FlinkKafkaConsumer<>("TaxiDriveQueries1MillionGeoJSON_Live", new JSONKeyValueDeserializationSchema(false),kafkaProperties).setStartFromLatest());
 				DataStream<Point> queryStream = SpatialStream.PointStream(geoJSONQueryStream, "GeoJSON", uGrid);
 				DataStream<Tuple2<String, String>> spatialJoinStream = JoinQuery.SpatialJoinQuery(spatialStream, queryStream, radius, windowSize, windowSlideStep, uGrid);
 				spatialJoinStream.print();
 				break;}
 			default:
-				System.out.println("Input Unrecognized. Please select an option from 1-3.");
+				System.out.println("Input Unrecognized. Please select option from 1-3.");
 		}
 
-		// execute program
+		// Execute program
 		env.execute("Geo Flink");
 	}
 }

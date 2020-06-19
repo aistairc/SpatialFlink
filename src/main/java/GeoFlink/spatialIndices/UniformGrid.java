@@ -130,7 +130,7 @@ public class UniformGrid implements Serializable {
     }
 
     public boolean validKey(int x, int y){
-        if(x < numGridPartitions && y < numGridPartitions)
+        if(x >= 0 && y >= 0 && x < numGridPartitions && y < numGridPartitions)
         {return true;}
         else
         {return false;}
