@@ -52,7 +52,7 @@ public class JoinQuery implements Serializable {
                 .apply(new JoinFunction<Point, Point, Tuple2<String,String>>() {
                     @Override
                     public Tuple2<String, String> join(Point p, Point q) {
-                        if (HelperClass.computeEuclideanDistance(p.point.getX(), p.point.getY(), q.point.getX(), q.point.getY()) <= queryRadius) {
+                        if (HelperClass.getPointPointEuclideanDistance(p.point.getX(), p.point.getY(), q.point.getX(), q.point.getY()) <= queryRadius) {
                             return Tuple2.of(p.gridID, q.gridID);
                         } else {
                             return Tuple2.of(null, null);

@@ -99,6 +99,12 @@ under the License.
 			<version>1.9.0</version>
 		</dependency>
 
+		<dependency>
+			<groupId>org.json</groupId>
+			<artifactId>json</artifactId>
+			<version>20200518</version>
+		</dependency>
+
 		<!-- (Added) Metrics-->
 		<dependency>
 			<groupId>org.apache.flink</groupId>
@@ -121,8 +127,8 @@ under the License.
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.1</version>
 				<configuration>
-					<source>${java.version}</source>
-					<target>${java.version}</target>
+					<source>9</source>
+					<target>9</target>
 				</configuration>
 			</plugin>
 
@@ -162,7 +168,7 @@ under the License.
 							</filters>
 							<transformers>
 								<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-									<mainClass>flinkDevelopment.StreamingJob</mainClass>
+									<mainClass>GeoFlink.StreamingJob</mainClass>
 								</transformer>
 							</transformers>
 						</configuration>

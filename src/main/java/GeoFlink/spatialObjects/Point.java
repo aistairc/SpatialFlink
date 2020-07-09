@@ -52,7 +52,8 @@ public class Point extends SpatialObject implements Serializable {
     public Point(double x, double y, UniformGrid uGrid) {
         GeometryFactory geofact = new GeometryFactory();
         point = geofact.createPoint(new Coordinate(x, y));
-        assignGridID(uGrid);
+        //assignGridID(uGrid);
+        this.gridID = HelperClass.assignGridCellID(point.getCoordinate(), uGrid);
     }
 
     public Point(double x, double y, long timeStampMillisec, UniformGrid uGrid) {
@@ -60,7 +61,8 @@ public class Point extends SpatialObject implements Serializable {
         //create geotools point object
         point = geofact.createPoint(new Coordinate(x, y));
         this.timeStampMillisec = timeStampMillisec;
-        assignGridID(uGrid);
+        //assignGridID(uGrid);
+        this.gridID = HelperClass.assignGridCellID(point.getCoordinate(), uGrid);
     }
 
     // To print the point coordinates
@@ -151,16 +153,7 @@ public class Point extends SpatialObject implements Serializable {
     }
 
 
-    private void assignGridID(UniformGrid uGrid) {
 
-        // Direct approach to compute the cellIDs (Key)
-        int xCellIndex = (int)(Math.floor((point.getX() - uGrid.getMinX())/uGrid.getCellLength()));
-        int yCellIndex = (int)(Math.floor((point.getY() - uGrid.getMinY())/uGrid.getCellLength()));
-
-        String gridIDStr = HelperClass.padLeadingZeroesToInt(xCellIndex, uGrid.getCellIndexStrLength()) + HelperClass.padLeadingZeroesToInt(yCellIndex, uGrid.getCellIndexStrLength());
-
-        this.gridID = gridIDStr;
-    }
 
 
     public static class distCompCounter extends RichMapFunction<Point, Point> {

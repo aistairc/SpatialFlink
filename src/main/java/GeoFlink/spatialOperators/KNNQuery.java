@@ -92,11 +92,11 @@ public class KNNQuery implements Serializable {
                         for (Point p : inputTuples) {
 
                             if (kNNPQ.size() < k) {
-                                double distance = HelperClass.computeEuclideanDistance(p.point.getX(), p.point.getY(), queryPoint.point.getX(), queryPoint.point.getY());
+                                double distance = HelperClass.getPointPointEuclideanDistance(p.point.getX(), p.point.getY(), queryPoint.point.getX(), queryPoint.point.getY());
                                 kNNPQ.offer(new Tuple2<Point, Double>(p, distance));
                             } else {
-                                double distance = HelperClass.computeEuclideanDistance(p.point.getX(), p.point.getY(), queryPoint.point.getX(), queryPoint.point.getY());
-                                double largestDistInPQ = HelperClass.computeEuclideanDistance(kNNPQ.peek().f0.point.getX(), kNNPQ.peek().f0.point.getY(), queryPoint.point.getX(), queryPoint.point.getY());
+                                double distance = HelperClass.getPointPointEuclideanDistance(p.point.getX(), p.point.getY(), queryPoint.point.getX(), queryPoint.point.getY());
+                                double largestDistInPQ = HelperClass.getPointPointEuclideanDistance(kNNPQ.peek().f0.point.getX(), kNNPQ.peek().f0.point.getY(), queryPoint.point.getX(), queryPoint.point.getY());
 
                                 if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
                                     kNNPQ.poll();
@@ -180,8 +180,8 @@ public class KNNQuery implements Serializable {
 
     public static DataStream<PriorityQueue<Tuple2<Point, Double>>> SpatialKNNQuery(DataStream<Point> pointStream, Point queryPoint, double queryRadius, Integer k, int windowSize, int windowSlideStep, UniformGrid uGrid) throws IOException {
 
-        Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint);
-        Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryPoint, guaranteedNeighboringCells);
+        Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint.gridID);
+        Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryPoint.gridID, guaranteedNeighboringCells);
 
         DataStream<Point> filteredPoints = pointStream.filter(new FilterFunction<Point>() {
             @Override
@@ -207,11 +207,11 @@ public class KNNQuery implements Serializable {
                         for (Point p : inputTuples) {
 
                             if (kNNPQ.size() < k) {
-                                double distance = HelperClass.computeEuclideanDistance(p.point.getX(), p.point.getY(), queryPoint.point.getX(), queryPoint.point.getY());
+                                double distance = HelperClass.getPointPointEuclideanDistance(p.point.getX(), p.point.getY(), queryPoint.point.getX(), queryPoint.point.getY());
                                 kNNPQ.offer(new Tuple2<Point, Double>(p, distance));
                             } else {
-                                double distance = HelperClass.computeEuclideanDistance(p.point.getX(), p.point.getY(), queryPoint.point.getX(), queryPoint.point.getY());
-                                double largestDistInPQ = HelperClass.computeEuclideanDistance(kNNPQ.peek().f0.point.getX(), kNNPQ.peek().f0.point.getY(), queryPoint.point.getX(), queryPoint.point.getY());
+                                double distance = HelperClass.getPointPointEuclideanDistance(p.point.getX(), p.point.getY(), queryPoint.point.getX(), queryPoint.point.getY());
+                                double largestDistInPQ = HelperClass.getPointPointEuclideanDistance(kNNPQ.peek().f0.point.getX(), kNNPQ.peek().f0.point.getY(), queryPoint.point.getX(), queryPoint.point.getY());
 
                                 if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
                                     kNNPQ.poll();

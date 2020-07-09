@@ -17,6 +17,7 @@ limitations under the License.
 package GeoFlink.spatialIndices;
 
 import GeoFlink.spatialObjects.Point;
+import GeoFlink.spatialObjects.Polygon;
 import GeoFlink.utils.HelperClass;
 import org.apache.flink.api.common.functions.RichFilterFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -99,21 +100,23 @@ public class UniformGrid implements Serializable {
     getCandidateNeighboringCells: returns the cells containing the candidate r-neighbors and require distance computation
     The output set of the above two functions are mutually exclusive
     */
-    public HashSet<String> getGuaranteedNeighboringCells(double queryRadius, Point queryPoint)
+    public HashSet<String> getGuaranteedNeighboringCells(double queryRadius, String queryGridCellID)
     {
         //queryRadius = CoordinatesConversion.metersToDD(queryRadius,cellLength,cellLengthMeters); //UNCOMMENT FOR HAVERSINE (METERS)
-        System.out.println("queryRadius in Lat/Lon: "+ queryRadius);
-        String queryCellID = queryPoint.gridID;
+        //System.out.println("queryRadius in Lat/Lon: "+ queryRadius);
+        //String queryCellID = queryPoint.gridID;
 
         HashSet<String> guaranteedNeighboringCellsSet = new HashSet<String>();
         int guaranteedNeighboringLayers = getGuaranteedNeighboringLayers(queryRadius);
+
+        // if guaranteedNeighboringLayers == -1, there is no GuaranteedNeighboringCells
         if(guaranteedNeighboringLayers == 0)
         {
-            guaranteedNeighboringCellsSet.add(queryCellID);
+            guaranteedNeighboringCellsSet.add(queryGridCellID);
         }
         else if(guaranteedNeighboringLayers > 0)
         {
-            ArrayList<Integer> queryCellIndices = HelperClass.getIntCellIndices(queryCellID);       //converts cellID String->Integer
+            ArrayList<Integer> queryCellIndices = HelperClass.getIntCellIndices(queryGridCellID);       //converts cellID String->Integer
 
             for(int i = queryCellIndices.get(0) - guaranteedNeighboringLayers; i <= queryCellIndices.get(0) + guaranteedNeighboringLayers; i++)
                 for(int j = queryCellIndices.get(1) - guaranteedNeighboringLayers; j <= queryCellIndices.get(1) + guaranteedNeighboringLayers; j++)
@@ -125,12 +128,27 @@ public class UniformGrid implements Serializable {
                     }
                 }
         }
+        return guaranteedNeighboringCellsSet;
+    }
 
+    // Guaranteed Neighboring Cells of Polygon Query
+    public HashSet<String> getGuaranteedNeighboringCells(double queryRadius, Polygon queryPolygon)
+    {
+        HashSet<String> gridIDsSet = queryPolygon.gridIDsSet;
+        HashSet<String> guaranteedNeighboringCellsSet = new HashSet<String>();
+
+        for(String cellID:gridIDsSet) {
+
+            HashSet<String> guaranteedNeighbors = getGuaranteedNeighboringCells(queryRadius, cellID);
+            guaranteedNeighboringCellsSet.addAll(guaranteedNeighbors);
+        }
+
+        System.out.println("guaranteedNeighboringCellsSet Size: " + guaranteedNeighboringCellsSet);
         return guaranteedNeighboringCellsSet;
     }
 
     public boolean validKey(int x, int y){
-        if(x < numGridPartitions && y < numGridPartitions)
+        if(x >= 0 && y >= 0 && x < numGridPartitions && y < numGridPartitions)
         {return true;}
         else
         {return false;}
@@ -202,22 +220,18 @@ public class UniformGrid implements Serializable {
         return neighboringCellsSet;
     }
 
-    public HashSet<String> getCandidateNeighboringCells(double queryRadius, Point queryPoint, Set<String> guaranteedNeighboringCellsSet)
+    // Query Point
+    public HashSet<String> getCandidateNeighboringCells(double queryRadius, String queryGridCellID, Set<String> guaranteedNeighboringCellsSet)
     {
         // queryRadius = CoordinatesConversion.metersToDD(queryRadius,cellLength,cellLengthMeters);  //UNCOMMENT FOR HAVERSINE (METERS)
-        String queryCellID = queryPoint.gridID;
+        //String queryCellID = queryPoint.gridID;
         HashSet<String> candidateNeighboringCellsSet = new HashSet<String>();
         int candidateNeighboringLayers = getCandidateNeighboringLayers(queryRadius);
 
-        if(candidateNeighboringLayers <= 0)
+        if(candidateNeighboringLayers > 0)
         {
-            System.out.println("candidateNeighboringLayers cannot be 0 or less");
-            System.exit(1); // Unsuccessful termination
-        }
-        else //candidateNeighboringLayers > 0
-        {
-            ArrayList<Integer> queryCellIndices = HelperClass.getIntCellIndices(queryCellID);
-            int count = 0;
+            ArrayList<Integer> queryCellIndices = HelperClass.getIntCellIndices(queryGridCellID);
+            //int count = 0;
 
             for(int i = queryCellIndices.get(0) - candidateNeighboringLayers; i <= queryCellIndices.get(0) + candidateNeighboringLayers; i++)
                 for(int j = queryCellIndices.get(1) - candidateNeighboringLayers; j <= queryCellIndices.get(1) + candidateNeighboringLayers; j++)
@@ -226,14 +240,29 @@ public class UniformGrid implements Serializable {
                         String neighboringCellKey = HelperClass.padLeadingZeroesToInt(i, CELLINDEXSTRLENGTH) + HelperClass.padLeadingZeroesToInt(j, CELLINDEXSTRLENGTH);
                         if (!guaranteedNeighboringCellsSet.contains(neighboringCellKey)) // Add key if and only if it exist in the gridCell and is not included in the guaranteed neighbors
                         {
-                            count++;
+                            //count++;
                             candidateNeighboringCellsSet.add(neighboringCellKey);
                         }
                     }
                 }
-            System.out.println("Candidate neighbouring cells: " + count);
+            //System.out.println("Candidate neighbouring cells: " + count);
+        }
+        return candidateNeighboringCellsSet;
+    }
+
+
+    // Query Polygon
+    public HashSet<String> getCandidateNeighboringCells(double queryRadius, Polygon queryPolygon, Set<String> guaranteedNeighboringCellsSet)
+    {
+        HashSet<String> candidateNeighboringCellsSet = new HashSet<String>();
+        HashSet<String> gridIDsSet = queryPolygon.gridIDsSet;
+
+        for(String cellID:gridIDsSet) {
+            HashSet<String> candidateNeighbors = getCandidateNeighboringCells(queryRadius, cellID, guaranteedNeighboringCellsSet);
+            candidateNeighboringCellsSet.addAll(candidateNeighbors);
         }
 
+        System.out.println("candidateNeighboringCellsSet Size: " + candidateNeighboringCellsSet);
         return candidateNeighboringCellsSet;
     }
 
