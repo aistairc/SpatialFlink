@@ -4,6 +4,8 @@ bin/
 scripts/
 obj/
 output/
+.idea/
+target/
 
 
 # Don't track the following source file #
@@ -27,6 +29,7 @@ src/main/java/GeoFlink/StreamingJob.java
 *.py
 #*.gitignore
 Makefile
+*.iml
 
 # Packages #
 ############
