@@ -1,12 +1,15 @@
 # GeoFlink: A Distributed Framework for the Real-Time Processing of Spatial Data Streams
 
 ## Table of Contents
-1. [ Introduction ](#intro)
-2. [ Spatial Stream Processing via GeoFlink ](#streamProcessing)
 
+ 1. [ Introduction ](#intro)
+ 2. [ Spatial Stream Processing via GeoFlink ](#streamProcessing)
     1. [ Creating a Grid Index ](#gridIndex)
     2. [ Defining a Spatial Data Stream ](#defineSpatialStream)
     3. [ Continuous Spatial Range Query ](#range)
+	    1. [Point-point](#pointPointRange) 
+	    2. [Point-polygon](#pointPolygonRange) 
+	    3. [ Polygon-polygon ](#polygonPolygonRange)
     4. [ Continuous Spatial *k*NN Query ](#kNN)
 	   <!--  1. [Fixed Radius *k*NN](#FkNN)  
 	    2. [Iterative *k*NN](#IkNN) -->
@@ -84,6 +87,14 @@ Given a data stream *S*, query point *q*, radius *r* and window parameters, rang
 
 To execute a spatial range query via GeoFlink, Java/Scala API  *SpatialRangeQuery* method of the *RangeQuery* class is used.
 
+GeoFlink supports three kinds of spatial range queries.
+1- Point-Point
+2- Point-Polygon
+3- Polygon-Polygon
+
+<a name="pointPointRange"></a>
+#### 1-Point-Point Spatial Range Query
+Both the query and the spatial stream consist of point objects. An example of point-point spatial range query is as follows:
 ```
 // Query point creation using coordinates (longitude, latitude)
 Point queryPoint = new Point(116.414899, 39.920374, uGrid); 
@@ -96,6 +107,47 @@ int queryRadius = 0.5;
 DataStream<Point> rNeighborsStream = RangeQuery.SpatialRangeQuery(spatialStream, queryPoint, queryRadius, windowSize, windowSlideStep, uGrid); 
 ```
 where *spatialStream* is a spatial data stream, *queryPoint* denotes a query point, *radius* denotes the range query radius, *windowSize* and *windowSlideStep* denote the sliding window size and slide step respectively and *uGrid* denotes the grid index. The query output is generated continuously for each window slide based on size and slide step.
+
+<a name="pointPolygonRange"></a>
+#### 2-Point-Polygon Spatial Range Query
+The query is a point object and the spatial stream consists of polygon objects. An example of point-polygon spatial range query is as follows:
+```
+// Query point creation using coordinates (longitude, latitude)
+Point queryPoint = new Point(116.414899, 39.920374, uGrid); 
+
+// Continous range query 
+int windowSize = 10; // window size in seconds
+int windowSlideStep = 5; // window slide step in seconds
+int queryRadius = 0.5;
+
+DataStream<Polygon> pointPolygonRangeQueryOutput = RangeQuery.SpatialRangeQuery(spatialPolygonStream, queryPoint, radius, uGrid, windowSize, windowSlideStep); 
+```
+where *spatialStream* is a spatial data stream, *queryPoint* denotes a query point, *radius* denotes the range query radius, *windowSize* and *windowSlideStep* denote the sliding window size and slide step respectively and *uGrid* denotes the grid index. The query output is generated continuously for each window slide based on size and slide step.
+
+<a name="polygonPolygonRange"></a>
+#### 3-Polygon-Polygon Spatial Range Query
+The query is a polygon object and the spatial stream consists of polygon objects. An example of polygon-polygon spatial range query is as follows:
+```
+// Query polygon creation using coordinates (longitude, latitude)
+ArrayList<Coordinate> queryPolygonCoordinates = new ArrayList<Coordinate>();  
+queryPolygonCoordinates.add(new Coordinate(-73.984416, 40.675882));  
+queryPolygonCoordinates.add(new Coordinate(-73.984511, 40.675767));  
+queryPolygonCoordinates.add(new Coordinate(-73.984719, 40.675867));  
+queryPolygonCoordinates.add(new Coordinate(-73.984726, 40.67587));  
+queryPolygonCoordinates.add(new Coordinate(-73.984718, 40.675881));  
+queryPolygonCoordinates.add(new Coordinate(-73.984631, 40.675986));  
+queryPolygonCoordinates.add(new Coordinate(-73.984416, 40.675882));  
+Polygon queryPolygon = new Polygon(queryPolygonCoordinates, uGrid);
+
+// Continous range query 
+int windowSize = 10; // window size in seconds
+int windowSlideStep = 5; // window slide step in seconds
+int queryRadius = 0.5;
+
+DataStream<Polygon> polygonPolygonRangeQueryOutput = RangeQuery.SpatialRangeQuery(spatialPolygonStream, queryPolygon, radius, uGrid, windowSize, windowSlideStep);
+```
+where *spatialStream* is a spatial data stream, *queryPoint* denotes a query point, *radius* denotes the range query radius, *windowSize* and *windowSlideStep* denote the sliding window size and slide step respectively and *uGrid* denotes the grid index. The query output is generated continuously for each window slide based on size and slide step.
+
 
 <a name="kNN"></a>
 <a name="FkNN"></a>
