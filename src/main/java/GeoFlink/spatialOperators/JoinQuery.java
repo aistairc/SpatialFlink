@@ -18,21 +18,23 @@ package GeoFlink.spatialOperators;
 
 import GeoFlink.spatialIndices.UniformGrid;
 import GeoFlink.spatialObjects.Point;
+import GeoFlink.spatialObjects.Polygon;
 import GeoFlink.utils.HelperClass;
-import org.apache.flink.api.common.functions.FilterFunction;
-import org.apache.flink.api.common.functions.FlatMapFunction;
-import org.apache.flink.api.common.functions.JoinFunction;
+import org.apache.flink.api.common.functions.*;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.windowing.assigners.SlidingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.util.Collector;
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.HashSet;
 
 public class JoinQuery implements Serializable {
 
+    //--------------- GRID-BASED JOIN QUERY - POINT-POINT -----------------//
     public static DataStream<Tuple2<String, String>> SpatialJoinQuery(DataStream<Point> ordinaryPointStream, DataStream<Point> queryPointStream, double queryRadius, int windowSize, int slideStep, UniformGrid uGrid){
 
         DataStream<Point> replicatedQueryStream = JoinQuery.getReplicatedQueryStream(queryPointStream, queryRadius, uGrid);
@@ -67,6 +69,47 @@ public class JoinQuery implements Serializable {
             }
         });
     }
+
+
+    //--------------- GRID-BASED JOIN QUERY - POINT-POLYGON -----------------//
+    public static DataStream<Tuple2<String, String>> SpatialJoinQuery(DataStream<Polygon> polygonStream, DataStream<Point> queryPointStream, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep){
+
+        DataStream<Point> replicatedQueryStream = JoinQuery.getReplicatedQueryStream(queryPointStream, queryRadius, uGrid);
+        DataStream<Polygon> replicatedPolygonStream = polygonStream.flatMap(new HelperClass.ReplicatePolygonStream());
+
+        DataStream<Tuple2<String, String>> joinOutput = replicatedPolygonStream.join(replicatedQueryStream)
+                .where(new KeySelector<Polygon, String>() {
+                    @Override
+                    public String getKey(Polygon poly) throws Exception {
+                        return poly.gridID;
+                    }
+                }).equalTo(new KeySelector<Point, String>() {
+                    @Override
+                    public String getKey(Point q) throws Exception {
+                        return q.gridID;
+                    }
+                }).window(SlidingProcessingTimeWindows.of(Time.seconds(windowSize), Time.seconds(slideStep)))
+                .apply(new JoinFunction<Polygon, Point, Tuple2<String,String>>() {
+                    @Override
+                    public Tuple2<String, String> join(Polygon poly, Point q) {
+                        if (HelperClass.getPointPolygonMinEuclideanDistance(q, poly) <= queryRadius) {
+                            return Tuple2.of(poly.gridID, q.gridID);
+                        } else {
+                            return Tuple2.of(null, null);
+                        }
+                    }
+                });
+
+        return joinOutput.filter(new FilterFunction<Tuple2<String, String>>() {
+            @Override
+            public boolean filter(Tuple2<String, String> value) throws Exception {
+                return value.f1 != null;
+            }
+        });
+    }
+
+
+
 
     public static DataStream<Point> getReplicatedQueryStream(DataStream<Point> queryPoints, double queryRadius, UniformGrid uGrid){
 

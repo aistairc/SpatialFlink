@@ -138,7 +138,7 @@ public class SpatialStream implements Serializable {
                 JSONCoordinatesArray = jsonObj.get("value").get("geometry").get("coordinates").get(0);
             }
             else { // Point case ??
-                System.out.println(jsonObj.get("value").get("geometry").get("type").asText());
+                System.out.println("Not polygon but: " + jsonObj.get("value").get("geometry").get("type").asText());
                 JSONCoordinatesArray = jsonObj.get("value").get("geometry").get("coordinates").get(0);
             }
 

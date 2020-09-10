@@ -22,36 +22,31 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import java.io.Serializable;
 import java.util.Comparator;
 
-public class SpatialDistanceComparator implements Comparator<Tuple2<Point, Double>>, Serializable {
 
-    /**
-     * The query point.
-     */
-    Point queryPoint;
 
-    public SpatialDistanceComparator(){}
 
-    /**
-     * Instantiates a new geometry distance comparator.
-     * @param queryPoint the query point
-     */
-    public SpatialDistanceComparator(Point queryPoint)
-    {
-        this.queryPoint = queryPoint;
-    }
+// TODO: Obsolete class
+    public class SpatialDistanceComparator implements Comparator<Tuple2<Point, Double>>, Serializable {
 
-    public int compare(Tuple2<Point, Double> t1, Tuple2<Point, Double> t2)
-    {
-        // computeSpatialDistance(Double lon, Double lat, Double lon1, Double lat1)
-        double distance1 = HelperClass.getPointPointEuclideanDistance(t1.f0.point.getX(), t1.f0.point.getY(), queryPoint.point.getX(), queryPoint.point.getY()) ;
-        double distance2 = HelperClass.getPointPointEuclideanDistance(t2.f0.point.getX(), t2.f0.point.getY(), queryPoint.point.getX(), queryPoint.point.getY()) ;
+        Point queryPoint;
 
-        if (distance1 > distance2) {
-            return -1;
+        public SpatialDistanceComparator() {
         }
-        else if (distance1 == distance2) {
-            return 0;
+
+        public SpatialDistanceComparator(Point queryPoint) {
+            this.queryPoint = queryPoint;
         }
-        return 1;
+
+        public int compare(Tuple2<Point, Double> t1, Tuple2<Point, Double> t2) {
+            // computeSpatialDistance(Double lon, Double lat, Double lon1, Double lat1)
+            double distance1 = HelperClass.getPointPointEuclideanDistance(t1.f0.point.getX(), t1.f0.point.getY(), queryPoint.point.getX(), queryPoint.point.getY());
+            double distance2 = HelperClass.getPointPointEuclideanDistance(t2.f0.point.getX(), t2.f0.point.getY(), queryPoint.point.getX(), queryPoint.point.getY());
+
+            if (distance1 > distance2) {
+                return -1;
+            } else if (distance1 == distance2) {
+                return 0;
+            }
+            return 1;
+        }
     }
-}

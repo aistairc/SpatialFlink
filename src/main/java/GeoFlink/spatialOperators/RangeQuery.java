@@ -86,15 +86,13 @@ public class RangeQuery implements Serializable {
         return rangeQueryNeighbours;
     }
 
-
-
     //--------------- GRID-BASED RANGE QUERY - POINT - POLYGON -----------------//
     public static DataStream<Polygon> SpatialRangeQuery(DataStream<Polygon> polygonStream, Point queryPoint, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep ) {
 
         Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint.gridID);
         Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryPoint.gridID, guaranteedNeighboringCells);
 
-        DataStream<Polygon> replicatedPolygonStream = polygonStream.flatMap(new ReplicatePolygonStream());
+        DataStream<Polygon> replicatedPolygonStream = polygonStream.flatMap(new HelperClass.ReplicatePolygonStream());
 
         // Filtering out the polygons which lie greater than queryRadius of the query point
         DataStream<Polygon> filteredPolygons = replicatedPolygonStream.filter(new FilterFunction<Polygon>() {
@@ -138,7 +136,7 @@ public class RangeQuery implements Serializable {
         Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPolygon);
         Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryPolygon, guaranteedNeighboringCells);
 
-        DataStream<Polygon> replicatedPolygonStream = polygonStream.flatMap(new ReplicatePolygonStream());
+        DataStream<Polygon> replicatedPolygonStream = polygonStream.flatMap(new HelperClass.ReplicatePolygonStream());
 
         // Filtering out the polygons which lie greater than queryRadius of the query point
         DataStream<Polygon> filteredPolygons = replicatedPolygonStream.filter(new FilterFunction<Polygon>() {
@@ -161,7 +159,6 @@ public class RangeQuery implements Serializable {
                             if (guaranteedNeighboringCells.contains(poly.gridID))
                                 neighbors.collect(poly);
                             else {
-                                //Double distance = HelperClass.computeEuclideanDistance(queryPoint.point.getX(), queryPoint.point.getY(), poly.point.getX(),poly.point.getY());
                                 Double distance = HelperClass.getPolygonPolygonMinEuclideanDistance(queryPolygon, poly);
                                 //System.out.println("Distance: " + distance);
                                 if (distance <= queryRadius){
@@ -176,6 +173,7 @@ public class RangeQuery implements Serializable {
     }
 
 
+    /*
     // Generation of replicated polygon stream corresponding to each grid cell a polygon belongs
     public static class ReplicatePolygonStream extends RichFlatMapFunction<Polygon, Polygon> {
 
@@ -202,4 +200,5 @@ public class RangeQuery implements Serializable {
             uniqueObjID += parallelism;
         }
     }
+     */
 }

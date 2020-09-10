@@ -20,15 +20,16 @@ import GeoFlink.spatialIndices.UniformGrid;
 import GeoFlink.spatialObjects.Point;
 import GeoFlink.spatialObjects.Polygon;
 import org.apache.flink.api.common.functions.FilterFunction;
+import org.apache.flink.api.common.functions.RichFlatMapFunction;
+import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.flink.util.Collector;
 import org.locationtech.jts.geom.Coordinate;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.TreeSet;
+import java.util.*;
 
 public class HelperClass {
 
@@ -57,19 +58,10 @@ public class HelperClass {
     }
 
     // Compute the Bounding Box of a polygon
-    public static Tuple2<Coordinate, Coordinate> getBoundingBox(List<Coordinate> coordinates)
+    public static Tuple2<Coordinate, Coordinate> getBoundingBox(org.locationtech.jts.geom.Polygon poly)
     {
-        // Sorted tree set
-        TreeSet<Double> lat = new TreeSet<Double>();
-        TreeSet<Double> lon = new TreeSet<Double>();
-
-        for(Coordinate coordinate: coordinates){
-            lat.add(coordinate.getX());
-            lon.add(coordinate.getY());
-        }
-
         // return 2 coordinates, smaller first and larger second
-        return Tuple2.of(new Coordinate(lat.first(), lon.first(), 0), new Coordinate(lat.last(), lon.last(), 0));
+        return Tuple2.of(new Coordinate(poly.getEnvelopeInternal().getMinX(), poly.getEnvelopeInternal().getMinY(), 0), new Coordinate(poly.getEnvelopeInternal().getMaxX(), poly.getEnvelopeInternal().getMaxY(), 0));
     }
 
     // assigning grid cell ID
@@ -102,7 +94,7 @@ public class HelperClass {
         for(int x = xCellIndex1; x <= xCellIndex2; x++)
             for(int y = yCellIndex1; y <= yCellIndex2; y++)
             {
-                String gridIDStr = HelperClass.padLeadingZeroesToInt(xCellIndex1, uGrid.getCellIndexStrLength()) + HelperClass.padLeadingZeroesToInt(yCellIndex1, uGrid.getCellIndexStrLength());
+                String gridIDStr = HelperClass.padLeadingZeroesToInt(x, uGrid.getCellIndexStrLength()) + HelperClass.padLeadingZeroesToInt(y, uGrid.getCellIndexStrLength());
                 gridCellIDs.add(gridIDStr);
             }
 
@@ -176,6 +168,9 @@ public class HelperClass {
         return getPointLineMinEuclideanDistance(p.getX(), p.getY(), c1.getX(), c1.getY(), c2.getX(), c2.getY());
     }
 
+
+
+    /*
     public static double getPointLineMinEuclideanDistance(double x, double y, double x1, double y1, double x2, double y2){
 
         double A = x - x1;
@@ -208,6 +203,23 @@ public class HelperClass {
 
         return getPointPointEuclideanDistance(x, y, xx, yy);
     }
+    */
+
+    public static double getPointLineMinEuclideanDistance(double x, double y, double x1, double y1, double x2, double y2){
+
+        if(x1 == x2){
+            return getPointPointEuclideanDistance(x, y, x1, y);
+        }
+        else if(y1 == y2){
+            return getPointPointEuclideanDistance(x, y, x, y1);
+        }
+        else{
+            System.out.println("getPointLineMinEuclideanDistance: invalid bbox coordinates");
+        }
+
+        return Double.MIN_VALUE;
+    }
+
 
     // Get min distance between Point and Polygon
     public static double getPointPolygonMinEuclideanDistance(Point p, Polygon poly) {
@@ -304,6 +316,46 @@ public class HelperClass {
         Coordinate b3 = new Coordinate(p2, q2);
         Coordinate b4 = new Coordinate(p1, q2);
 
+
+        // Compute the min. distance between two polygons
+        if (p2 <= x1) {
+
+            if(q2 <= y1) {
+                return getPointPointEuclideanDistance(a1, b3);
+            }
+            else if(q1 >= y2){
+                return getPointPointEuclideanDistance(a4, b2);
+            }
+            else{
+                return getPointLineMinEuclideanDistance(b2, a1, a4);
+            }
+
+        } else if (p1 >= x2) {
+
+            if(q2 <= y1) {
+                return getPointPointEuclideanDistance(a2, b4);
+            }
+            else if(q1 >= y2){
+                return getPointPointEuclideanDistance(a3, b1);
+            }
+            else{ // (q1 <= y2 && q2 >= y2 )
+                return getPointLineMinEuclideanDistance(b1, a2, a3);
+            }
+
+        } else { // p2 > x1 && p1 < x2
+
+            if(q2 <= y1) {
+                    return getPointLineMinEuclideanDistance(b4, a1, a2);
+            }
+            else if(q1 >= y2){ // q1 >= y2
+                    return getPointLineMinEuclideanDistance(b1, a3, a4);
+            }
+            else{
+                return 0.0; // The 2 polygons overlap
+            }
+        }
+
+        /*
         //Check if the 2 bounding boxes overlap
         if(doRectanglesOverlap(a1, a3, b1, b3)) {
             return 0; // if the 2 rectangles overlap, return 0
@@ -359,6 +411,34 @@ public class HelperClass {
                     }
                 }
             }
+        }*/
+    }
+
+
+    // Generation of replicated polygon stream corresponding to each grid cell a polygon belongs
+    public static class ReplicatePolygonStream extends RichFlatMapFunction<Polygon, Polygon> {
+
+        private long parallelism;
+        private long uniqueObjID;
+
+        @Override
+        public void open(Configuration parameters) {
+            RuntimeContext ctx = getRuntimeContext();
+            parallelism = ctx.getNumberOfParallelSubtasks();
+            uniqueObjID = ctx.getIndexOfThisSubtask();
+        }
+
+        @Override
+        public void flatMap(Polygon poly, Collector<Polygon> out) throws Exception {
+
+            // Create duplicated polygon stream based on GridIDs
+            for (String gridID: poly.gridIDsSet) {
+                Polygon p = new Polygon(Arrays.asList(poly.polygon.getCoordinates()), uniqueObjID, poly.gridIDsSet, gridID, poly.boundingBox);
+                out.collect(p);
+            }
+
+            // Generating unique ID for each polygon, so that all the replicated tuples are assigned the same unique id
+            uniqueObjID += parallelism;
         }
     }
 
@@ -384,7 +464,4 @@ public class HelperClass {
             else return true;
         }
     }
-
-
-
 }
