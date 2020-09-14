@@ -143,7 +143,6 @@ public class JoinQuery implements Serializable {
                 return value.f1 != null;
             }
         });
-
     }
 
     //Replicate Query Point Stream for each Neighbouring Grid ID

@@ -276,7 +276,6 @@ public class StreamingJob implements Serializable {
 				DataStream<Tuple2<String, String>> spatialJoinStream = JoinQuery.SpatialJoinQuery(spatialPolygonStream, queryPolygonStream,  windowSlideStep, windowSize, radius, uGrid);
 				spatialJoinStream.print();
 				break;
-
 			}
 			default:
 				System.out.println("Input Unrecognized. Please select option from 1-10.");
