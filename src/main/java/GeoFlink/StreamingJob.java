@@ -259,6 +259,13 @@ public class StreamingJob implements Serializable {
 				DataStream<Tuple2<String, String>> spatialJoinStream = JoinQuery.SpatialJoinQuery(spatialPolygonStream, queryPointStream, radius, uGrid, windowSize, windowSlideStep);
 				spatialJoinStream.print();
 
+				//----Modified Spatial Join using Candidate and Guaranteed Neighbors---
+//				DataStream<Tuple2<String, String>> spatialJoinStreamModified = JoinQuery.SpatialJoinQueryModified(spatialPolygonStream, queryPointStream, radius, uGrid, windowSize, windowSlideStep);
+//				spatialJoinStreamModified.print();
+
+
+
+
 				break;
 			}
 			case 10:{ // Join Query (Polygon-Polygon)

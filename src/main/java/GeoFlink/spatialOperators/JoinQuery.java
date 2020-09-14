@@ -109,6 +109,48 @@ public class JoinQuery implements Serializable {
         });
     }
 
+    //--------------- (MODIFIED) GRID-BASED JOIN QUERY - POINT-POLYGON -----------------//
+    public static DataStream<Tuple2<String, String>> SpatialJoinQueryModified(DataStream<Polygon> polygonStream, DataStream<Point> queryPointStream, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep){
+
+        DataStream<Tuple2<Point,Boolean>> replicatedQueryStream = JoinQuery.getReplicatedQueryStreamModified(queryPointStream, queryRadius, uGrid);
+        DataStream<Polygon> replicatedPolygonStream = polygonStream.flatMap(new HelperClass.ReplicatePolygonStream());
+
+        DataStream<Tuple2<String, String>> joinOutput = replicatedPolygonStream.join(replicatedQueryStream)
+                .where(new KeySelector<Polygon, String>() {
+                    @Override
+                    public String getKey(Polygon poly) throws Exception {
+                        return poly.gridID;
+                    }
+                }).equalTo(new KeySelector<Tuple2<Point,Boolean>, String>() {
+                    @Override
+                    public String getKey(Tuple2<Point,Boolean> q) throws Exception {
+                        return q.f0.gridID;
+                    }
+                }).window(SlidingProcessingTimeWindows.of(Time.seconds(windowSize), Time.seconds(slideStep)))
+                .apply(new JoinFunction<Polygon, Tuple2<Point,Boolean>, Tuple2<String,String>>() {
+                    @Override
+                    public Tuple2<String, String> join(Polygon poly, Tuple2<Point,Boolean> q) {
+                        if (q.f1 == true) {  // guaranteed neighbors
+                            return Tuple2.of(poly.gridID, q.f0.gridID);
+                        } else { // candidate neighbors
+                            if (HelperClass.getPointPolygonMinEuclideanDistance(q.f0, poly) <= queryRadius) {
+                                return Tuple2.of(poly.gridID, q.f0.gridID);
+                            } else {
+                                return Tuple2.of(null, null);
+                            }
+                        }
+                    }
+                });
+
+        return joinOutput.filter(new FilterFunction<Tuple2<String, String>>() {
+            @Override
+            public boolean filter(Tuple2<String, String> value) throws Exception {
+                return value.f1 != null;
+            }
+        });
+    }
+
+
     //--------------- GRID-BASED JOIN QUERY - POLYGON-POLYGON -----------------//
     public static DataStream<Tuple2<String,String>> SpatialJoinQuery(DataStream<Polygon> polygonStream, DataStream<Polygon> queryPolygonStream, int slideStep, int windowSize, double queryRadius, UniformGrid uGrid){
         DataStream<Polygon> replicatedQueryStream = JoinQuery.getReplicatedQueryStream(queryPolygonStream, uGrid, queryRadius);
@@ -163,6 +205,32 @@ public class JoinQuery implements Serializable {
             }
         });
     }
+    //Replicate Query Point Stream for each Candidate and Guaranteed Grid ID
+    public static DataStream<Tuple2<Point,Boolean>> getReplicatedQueryStreamModified(DataStream<Point> queryPoints, double queryRadius, UniformGrid uGrid){
+
+        return queryPoints.flatMap(new FlatMapFunction<Point, Tuple2<Point,Boolean>>() {
+            @Override
+            public void flatMap(Point queryPoint, Collector<Tuple2<Point,Boolean>> out) throws Exception {
+
+                Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint.gridID);
+                Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryPoint.gridID, guaranteedNeighboringCells);
+
+                // Create duplicated query points for Guaranteed Neighbors
+                for (String gridID: guaranteedNeighboringCells) {
+                    Point p = new Point(queryPoint.point.getX(), queryPoint.point.getY(), gridID);
+                    out.collect(Tuple2.of(p,true));
+                }
+
+                // Create duplicated query points for Candidate Neighbors
+                for (String gridID: candidateNeighboringCells) {
+                    Point p = new Point(queryPoint.point.getX(), queryPoint.point.getY(), gridID);
+                    out.collect(Tuple2.of(p,false));
+                }
+            }
+        });
+    }
+
+
 
     //Replicate Query Polygon Stream for each Neighbouring Grid ID
     public static DataStream<Polygon> getReplicatedQueryStream(DataStream<Polygon> queryPolygons, UniformGrid uGrid, double queryRadius){
