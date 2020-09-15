@@ -256,16 +256,13 @@ public class StreamingJob implements Serializable {
 				DataStream<Point> queryPointStream = SpatialStream.PointStream(geoJSONQueryPointStream, "GeoJSON", uGrid);
 				//geoJSONQueryPointStream.print();
 
-				DataStream<Tuple2<String, String>> spatialJoinStream = JoinQuery.SpatialJoinQuery(spatialPolygonStream, queryPointStream, radius, uGrid, windowSize, windowSlideStep);
-				spatialJoinStream.print();
+				//---Spatial Join using Neighboring Layers---
+//				DataStream<Tuple2<String, String>> spatialJoinStream = JoinQuery.SpatialJoinQuery(spatialPolygonStream, queryPointStream, radius, uGrid, windowSize, windowSlideStep);
+//				spatialJoinStream.print();
 
 				//----Modified Spatial Join using Candidate and Guaranteed Neighbors---
 //				DataStream<Tuple2<String, String>> spatialJoinStreamModified = JoinQuery.SpatialJoinQueryModified(spatialPolygonStream, queryPointStream, radius, uGrid, windowSize, windowSlideStep);
 //				spatialJoinStreamModified.print();
-
-
-
-
 				break;
 			}
 			case 10:{ // Join Query (Polygon-Polygon)
@@ -280,8 +277,13 @@ public class StreamingJob implements Serializable {
 				DataStream<Polygon> queryPolygonStream = SpatialStream.PolygonStream(geoJSONQueryPolygonStream, "GeoJSON", uGrid);
 				//queryPolygonStream.print();
 
-				DataStream<Tuple2<String, String>> spatialJoinStream = JoinQuery.SpatialJoinQuery(spatialPolygonStream, queryPolygonStream,  windowSlideStep, windowSize, radius, uGrid);
-				spatialJoinStream.print();
+				//---Spatial Join using Neighboring Layers----
+//				DataStream<Tuple2<String, String>> spatialJoinStream = JoinQuery.SpatialJoinQuery(spatialPolygonStream, queryPolygonStream,  windowSlideStep, windowSize, radius, uGrid);
+//				spatialJoinStream.print();
+
+				//----Modified Spatial Join using Candidate and Guaranteed Neighbors---
+//				DataStream<Tuple2<String, String>> spatialJoinStreamModified = JoinQuery.SpatialJoinQueryModified(spatialPolygonStream, queryPolygonStream,  windowSlideStep, windowSize, radius, uGrid);
+//				spatialJoinStreamModified.print();
 				break;
 			}
 			default:

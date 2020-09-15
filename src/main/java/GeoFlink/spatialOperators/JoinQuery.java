@@ -187,6 +187,51 @@ public class JoinQuery implements Serializable {
         });
     }
 
+    //--------------- (MODIFIED) GRID-BASED JOIN QUERY - POLYGON-POLYGON -----------------//
+    public static DataStream<Tuple2<String,String>> SpatialJoinQueryModified(DataStream<Polygon> polygonStream, DataStream<Polygon> queryPolygonStream, int slideStep, int windowSize, double queryRadius, UniformGrid uGrid){
+        DataStream<Tuple2<Polygon,Boolean>> replicatedQueryStream = JoinQuery.getReplicatedQueryStreamModified(queryPolygonStream, uGrid, queryRadius);
+        DataStream<Polygon> replicatedPolygonStream = polygonStream.flatMap(new HelperClass.ReplicatePolygonStream());
+
+        DataStream<Tuple2<String, String>> joinOutput = replicatedPolygonStream.join(replicatedQueryStream)
+                .where(new KeySelector<Polygon, String>() {
+                    @Override
+                    public String getKey(Polygon poly) throws Exception {
+                        return poly.gridID;
+                    }
+                }).equalTo(new KeySelector<Tuple2<Polygon,Boolean>, String>() {
+                    @Override
+                    public String getKey(Tuple2<Polygon,Boolean> query) throws Exception {
+                        return query.f0.gridID;
+                    }
+                }).window(SlidingProcessingTimeWindows.of(Time.seconds(windowSize), Time.seconds(slideStep)))
+                .apply(new JoinFunction<Polygon, Tuple2<Polygon,Boolean>, Tuple2<String,String>>() {
+                    @Override
+                    public Tuple2<String, String> join(Polygon poly, Tuple2<Polygon,Boolean> query) {
+                        if (query.f1 == true) {  // guaranteed neighbors
+                            return Tuple2.of(poly.gridID, query.f0.gridID);
+                        } else { // candidate neighbors
+                            if (HelperClass.getPolygonPolygonMinEuclideanDistance(query.f0, poly) <= queryRadius) {
+                                return Tuple2.of(poly.gridID, query.f0.gridID);
+                            } else {
+                                return Tuple2.of(null, null);
+                            }
+                        }
+                    }
+                });
+
+        return joinOutput.filter(new FilterFunction<Tuple2<String, String>>() {
+            @Override
+            public boolean filter(Tuple2<String, String> value) throws Exception {
+                return value.f1 != null;
+            }
+        });
+
+    }
+
+
+
+
+
     //Replicate Query Point Stream for each Neighbouring Grid ID
     public static DataStream<Point> getReplicatedQueryStream(DataStream<Point> queryPoints, double queryRadius, UniformGrid uGrid){
 
@@ -205,6 +250,7 @@ public class JoinQuery implements Serializable {
             }
         });
     }
+
     //Replicate Query Point Stream for each Candidate and Guaranteed Grid ID
     public static DataStream<Tuple2<Point,Boolean>> getReplicatedQueryStreamModified(DataStream<Point> queryPoints, double queryRadius, UniformGrid uGrid){
 
@@ -229,8 +275,6 @@ public class JoinQuery implements Serializable {
             }
         });
     }
-
-
 
     //Replicate Query Polygon Stream for each Neighbouring Grid ID
     public static DataStream<Polygon> getReplicatedQueryStream(DataStream<Polygon> queryPolygons, UniformGrid uGrid, double queryRadius){
@@ -265,6 +309,42 @@ public class JoinQuery implements Serializable {
             }
         });
     }
+
+    //Replicate Query Polygon Stream for each Candidate and Guaranteed Grid ID
+    public static DataStream<Tuple2<Polygon,Boolean>> getReplicatedQueryStreamModified(DataStream<Polygon> queryPolygons, UniformGrid uGrid, double queryRadius){
+        return queryPolygons.flatMap(new RichFlatMapFunction<Polygon, Tuple2<Polygon,Boolean>>() {
+            private long parallelism;
+            private long uniqueObjID;
+
+            @Override
+            public void open(Configuration parameters) {
+                RuntimeContext ctx = getRuntimeContext();
+                parallelism = ctx.getNumberOfParallelSubtasks();
+                uniqueObjID = ctx.getIndexOfThisSubtask();
+            }
+
+            @Override
+            public void flatMap(Polygon poly, Collector<Tuple2<Polygon,Boolean>> out) throws Exception {
+                Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, poly);
+                Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, poly, guaranteedNeighboringCells);
+
+                // Create duplicated polygon stream based on GridIDs
+                for (String gridID: guaranteedNeighboringCells) {
+                    Polygon p = new Polygon(Arrays.asList(poly.polygon.getCoordinates()), uniqueObjID, poly.gridIDsSet, gridID, poly.boundingBox);
+                    out.collect(Tuple2.of(p,true));
+                }
+                for (String gridID: candidateNeighboringCells) {
+                    Polygon p = new Polygon(Arrays.asList(poly.polygon.getCoordinates()), uniqueObjID, poly.gridIDsSet, gridID, poly.boundingBox);
+                    out.collect(Tuple2.of(p,false));
+                }
+
+                // Generating unique ID for each polygon, so that all the replicated tuples are assigned the same unique id
+                uniqueObjID += parallelism;
+            }
+        });
+    }
+
+
 }
 
 
