@@ -260,9 +260,9 @@ public class StreamingJob implements Serializable {
 //				DataStream<Tuple2<String, String>> spatialJoinStream = JoinQuery.SpatialJoinQuery(spatialPolygonStream, queryPointStream, radius, uGrid, windowSize, windowSlideStep);
 //				spatialJoinStream.print();
 
-				//----Modified Spatial Join using Candidate and Guaranteed Neighbors---
-//				DataStream<Tuple2<String, String>> spatialJoinStreamModified = JoinQuery.SpatialJoinQueryModified(spatialPolygonStream, queryPointStream, radius, uGrid, windowSize, windowSlideStep);
-//				spatialJoinStreamModified.print();
+				//----Optimized Spatial Join using Candidate and Guaranteed Neighbors---
+//				DataStream<Tuple2<String, String>> spatialJoinStreamOptimized = JoinQuery.SpatialJoinQueryOptimized(spatialPolygonStream, queryPointStream, radius, uGrid, windowSize, windowSlideStep);
+//				spatialJoinStreamOptimized.print();
 				break;
 			}
 			case 10:{ // Join Query (Polygon-Polygon)
@@ -281,9 +281,9 @@ public class StreamingJob implements Serializable {
 //				DataStream<Tuple2<String, String>> spatialJoinStream = JoinQuery.SpatialJoinQuery(spatialPolygonStream, queryPolygonStream,  windowSlideStep, windowSize, radius, uGrid);
 //				spatialJoinStream.print();
 
-				//----Modified Spatial Join using Candidate and Guaranteed Neighbors---
-//				DataStream<Tuple2<String, String>> spatialJoinStreamModified = JoinQuery.SpatialJoinQueryModified(spatialPolygonStream, queryPolygonStream,  windowSlideStep, windowSize, radius, uGrid);
-//				spatialJoinStreamModified.print();
+				//----Optimized Spatial Join using Candidate and Guaranteed Neighbors---
+//				DataStream<Tuple2<String, String>> spatialJoinStreamOptimized = JoinQuery.SpatialJoinQueryOptimized(spatialPolygonStream, queryPolygonStream,  windowSlideStep, windowSize, radius, uGrid);
+//				spatialJoinStreamOptimized.print();
 				break;
 			}
 			default:

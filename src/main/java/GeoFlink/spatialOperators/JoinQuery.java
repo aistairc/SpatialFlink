@@ -110,7 +110,7 @@ public class JoinQuery implements Serializable {
     }
 
     //--------------- (MODIFIED) GRID-BASED JOIN QUERY - POINT-POLYGON -----------------//
-    public static DataStream<Tuple2<String, String>> SpatialJoinQueryModified(DataStream<Polygon> polygonStream, DataStream<Point> queryPointStream, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep){
+    public static DataStream<Tuple2<String, String>> SpatialJoinQueryOptimized(DataStream<Polygon> polygonStream, DataStream<Point> queryPointStream, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep){
 
         DataStream<Tuple2<Point,Boolean>> replicatedQueryStream = JoinQuery.getReplicatedQueryStreamModified(queryPointStream, queryRadius, uGrid);
         DataStream<Polygon> replicatedPolygonStream = polygonStream.flatMap(new HelperClass.ReplicatePolygonStream());
@@ -188,7 +188,7 @@ public class JoinQuery implements Serializable {
     }
 
     //--------------- (MODIFIED) GRID-BASED JOIN QUERY - POLYGON-POLYGON -----------------//
-    public static DataStream<Tuple2<String,String>> SpatialJoinQueryModified(DataStream<Polygon> polygonStream, DataStream<Polygon> queryPolygonStream, int slideStep, int windowSize, double queryRadius, UniformGrid uGrid){
+    public static DataStream<Tuple2<String,String>> SpatialJoinQueryOptimized(DataStream<Polygon> polygonStream, DataStream<Polygon> queryPolygonStream, int slideStep, int windowSize, double queryRadius, UniformGrid uGrid){
         DataStream<Tuple2<Polygon,Boolean>> replicatedQueryStream = JoinQuery.getReplicatedQueryStreamModified(queryPolygonStream, uGrid, queryRadius);
         DataStream<Polygon> replicatedPolygonStream = polygonStream.flatMap(new HelperClass.ReplicatePolygonStream());
 
