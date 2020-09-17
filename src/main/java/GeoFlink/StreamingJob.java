@@ -230,7 +230,7 @@ public class StreamingJob implements Serializable {
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>("NYCBuildingsPolygons", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to polygon spatial data stream
 				DataStream<Polygon> spatialPolygonStream = SpatialStream.PolygonStream(geoJSONStream, "GeoJSON", uGrid);
-				// The output stream contains time-window boundaries (statring and ending time) and a Priority Queue containing topK query neighboring polygons
+				// The output stream contains time-window boundaries (starting and ending time) and a Priority Queue containing topK query neighboring polygons
 				DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Polygon, Double>>>> pointPolygonkNNQueryOutput = KNNQuery.SpatialKNNQuery(spatialPolygonStream, queryPoint, radius, k, uGrid, windowSize, windowSlideStep);
 				pointPolygonkNNQueryOutput.print();
 				break;
