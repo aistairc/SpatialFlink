@@ -26,6 +26,7 @@ import java.io.Serializable;
 
 public class SpatialObject extends Object implements Serializable {
 
+    public String objID;
     //TODO: Assign timestamp
     public long timeStampMillisec;
 

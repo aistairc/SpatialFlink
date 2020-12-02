@@ -34,41 +34,83 @@ import org.locationtech.jts.geom.GeometryFactory;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 public class Point extends SpatialObject implements Serializable {
     public String gridID;
     public org.locationtech.jts.geom.Point point;
+    public Long ingestionTime;
+    //Date date = new Date();
 
     public Point() {}; // required for POJO
 
     public Point(double x, double y, String gridID) {
+        Date date = new Date();
         GeometryFactory geofact = new GeometryFactory();
         //create geotools point object
         point = geofact.createPoint(new Coordinate(x, y));
         this.gridID = gridID;
+        this.ingestionTime = date.getTime();
     }
 
     public Point(double x, double y, UniformGrid uGrid) {
+        Date date = new Date();
         GeometryFactory geofact = new GeometryFactory();
         point = geofact.createPoint(new Coordinate(x, y));
         //assignGridID(uGrid);
         this.gridID = HelperClass.assignGridCellID(point.getCoordinate(), uGrid);
+        this.ingestionTime = date.getTime();
     }
 
     public Point(double x, double y, long timeStampMillisec, UniformGrid uGrid) {
+        Date date = new Date();
         GeometryFactory geofact = new GeometryFactory();
         //create geotools point object
         point = geofact.createPoint(new Coordinate(x, y));
         this.timeStampMillisec = timeStampMillisec;
         //assignGridID(uGrid);
         this.gridID = HelperClass.assignGridCellID(point.getCoordinate(), uGrid);
+        this.ingestionTime = date.getTime();
+    }
+
+    public Point(String objID, double x, double y, long timeStampMillisec) {
+        Date date = new Date();
+        GeometryFactory geofact = new GeometryFactory();
+        //create geotools point object
+        point = geofact.createPoint(new Coordinate(x, y));
+        this.objID = objID;
+        this.timeStampMillisec = timeStampMillisec;
+        this.gridID = "";
+        this.ingestionTime = date.getTime();
+    }
+
+    public Point(String objID, double x, double y, long timeStampMillisec, UniformGrid uGrid) {
+        Date date = new Date();
+        GeometryFactory geofact = new GeometryFactory();
+        //create geotools point object
+        point = geofact.createPoint(new Coordinate(x, y));
+        this.objID = objID;
+        this.timeStampMillisec = timeStampMillisec;
+        this.gridID = HelperClass.assignGridCellID(point.getCoordinate(), uGrid);
+        this.ingestionTime = date.getTime();
+    }
+
+    public Point(String objID, double x, double y, long timeStampMillisec, String gridID) {
+        Date date = new Date();
+        GeometryFactory geofact = new GeometryFactory();
+        //create geotools point object
+        point = geofact.createPoint(new Coordinate(x, y));
+        this.objID = objID;
+        this.timeStampMillisec = timeStampMillisec;
+        this.gridID = gridID;
+        this.ingestionTime = date.getTime();
     }
 
     // To print the point coordinates
     @Override
     public String toString() {
-        return "[" + point.getX() + ", " + point.getY() + ", " + this.gridID + "]";
+        return "[ObjID: " + this.objID + ", " + point.getX() + ", " + point.getY() + ", " + this.gridID + ", " + this.timeStampMillisec  + ", " + this.ingestionTime + "]";
     }
 
 

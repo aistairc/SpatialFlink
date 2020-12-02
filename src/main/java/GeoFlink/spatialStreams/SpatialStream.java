@@ -29,9 +29,9 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.locationtech.jts.geom.Coordinate;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 public class SpatialStream implements Serializable {
 
@@ -50,6 +50,20 @@ public class SpatialStream implements Serializable {
         return pointStream;
     }
 
+    public static DataStream<Point> TrajectoryStream(DataStream inputStream, String inputType, DateFormat dateFormat, UniformGrid uGrid){
+
+        DataStream<Point> trajectoryStream = null;
+
+        if(inputType.equals("GeoJSON")) {
+            trajectoryStream = inputStream.map(new GeoJSONToTSpatial(uGrid, dateFormat));
+        }
+        else if (inputType.equals("CSV")){
+            trajectoryStream = inputStream.map(new CSVToTSpatial(uGrid, dateFormat));
+        }
+
+        return trajectoryStream;
+    }
+
 
     public static class GeoJSONToSpatial extends RichMapFunction<ObjectNode, Point> {
 
@@ -63,9 +77,44 @@ public class SpatialStream implements Serializable {
         };
 
         @Override
-        public Point map(ObjectNode json) throws Exception {
+        public Point map(ObjectNode jsonObj) throws Exception {
 
-            Point spatialPoint = new Point(json.get("value").get("geometry").get("coordinates").get(0).asDouble(), json.get("value").get("geometry").get("coordinates").get(1).asDouble(), uGrid);
+            Point spatialPoint = new Point(jsonObj.get("value").get("geometry").get("coordinates").get(0).asDouble(), jsonObj.get("value").get("geometry").get("coordinates").get(1).asDouble(), uGrid);
+            return spatialPoint;
+        }
+    }
+
+    public static class GeoJSONToTSpatial extends RichMapFunction<ObjectNode, Point> {
+
+        UniformGrid uGrid;
+        DateFormat dateFormat;
+
+        //ctor
+        public  GeoJSONToTSpatial() {};
+        public  GeoJSONToTSpatial(UniformGrid uGrid, DateFormat dateFormat)
+        {
+
+            this.uGrid = uGrid;
+            this.dateFormat = dateFormat;
+        };
+
+        @Override
+        public Point map(ObjectNode jsonObj) throws Exception {
+
+            Point spatialPoint;
+            Date date = new Date();
+
+
+            if (this.dateFormat == null) {
+                spatialPoint = new Point(jsonObj.get("value").get("properties").get("oID").asText(), jsonObj.get("value").get("geometry").get("coordinates").get(0).asDouble(), jsonObj.get("value").get("geometry").get("coordinates").get(1).asDouble(), jsonObj.get("value").get("properties").get("timestamp").asLong(), uGrid);
+                //spatialPoint = new Point(jsonObj.get("value").get("properties").get("oID").asText(), jsonObj.get("value").get("geometry").get("coordinates").get(0).asDouble(), jsonObj.get("value").get("geometry").get("coordinates").get(1).asDouble(), date.getTime(), uGrid);
+            }
+            else {
+                Date dateTime = this.dateFormat.parse(jsonObj.get("value").get("properties").get("timestamp").asText());
+                long timeStampMillisec = dateTime.getTime();
+                spatialPoint = new Point(jsonObj.get("value").get("properties").get("oID").asText(), jsonObj.get("value").get("geometry").get("coordinates").get(0).asDouble(), jsonObj.get("value").get("geometry").get("coordinates").get(1).asDouble(), timeStampMillisec, uGrid);
+            }
+
             return spatialPoint;
         }
     }
@@ -88,6 +137,49 @@ public class SpatialStream implements Serializable {
 
             List<String> strArrayList = Arrays.asList(strTuple.toString().split("\\s*,\\s*"));
             Point spatialPoint = new Point(Double.parseDouble(strArrayList.get(0)), Double.parseDouble(strArrayList.get(1)), uGrid);
+
+            return spatialPoint;
+        }
+    }
+
+    // Assuming that csv string contains longitude and latitude at positions 0 and 1, respectively
+    public static class CSVToTSpatial extends RichMapFunction<ObjectNode, Point> {
+
+        UniformGrid uGrid;
+        DateFormat dateFormat;
+
+        //ctor
+        public  CSVToTSpatial() {};
+        public  CSVToTSpatial(UniformGrid uGrid, DateFormat dateFormat)
+        {
+
+            this.uGrid = uGrid;
+            this.dateFormat = dateFormat;
+        };
+
+        @Override
+        public Point map(ObjectNode strTuple) throws Exception {
+
+            // customized for ATC Shopping mall data
+            //A sample tuple/record: 1351039728.980,9471001,-22366,2452,1261.421,780.711,-2.415,-2.441
+            // time [ms] (unixtime + milliseconds/1000), person id, position x [mm], position y [mm], position z (height) [mm], velocity [mm/s], angle of motion [rad], facing angle [rad]
+
+            Point spatialPoint;
+            Date date = new Date();
+            List<String> strArrayList = Arrays.asList(strTuple.toString().split("\\s*,\\s*")); // For parsing CSV with , followed by space
+            //List<String> strArrayList = Arrays.asList(strTuple.toString().split(","));
+
+            if (this.dateFormat == null) {
+                Long timeStampMillisec = Long.parseLong(strArrayList.get(0)) * 1000;
+                spatialPoint = new Point(strArrayList.get(1), Double.parseDouble(strArrayList.get(2)), Double.parseDouble(strArrayList.get(3)), timeStampMillisec, uGrid);
+            }
+            else {
+                Date dateTime = this.dateFormat.parse(strArrayList.get(0));
+                long timeStampMillisec = dateTime.getTime();
+                spatialPoint = new Point(strArrayList.get(1), Double.parseDouble(strArrayList.get(2)), Double.parseDouble(strArrayList.get(3)), timeStampMillisec, uGrid);
+            }
+
+
 
             return spatialPoint;
         }

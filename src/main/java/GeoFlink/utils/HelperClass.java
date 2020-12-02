@@ -23,12 +23,19 @@ import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.RichFlatMapFunction;
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.tuple.Tuple4;
+import org.apache.flink.api.java.tuple.Tuple5;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.flink.streaming.connectors.kafka.KafkaSerializationSchema;
 import org.apache.flink.util.Collector;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.locationtech.jts.geom.Coordinate;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
+import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class HelperClass {
@@ -62,6 +69,13 @@ public class HelperClass {
     {
         // return 2 coordinates, smaller first and larger second
         return Tuple2.of(new Coordinate(poly.getEnvelopeInternal().getMinX(), poly.getEnvelopeInternal().getMinY(), 0), new Coordinate(poly.getEnvelopeInternal().getMaxX(), poly.getEnvelopeInternal().getMaxY(), 0));
+    }
+
+    // Compute the Bounding Box of a lineString
+    public static Tuple2<Coordinate, Coordinate> getBoundingBox(org.locationtech.jts.geom.LineString lineString)
+    {
+        // return 2 coordinates, smaller first and larger second
+        return Tuple2.of(new Coordinate(lineString.getEnvelopeInternal().getMinX(), lineString.getEnvelopeInternal().getMinY(), 0), new Coordinate(lineString.getEnvelopeInternal().getMaxX(), lineString.getEnvelopeInternal().getMaxY(), 0));
     }
 
     // assigning grid cell ID
@@ -102,6 +116,7 @@ public class HelperClass {
     }
 
     // assigning grid cell ID - using coordinates
+    /*
     public static List<String> assignGridCellID(Coordinate[] coordinates, UniformGrid uGrid) {
 
         List<String> gridCellIDs = new ArrayList<String>();
@@ -118,6 +133,7 @@ public class HelperClass {
 
         return gridCellIDs;
     }
+     */
 
     public static ArrayList<Integer> getIntCellIndices(String cellID)
     {
@@ -221,7 +237,7 @@ public class HelperClass {
     }
 
 
-    // Get min distance between Point and Polygon
+    // Get min distance between Point and Polygon bounding box
     public static double getPointPolygonMinEuclideanDistance(Point p, Polygon poly) {
 
         // Point coordinates
@@ -269,7 +285,7 @@ public class HelperClass {
                 return getPointLineMinEuclideanDistance(x, y, x1, y2, x2, y2);
             }
             else{ // y > y1 && y < y2
-                return 0.0; // Query point is within bounding box
+                return 0.0; // Query point is within bounding box or on the boundary
             }
         }
     }
@@ -462,6 +478,66 @@ public class HelperClass {
 
             }
             else return true;
+        }
+    }
+
+    public static class LatencySinkPoint implements Serializable, KafkaSerializationSchema<Point> {
+
+        String outputTopic;
+        Integer queryID;
+
+        public LatencySinkPoint(int queryID, String outputTopicName)
+        {
+            this.outputTopic = outputTopicName;
+            this.queryID = queryID;
+        }
+
+        @Override
+        public ProducerRecord<byte[], byte[]> serialize(Point element, @Nullable Long timestamp) {
+            Date date = new Date();
+            Long latency =  date.getTime() - element.ingestionTime;
+            //String outputStr = queryID.toString() + ", " + latency.toString();
+            String outputStr = latency.toString();
+            //System.out.println(latency);
+            return new ProducerRecord<byte[], byte[]>(outputTopic, outputStr.getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    public static class LatencySinkTuple5 implements Serializable, KafkaSerializationSchema<Tuple5<String, Double, Long, Double, Long>> {
+
+        String outputTopic;
+        Integer queryID;
+
+        public LatencySinkTuple5(int queryID, String outputTopicName)
+        {
+            this.outputTopic = outputTopicName;
+            this.queryID = queryID;
+        }
+
+        @Override
+        public ProducerRecord<byte[], byte[]> serialize(Tuple5<String, Double, Long, Double, Long> element, @Nullable Long timestamp) {
+            //String outputStr = queryID.toString() + ", " + element.f4.toString();
+            String outputStr = element.f4.toString();
+            return new ProducerRecord<byte[], byte[]>(outputTopic, outputStr.getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    public static class LatencySinkTuple4 implements Serializable, KafkaSerializationSchema<Tuple4<String, Integer, HashMap<String, Long>, Long>> {
+
+        String outputTopic;
+        Integer queryID;
+
+        public LatencySinkTuple4(int queryID, String outputTopicName)
+        {
+            this.outputTopic = outputTopicName;
+            this.queryID = queryID;
+        }
+
+        @Override
+        public ProducerRecord<byte[], byte[]> serialize(Tuple4<String, Integer, HashMap<String, Long>, Long> element, @Nullable Long timestamp) {
+            //String outputStr = queryID.toString() + ", " + element.f3.toString();
+            String outputStr = element.f3.toString();
+            return new ProducerRecord<byte[], byte[]>(outputTopic, outputStr.getBytes(StandardCharsets.UTF_8));
         }
     }
 }

@@ -1,0 +1,115 @@
+package GeoFlink.spatialOperators;
+
+import GeoFlink.spatialObjects.Point;
+import GeoFlink.spatialObjects.Polygon;
+import GeoFlink.utils.HelperClass;
+import org.apache.flink.api.common.functions.FilterFunction;
+import org.apache.flink.api.common.functions.RichFlatMapFunction;
+import org.apache.flink.api.common.functions.RuntimeContext;
+import org.apache.flink.api.java.functions.KeySelector;
+import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrdernessTimestampExtractor;
+import org.apache.flink.streaming.api.functions.windowing.WindowFunction;
+import org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindows;
+import org.apache.flink.streaming.api.windowing.assigners.SlidingProcessingTimeWindows;
+import org.apache.flink.streaming.api.windowing.time.Time;
+import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
+import org.apache.flink.util.Collector;
+import org.locationtech.jts.geom.Coordinate;
+
+import java.io.Serializable;
+import java.util.*;
+
+public class TRangeQuery implements Serializable {
+
+    //--------------- TSpatialRangeQuery - Trajectory front -----------------//
+    public static DataStream<Point> TSpatialRangeQuery(DataStream<Point> pointStream, Set<Polygon> polygonSet){
+
+        HashSet<String> polygonsGridCellIDs = new HashSet<>();
+        // Making an integrated set of all the polygon's grid cell IDs
+        for (Polygon poly: polygonSet) {
+            polygonsGridCellIDs.addAll(poly.gridIDsSet);
+        }
+
+        // Filtering based on grid-cell ID
+        DataStream<Point> filteredStream = pointStream.filter(new FilterFunction<Point>() {
+            @Override
+            public boolean filter(Point p) throws Exception {
+                return ((polygonsGridCellIDs.contains(p.gridID)));
+            }
+        }).startNewChain();
+
+        // Perform keyBy to logically distribute streams by trajectoryID and then check if a point lies within a polygon or nor
+        return filteredStream.keyBy(new KeySelector<Point, String>() {
+            @Override
+            public String getKey(Point p) throws Exception {
+                return p.objID;
+            }
+        }).filter(new FilterFunction<Point>() {
+            @Override
+            public boolean filter(Point p) throws Exception {
+                for (Polygon poly: polygonSet) {
+                    if (poly.polygon.contains(p.point.getEnvelope())) // Polygon contains the point
+                        return true;
+                }
+                return false; // Polygon does not contain the point
+            }
+        });
+    }
+
+
+    //--------------- TSpatialRangeQuery - Window-based -----------------//
+    public static DataStream<Tuple2<String, LinkedList<Point>>> TSpatialRangeQuery(DataStream<Point> pointStream, Set<Polygon> polygonSet, int windowSize, int windowSlideStep){
+
+        HashSet<String> polygonsGridCellIDs = new HashSet<>();
+        // Linkedlist for storing trajectory
+        LinkedList<Point> objTraj = new LinkedList<>(); // Insertion complexity O(1)
+        // Making an integrated set of all the polygon's grid cell IDs
+        for (Polygon poly: polygonSet) {
+            polygonsGridCellIDs.addAll(poly.gridIDsSet);
+        }
+
+        // Spatial stream with Timestamps and Watermarks
+        // Max Allowed Lateness: windowSize
+        DataStream<Point> pointStreamWithTsAndWm =
+                pointStream.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Point>(Time.seconds(windowSize)) {
+                    @Override
+                    public long extractTimestamp(Point p) {
+                        return p.timeStampMillisec;
+                    }
+                });
+
+        // Filtering based on grid-cell ID
+        DataStream<Point> filteredStream = pointStreamWithTsAndWm.filter(new FilterFunction<Point>() {
+            @Override
+            public boolean filter(Point p) throws Exception {
+                return ((polygonsGridCellIDs.contains(p.gridID)));
+            }
+        }).startNewChain();
+
+        // Perform keyBy to logically distribute streams by trajectoryID and then check if a point lies within a polygon or nor
+        return filteredStream.keyBy(new KeySelector<Point, String>() {
+            @Override
+            public String getKey(Point p) throws Exception {
+                return p.objID;
+            }
+        }).window(SlidingEventTimeWindows.of(Time.seconds(windowSize), Time.seconds(windowSlideStep)))
+                .apply(new WindowFunction<Point, Tuple2<String, LinkedList<Point>>, String, TimeWindow>() {
+                    @Override
+                    public void apply(String objID, TimeWindow timeWindow, Iterable<Point> pointIterator, Collector<Tuple2<String, LinkedList<Point>>> trajectory) throws Exception {
+                        // Check all points in the window
+                        objTraj.clear();
+                        for (Point p : pointIterator) {
+                            for (Polygon poly: polygonSet) {
+                                if (poly.polygon.contains(p.point.getEnvelope())) // Polygon contains the point
+                                    objTraj.add(p);
+                            }
+                        }
+                        if(objTraj.size() > 0)
+                            trajectory.collect(Tuple2.of(objID, objTraj));
+                    }
+                });
+    }
+}

@@ -1,11 +1,13 @@
 package GeoFlink.utils;
 
+import GeoFlink.spatialObjects.LineString;
 import GeoFlink.spatialObjects.Point;
 import GeoFlink.spatialObjects.Polygon;
 import org.apache.flink.api.java.tuple.Tuple2;
 
 import java.io.Serializable;
 import java.util.Comparator;
+import java.util.Map;
 
 public class Comparators {
 
@@ -16,6 +18,45 @@ public class Comparators {
         public int compare(Tuple2<Point, Double> t1, Tuple2<Point, Double> t2) {
             //double distance1 = HelperClass.getPointPointEuclideanDistance(t1.f0.point.getX(), t1.f0.point.getY(), queryPoint.point.getX(), queryPoint.point.getY());
             //double distance2 = HelperClass.getPointPointEuclideanDistance(t2.f0.point.getX(), t2.f0.point.getY(), queryPoint.point.getX(), queryPoint.point.getY());
+            double distance1 = t1.f1;
+            double distance2 = t2.f1;
+
+            // Maintains a PQ in descending order with the object with the largest distance from query point at the top
+            if (distance1 > distance2) {
+                return -1;
+            } else if (distance1 == distance2) {
+                return 0;
+            }
+            return 1;
+        }
+    }
+
+    public static class inTupleDoubleDistanceComparator implements Comparator<Tuple2<String, Double>>, Serializable {
+
+        public inTupleDoubleDistanceComparator() {}
+
+        public int compare(Tuple2<String, Double> t1, Tuple2<String, Double> t2) {
+
+            double distance1 = t1.f1;
+            double distance2 = t2.f1;
+
+            // Maintains a PQ in descending order with the object with the largest distance from query point at the top
+            if (distance1 > distance2) {
+                return -1;
+            } else if (distance1 == distance2) {
+                return 0;
+            }
+            return 1;
+        }
+    }
+
+    public static class inTupleLineStringDistanceComparator implements Comparator<Tuple2<Map<String, LineString>, Double>>, Serializable {
+
+        public inTupleLineStringDistanceComparator() {}
+
+        @Override
+        public int compare(Tuple2<Map<String, LineString>, Double> t1, Tuple2<Map<String, LineString>, Double> t2) {
+
             double distance1 = t1.f1;
             double distance2 = t2.f1;
 

@@ -280,7 +280,7 @@ public class JoinQuery implements Serializable {
     public static DataStream<Polygon> getReplicatedQueryStream(DataStream<Polygon> queryPolygons, UniformGrid uGrid, double queryRadius){
         return queryPolygons.flatMap(new RichFlatMapFunction<Polygon, Polygon>() {
             private long parallelism;
-            private long uniqueObjID;
+            private int uniqueObjID;
 
             @Override
             public void open(Configuration parameters) {
@@ -314,7 +314,7 @@ public class JoinQuery implements Serializable {
     public static DataStream<Tuple2<Polygon,Boolean>> getReplicatedQueryStreamModified(DataStream<Polygon> queryPolygons, UniformGrid uGrid, double queryRadius){
         return queryPolygons.flatMap(new RichFlatMapFunction<Polygon, Tuple2<Polygon,Boolean>>() {
             private long parallelism;
-            private long uniqueObjID;
+            private int uniqueObjID;
 
             @Override
             public void open(Configuration parameters) {
