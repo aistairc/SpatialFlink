@@ -60,9 +60,11 @@ public class SpatialStream implements Serializable {
         else if (inputType.equals("CSV")){
             trajectoryStream = inputStream.map(new CSVToTSpatial(uGrid, dateFormat));
         }
+        // TODO Delete DEIM Checkin
+        /*
         else if (inputType.equals("JSON")){
             trajectoryStream = inputStream.map(new JSONToTSpatial(uGrid, dateFormat));
-        }
+        }*/
 
         return trajectoryStream;
     }
@@ -188,7 +190,9 @@ public class SpatialStream implements Serializable {
         }
     }
 
+    // TODO Delete DEIM Checkin
     // DEIM 2021 App
+    /*
     public static class JSONToTSpatial extends RichMapFunction<ObjectNode, Point> {
 
         UniformGrid uGrid;
@@ -218,6 +222,8 @@ public class SpatialStream implements Serializable {
             return spatialPoint;
         }
     }
+
+     */
 
 
     public static DataStream<Polygon> PolygonStream(DataStream inputStream, String inputType, UniformGrid uGrid){

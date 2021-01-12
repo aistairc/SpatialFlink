@@ -177,7 +177,6 @@ public class TRangeQuery implements Serializable {
             }
         });
 
-
         // Generating window-based unique trajIDs
         DataStream<String> trajIDStream = filteredStream.keyBy(new KeySelector<Point, String>() {
             @Override
