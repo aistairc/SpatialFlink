@@ -41,6 +41,9 @@ public class Point extends SpatialObject implements Serializable {
     public String gridID;
     public org.locationtech.jts.geom.Point point;
     public Long ingestionTime;
+    public String eventID;
+    public String deviceID;
+    public String userID;
     //Date date = new Date();
 
     public Point() {}; // required for POJO
@@ -107,10 +110,26 @@ public class Point extends SpatialObject implements Serializable {
         this.ingestionTime = date.getTime();
     }
 
+    // Point for DEIM App
+    public Point(String eventID, String deviceID, String userID,  long timeStampMillisec, double x, double y) {
+        Date date = new Date();
+        GeometryFactory geofact = new GeometryFactory();
+        //create geotools point object
+        point = geofact.createPoint(new Coordinate(x, y));
+        this.eventID = eventID;
+        this.deviceID = deviceID;
+        this.userID = userID;
+        this.timeStampMillisec = timeStampMillisec;
+        this.gridID = "";
+        this.ingestionTime = date.getTime();;
+    }
+
     // To print the point coordinates
     @Override
     public String toString() {
-        return "[ObjID: " + this.objID + ", " + point.getX() + ", " + point.getY() + ", " + this.gridID + ", " + this.timeStampMillisec  + ", " + this.ingestionTime + "]";
+        // return "[ObjID: " + this.objID + ", " + point.getX() + ", " + point.getY() + ", " + this.gridID + ", " + this.timeStampMillisec  + ", " + this.ingestionTime + "]";
+        // For DEIM App
+        return "[eventID " + this.eventID + ", deviceID: " + this.deviceID + ", userID " + this.userID + ", " + this.timeStampMillisec + "]";
     }
 
 
