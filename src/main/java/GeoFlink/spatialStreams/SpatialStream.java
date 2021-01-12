@@ -60,6 +60,9 @@ public class SpatialStream implements Serializable {
         else if (inputType.equals("CSV")){
             trajectoryStream = inputStream.map(new CSVToTSpatial(uGrid, dateFormat));
         }
+        else if (inputType.equals("JSON")){
+            trajectoryStream = inputStream.map(new JSONToTSpatial(uGrid, dateFormat));
+        }
 
         return trajectoryStream;
     }
@@ -180,6 +183,37 @@ public class SpatialStream implements Serializable {
             }
 
 
+
+            return spatialPoint;
+        }
+    }
+
+    // DEIM 2021 App
+    public static class JSONToTSpatial extends RichMapFunction<ObjectNode, Point> {
+
+        UniformGrid uGrid;
+        DateFormat dateFormat;
+
+        //ctor
+        public  JSONToTSpatial() {};
+        public  JSONToTSpatial(UniformGrid uGrid, DateFormat dateFormat)
+        {
+
+            this.uGrid = uGrid;
+            this.dateFormat = dateFormat;
+        }
+
+        @Override
+        public Point map(ObjectNode jsonObj) throws Exception {
+
+            Point spatialPoint;
+            Date date = new Date();
+
+            //{"event_id": "DEIM2021", "device_id": "B-out", "user_id": "uid134", "timestamp": "12/25/2020 17:24:36 +0900", "coordinate": {"longitude": 117.1273981297417, "latitude": 39.75259928616479}}
+
+            Date dateTime = this.dateFormat.parse(jsonObj.get("value").get("timestamp").asText());
+            long timeStampMillisec = dateTime.getTime();
+            spatialPoint = new Point(jsonObj.get("value").get("event_id").asText(), jsonObj.get("value").get("device_id").asText(), jsonObj.get("value").get("user_id").asText(), timeStampMillisec, jsonObj.get("value").get("coordinate").get("longitude").asDouble(), jsonObj.get("value").get("coordinate").get("latitude").asDouble());
 
             return spatialPoint;
         }

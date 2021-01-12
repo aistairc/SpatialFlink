@@ -36,14 +36,11 @@ public class TFilterQuery implements Serializable {
                 else
                     return true;
             }
-        }).name("TrajIDFilterQuery").startNewChain();
+        }).name("TrajIDFilterQuery");
     }
 
     //--------------- TrajIDFilter QUERY - Window-based -----------------//
-    public static DataStream<Tuple2<String, LineString>> TIDSpatialFilterQuery(DataStream<Point> pointStream, Set<String> trajIDSet, int windowSize, int windowSlideStep){
-
-        // Linkedlist for storing trajectory
-        LinkedList<Point> objTraj = new LinkedList<>(); // Insertion complexity O(1)
+    public static DataStream<LineString> TIDSpatialFilterQuery(DataStream<Point> pointStream, Set<String> trajIDSet, int windowSize, int windowSlideStep){
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: windowSize
@@ -63,30 +60,27 @@ public class TFilterQuery implements Serializable {
                 else
                     return true;
             }
-        }).name("TrajIDFilterQueryWindowed").startNewChain();
+        }).name("TrajIDFilterQueryWindowed");
 
         //filteredStream.print();
-
-        DataStream<Tuple2<String, LineString>> windowedTrajectories = filteredStream.keyBy(new KeySelector<Point, String>() {
+        DataStream<LineString> windowedTrajectories = filteredStream.keyBy(new KeySelector<Point, String>() {
 
             @Override
             public String getKey(Point p) throws Exception {
                 return p.objID;
             }
         }).window(SlidingProcessingTimeWindows.of(Time.seconds(windowSize), Time.seconds(windowSlideStep)))
-                .apply(new WindowFunction<Point, Tuple2<String, LineString>, String, TimeWindow>() {
+                .apply(new WindowFunction<Point, LineString, String, TimeWindow>() {
                     List<Coordinate> coordinateList = new LinkedList<>();
                     @Override
-                    public void apply(String objID, TimeWindow timeWindow, Iterable<Point> pointIterator, Collector<Tuple2<String, LineString>> trajectory) throws Exception {
-                        //objTraj.clear();
+                    public void apply(String objID, TimeWindow timeWindow, Iterable<Point> pointIterator, Collector<LineString> trajectory) throws Exception {
+
                         coordinateList.clear();
                         for (Point p : pointIterator) {
                             coordinateList.add(new Coordinate(p.point.getX(), p.point.getY()));
-                            //objTraj.add(p);
                         }
                         LineString ls = new LineString(objID, coordinateList);
-
-                        trajectory.collect(Tuple2.of(objID, ls));
+                        trajectory.collect(ls);
                     }
                 }).name("TrajIDFilterWindowedQuery");
 

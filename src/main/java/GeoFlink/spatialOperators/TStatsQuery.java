@@ -146,7 +146,7 @@ public class TStatsQuery implements Serializable {
             Double lastPointCoordinateX;
             Double lastPointCoordinateY;
 
-            // Fetching the value state variables
+            // Fetching the value of state variables
             spatialLength = spatialLengthVState.value();
             temporalLength = temporalLengthVState.value();
             lastTimestamp = lastTimestampVState.value();

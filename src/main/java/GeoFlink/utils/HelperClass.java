@@ -236,6 +236,10 @@ public class HelperClass {
         return Double.MIN_VALUE;
     }
 
+    public static String getSubstringFollowingGivenString(String str, String strToFind){
+        return str.substring(str.indexOf(strToFind) + 1);
+    }
+
 
     // Get min distance between Point and Polygon bounding box
     public static double getPointPolygonMinEuclideanDistance(Point p, Polygon poly) {

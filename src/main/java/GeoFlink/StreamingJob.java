@@ -25,7 +25,6 @@ import GeoFlink.spatialObjects.Polygon;
 import GeoFlink.spatialOperators.*;
 import GeoFlink.spatialStreams.SpatialStream;
 import GeoFlink.utils.HelperClass;
-import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.tuple.Tuple4;
@@ -36,26 +35,17 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.RestOptions;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer;
-import org.apache.flink.streaming.connectors.kafka.KafkaSerializationSchema;
 import org.apache.flink.streaming.util.serialization.JSONKeyValueDeserializationSchema;
-import org.apache.kafka.clients.producer.ProducerRecord;
 import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.Geometry;
 import scala.Serializable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import org.json.*;
-
-import javax.annotation.Nullable;
 
 public class StreamingJob implements Serializable {
 
@@ -524,7 +514,9 @@ public class StreamingJob implements Serializable {
 				inputFormat = "JSON";
 				DataStream<Point> deimCheckInStream = SpatialStream.TrajectoryStream(inputStream, inputFormat, inputDateFormat, uGrid);
 
+
 				CheckIn.CheckInQuery(deimCheckInStream, roomCapacities, 24).print();
+				//CheckIn.CheckInQuery(deimCheckInStream, roomCapacities, 24).print();
 			}
 			default:
 				System.out.println("Input Unrecognized. Please select option from 1-10.");
