@@ -270,7 +270,7 @@ A sample GeoFlink code written in Java to execute Range Query on a spatial data 
 <a name="publications"></a>
 ## Publications
 
- - GeoFlink @ [CIKM2020](https://dl.acm.org/doi/10.1145/3340531.3412761) 
+ - GeoFlink @ CIKM2020 [GeoFlink: A Distributed and Scalable Framework for the Real-time Processing of Spatial Streams](https://dl.acm.org/doi/10.1145/3340531.3412761) 
  
 
 <a name="contact"></a>
