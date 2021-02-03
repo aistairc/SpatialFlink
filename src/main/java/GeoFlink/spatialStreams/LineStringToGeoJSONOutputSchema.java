@@ -1,7 +1,7 @@
-package GeoFlink.apps;
+package GeoFlink.spatialStreams;
 
-import GeoFlink.spatialObjects.MultiPolygon;
-import GeoFlink.spatialObjects.Polygon;
+import GeoFlink.spatialObjects.LineString;
+import GeoFlink.spatialObjects.MultiLineString;
 import org.apache.flink.streaming.connectors.kafka.KafkaSerializationSchema;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.json.JSONObject;
@@ -15,58 +15,54 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-public class PolygonToGeoJSONOutputSchema implements Serializable, KafkaSerializationSchema<Polygon> {
+public class LineStringToGeoJSONOutputSchema  implements Serializable, KafkaSerializationSchema<LineString> {
 
     private String outputTopic;
 
-    public PolygonToGeoJSONOutputSchema(String outputTopicName)
+    public LineStringToGeoJSONOutputSchema(String outputTopicName)
     {
         this.outputTopic = outputTopicName;
     }
 
     @Override
-    public ProducerRecord<byte[], byte[]> serialize(Polygon polygon, @Nullable Long timestamp) {
+    public ProducerRecord<byte[], byte[]> serialize(LineString lineString, @Nullable Long timestamp) {
 
         JSONObject jsonObj = new JSONObject();
 
         JSONObject jsonGeometry = new JSONObject();
-        if (polygon instanceof MultiPolygon) {
-            List<List<Coordinate>> listCoordinate = ((MultiPolygon)polygon).getListCoordinate();
-            List<List<List<double[]>>> jsonCoordinate = new ArrayList<List<List<double[]>>>();
+        if (lineString instanceof MultiLineString) {
+            List<List<Coordinate>> listCoordinate = ((MultiLineString)lineString).getListCoordinate();
+            List<List<double[]>> jsonCoordinate = new ArrayList<List<double[]>>();
             for (List<Coordinate> l : listCoordinate) {
                 List<double[]> arrCoordinate = new ArrayList<double[]>();
                 for (Coordinate c : l) {
                     double[] coordinate = {c.x, c.y};
                     arrCoordinate.add(coordinate);
                 }
-                List<List<double[]>> coordinates = new ArrayList<List<double[]>>();
-                coordinates.add(arrCoordinate);
-                jsonCoordinate.add(coordinates);
+                jsonCoordinate.add(arrCoordinate);
             }
-            jsonGeometry.put("type", "MultiPolygon");
+            jsonGeometry.put("type", "MultiLineString");
             jsonGeometry.put("coordinates", jsonCoordinate);
         }
         else {
-            Coordinate[] polygonCoordinates = polygon.polygon.getCoordinates();
-            List<double[]> coordinates = new ArrayList<double[]>();
-            for (Coordinate c : polygonCoordinates) {
+            Coordinate[] lineStringCoordinates = lineString.lineString.getCoordinates();
+            List<double[]> jsonCoordinate = new ArrayList<double[]>();
+            for (Coordinate c : lineStringCoordinates) {
                 double[] coordinate = {c.x, c.y};
-                coordinates.add(coordinate);
+                jsonCoordinate.add(coordinate);
             }
-            jsonGeometry.put("type", "Polygon");
-            List<List<double[]>> jsonCoordinate = new ArrayList<List<double[]>>();
-            jsonCoordinate.add(coordinates);
+            jsonGeometry.put("type", "LineString");
             jsonGeometry.put("coordinates", jsonCoordinate);
         }
         jsonObj.put("geometry", jsonGeometry);
 
         JSONObject jsonpProperties = new JSONObject();
-        if (polygon.objID != -1) {
-            jsonpProperties.put("oID", String.valueOf(polygon.objID));
+        if (lineString.objID != null) {
+            jsonpProperties.put("oID", lineString.objID);
         }
-        if (polygon.timeStampMillisec != 0) {
+        if (lineString.timeStampMillisec != 0) {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            jsonpProperties.put("timestamp", sdf.format(new Date(polygon.timeStampMillisec)));
+            jsonpProperties.put("timestamp", sdf.format(new Date(lineString.timeStampMillisec)));
         }
         if (jsonpProperties.length() > 0) {
             jsonObj.put("properties", jsonpProperties);

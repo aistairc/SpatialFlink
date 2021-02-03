@@ -1,7 +1,7 @@
-package GeoFlink.apps;
+package GeoFlink.spatialStreams;
 
-import GeoFlink.spatialObjects.LineString;
-import GeoFlink.spatialObjects.MultiLineString;
+import GeoFlink.spatialObjects.MultiPolygon;
+import GeoFlink.spatialObjects.Polygon;
 import org.apache.flink.streaming.connectors.kafka.KafkaSerializationSchema;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.locationtech.jts.geom.Coordinate;
@@ -14,57 +14,57 @@ import java.util.Date;
 import java.util.List;
 
 
-public class LineStringToTSVOutputSchema implements Serializable, KafkaSerializationSchema<LineString> {
+public class PolygonToCSVOutputSchema implements Serializable, KafkaSerializationSchema<Polygon> {
 
     private String outputTopic;
 
-    public LineStringToTSVOutputSchema(String outputTopicName)
+    public PolygonToCSVOutputSchema(String outputTopicName)
     {
         this.outputTopic = outputTopicName;
     }
 
     @Override
-    public ProducerRecord<byte[], byte[]> serialize(LineString lineString, @Nullable Long timestamp) {
+    public ProducerRecord<byte[], byte[]> serialize(Polygon polygon, @Nullable Long timestamp) {
 
-        final String SEPARATION = "\\t";
+        final String SEPARATION = ",";
         StringBuffer buf = new StringBuffer();
 
         buf.append("\"");
-        if (lineString.objID != null) {
-            buf.append(lineString.objID);
+        if (polygon.objID != -1) {
+            buf.append(polygon.objID);
             buf.append(SEPARATION + " ");
         }
-        if (lineString instanceof MultiLineString) {
-            buf.append("MULTILINESTRING");
+        if (polygon instanceof MultiPolygon) {
+            buf.append("MULTIPOLYGON");
             buf.append("(");
-            List<List<Coordinate>> listCoordinate = ((MultiLineString)lineString).getListCoordinate();
+            List<List<Coordinate>> listCoordinate = ((MultiPolygon)polygon).getListCoordinate();
             for (List<Coordinate> l : listCoordinate) {
-                buf.append("(");
+                buf.append("((");
                 for (Coordinate c : l) {
                     buf.append(c.x + " " + c.y + ", ");
                 }
                 buf.deleteCharAt(buf.length() - 1);
                 buf.deleteCharAt(buf.length() - 1);
-                buf.append("),");
+                buf.append(")),");
             }
             buf.deleteCharAt(buf.length() - 1);
             buf.append(")");
         }
         else {
-            buf.append("LINESTRING");
-            buf.append("(");
-            Coordinate[] coordinates = lineString.lineString.getCoordinates();
+            buf.append("POLYGON");
+            buf.append("((");
+            Coordinate[] coordinates = polygon.polygon.getCoordinates();
             for (Coordinate c : coordinates) {
                 buf.append(c.x + " " + c.y + ", ");
             }
             buf.deleteCharAt(buf.length() - 1);
             buf.deleteCharAt(buf.length() - 1);
-            buf.append(")");
+            buf.append("))");
         }
-        if (lineString.timeStampMillisec != 0) {
+        if (polygon.timeStampMillisec != 0) {
             buf.append(SEPARATION + " ");
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            buf.append(sdf.format(new Date(lineString.timeStampMillisec)));
+            buf.append(sdf.format(new Date(polygon.timeStampMillisec)));
         }
         buf.append("\"");
         buf.append(SEPARATION);

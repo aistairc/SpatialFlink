@@ -1,4 +1,4 @@
-package GeoFlink.apps;
+package GeoFlink.spatialStreams;
 
 import GeoFlink.spatialObjects.Point;
 import org.apache.flink.streaming.connectors.kafka.KafkaSerializationSchema;

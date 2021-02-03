@@ -1,4 +1,4 @@
-package GeoFlink.apps;
+package GeoFlink.spatialStreams;
 
 import GeoFlink.spatialObjects.Point;
 import org.apache.flink.streaming.connectors.kafka.KafkaSerializationSchema;
@@ -11,11 +11,11 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 
-public class PointToTSVOutputSchema implements Serializable, KafkaSerializationSchema<Point> {
+public class PointToCSVOutputSchema implements Serializable, KafkaSerializationSchema<Point> {
 
     private String outputTopic;
 
-    public PointToTSVOutputSchema(String outputTopicName)
+    public PointToCSVOutputSchema(String outputTopicName)
     {
         this.outputTopic = outputTopicName;
     }
@@ -23,7 +23,7 @@ public class PointToTSVOutputSchema implements Serializable, KafkaSerializationS
     @Override
     public ProducerRecord<byte[], byte[]> serialize(Point point, @Nullable Long timestamp) {
 
-        final String SEPARATION = "\\t";
+        final String SEPARATION = ",";
         StringBuffer buf = new StringBuffer();
 
         buf.append("\"");

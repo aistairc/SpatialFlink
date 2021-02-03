@@ -18,14 +18,12 @@
 
 package GeoFlink;
 
-import GeoFlink.apps.*;
 import GeoFlink.spatialIndices.UniformGrid;
 import GeoFlink.spatialObjects.LineString;
 import GeoFlink.spatialObjects.Point;
 import GeoFlink.spatialObjects.Polygon;
 import GeoFlink.spatialOperators.*;
-import GeoFlink.spatialStreams.SerializeStream;
-import GeoFlink.spatialStreams.SpatialStream;
+import GeoFlink.spatialStreams.*;
 import GeoFlink.utils.HelperClass;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
