@@ -35,7 +35,7 @@ import java.util.Set;
 
 public class TStatsQuery implements Serializable {
 
-    //--------------- TStatsQuery QUERY - Inception -----------------//
+    //--------------- TStatsQuery QUERY - Real-time -----------------//
     //public static DataStream<Tuple4<String, Double, Long, Double>> TSpatialStatsQuery(DataStream<Point> pointStream, Set<String> trajIDSet){
     public static DataStream<Tuple5<String, Double, Long, Double, Long>> TSpatialStatsQuery(DataStream<Point> pointStream, Set<String> trajIDSet){
 
@@ -48,7 +48,7 @@ public class TStatsQuery implements Serializable {
                 else
                     return true;
             }
-        }).startNewChain();
+        });
 
         return filteredStream.keyBy(new KeySelector<Point, String>() {
             @Override
@@ -80,7 +80,7 @@ public class TStatsQuery implements Serializable {
                 else
                     return true;
             }
-        }).startNewChain();
+        });
 
         return filteredStream.keyBy(new KeySelector<Point, String>() {
             @Override
@@ -169,7 +169,7 @@ public class TStatsQuery implements Serializable {
                 lastPointCoordinateYVState.update(lastPointCoordinateY);
 
             }else {
-                if (p.timeStampMillisec > lastTimestamp)
+                if (p.timeStampMillisec > lastTimestamp) // Avoiding out-of-order arrival of tuples
                 {
                     Date date = new Date();
                     //Double currSpatialDist = HelperClass.computeHaverSine(lastPointCoordinateX, lastPointCoordinateY, p.point.getX(), p.point.getY());
@@ -191,7 +191,7 @@ public class TStatsQuery implements Serializable {
                     lastPointCoordinateYVState.update(lastPointCoordinateY);
 
                     //out.collect(Tuple4.of(p.objID, spatialLength, temporalLength, spatialLength/temporalLength));
-                    System.out.println(date.getTime() - p.ingestionTime);
+                    //System.out.println(date.getTime() - p.ingestionTime);
                     out.collect(Tuple5.of(p.objID, spatialLength, temporalLength, spatialLength/temporalLength, (date.getTime() - p.ingestionTime)));
                 }
             }
@@ -216,7 +216,6 @@ public class TStatsQuery implements Serializable {
 
             // Check all points in the window
             for (Point p : input) {
-
                 if (lastTimestamp.equals(0L)){ // case of first point p in the loop
                     lastTimestamp = p.timeStampMillisec;
                     lastPointCoordinateX = p.point.getX();
@@ -224,7 +223,7 @@ public class TStatsQuery implements Serializable {
                     spatialLength = 0.0;
                     temporalLength = 0L;
                 }else {
-                    if (p.timeStampMillisec > lastTimestamp)
+                    if (p.timeStampMillisec > lastTimestamp) // Avoiding out-of-order arrival of tuples
                     {
                         //Double currSpatialDist = HelperClass.computeHaverSine(lastPointCoordinateX, lastPointCoordinateY, p.point.getX(), p.point.getY());
                         Double currSpatialDist = HelperClass.getPointPointEuclideanDistance(lastPointCoordinateX, lastPointCoordinateY, p.point.getX(), p.point.getY());

@@ -19,15 +19,16 @@ public class LineString extends SpatialObject implements Serializable {
 
     public LineString() {}; // required for POJO
 
-
     public LineString(String objID, List<Coordinate> coordinates, HashSet<String> gridIDsSet, String gridID, Tuple2<Coordinate, Coordinate> boundingBox) {
-        GeometryFactory geofact = new GeometryFactory();
-        //create geotools point object
-        lineString = geofact.createLineString(coordinates.toArray(new Coordinate[0]));
-        this.gridIDsSet = gridIDsSet;
-        this.gridID = gridID;
-        this.objID = objID;
-        this.boundingBox = boundingBox;
+        if (coordinates.size() > 1) {
+            GeometryFactory geofact = new GeometryFactory();
+            //create geotools point object
+            lineString = geofact.createLineString(coordinates.toArray(new Coordinate[0]));
+            this.gridIDsSet = gridIDsSet;
+            this.gridID = gridID;
+            this.objID = objID;
+            this.boundingBox = boundingBox;
+        }
     }
 
     public LineString(String objID, org.locationtech.jts.geom.LineString lineString, UniformGrid uGrid) {
@@ -47,6 +48,17 @@ public class LineString extends SpatialObject implements Serializable {
             lineString = geofact.createLineString(coordinates.toArray(new Coordinate[0]));
             this.boundingBox = HelperClass.getBoundingBox(lineString);
             this.gridIDsSet = HelperClass.assignGridCellID(this.boundingBox, uGrid);
+            this.gridID = "";
+            this.objID = objID;
+        }
+    }
+
+    public LineString(String objID, List<Coordinate> coordinates, HashSet<String> gridIDsSet) {
+        if (coordinates.size() > 1) { // LineString can only be made with 2 or more points
+            GeometryFactory geofact = new GeometryFactory();
+            lineString = geofact.createLineString(coordinates.toArray(new Coordinate[0]));
+            this.boundingBox = HelperClass.getBoundingBox(lineString);
+            this.gridIDsSet = gridIDsSet;
             this.gridID = "";
             this.objID = objID;
         }

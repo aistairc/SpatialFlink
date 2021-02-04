@@ -41,7 +41,7 @@ public class TAggregateQuery implements Serializable {
             public boolean filter(Point p) throws Exception {
                 return (p.gridID != null);
             }
-        }).startNewChain();
+        });
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: windowSize
@@ -75,7 +75,7 @@ public class TAggregateQuery implements Serializable {
         }
     }
 
-    //--------------- TSpatialHeatmapAggregateQuery Inception -----------------//
+    //--------------- TSpatialHeatmapAggregateQuery Real-time -----------------//
     // Outputs a tuple containing cellID, number of objects in the cell and its requested aggregate
     //public static DataStream<Tuple3<String, Integer, HashMap<String, Long>>> TSpatialHeatmapAggregateQuery(DataStream<Point> pointStream, String aggregateFunction) {
     public static DataStream<Tuple4<String, Integer, HashMap<String, Long>, Long>> TSpatialHeatmapAggregateQuery(DataStream<Point> pointStream, String aggregateFunction, Long inactiveTrajDeletionThreshold) {
@@ -86,7 +86,7 @@ public class TAggregateQuery implements Serializable {
             public boolean filter(Point p) throws Exception {
                 return (p.gridID != null);
             }
-        }).startNewChain();
+        });
 
         //DataStream<Tuple3<String, Integer, HashMap<String, Long>>> cWindowedCellBasedStayTime = spatialStreamWithoutNullCellID
         DataStream<Tuple4<String, Integer, HashMap<String, Long>, Long>> cWindowedCellBasedStayTime = spatialStreamWithoutNullCellID
@@ -102,7 +102,7 @@ public class TAggregateQuery implements Serializable {
     public static class gridCellKeySelector implements KeySelector<Point,String> {
         @Override
         public String getKey(Point p) throws Exception {
-            return p.gridID;
+            return p.gridID; // grid-cell id
         }
     }
 
@@ -192,7 +192,7 @@ public class TAggregateQuery implements Serializable {
                     maxTimestampTrackerIDMapState.put(p.objID, p.timeStampMillisec);
                 }
 
-            } else {
+            } else {  // If does not exist
                 minTimestampTrackerIDMapState.put(p.objID, p.timeStampMillisec);
                 maxTimestampTrackerIDMapState.put(p.objID, p.timeStampMillisec);
             }
@@ -216,9 +216,10 @@ public class TAggregateQuery implements Serializable {
                     Long currMinTimestamp = entry.getValue();
                     Long currMaxTimestamp = maxTimestampTrackerIDMapState.get(objID);
                     // Deleting halted trajectories
-                    deleteHaltedTrajectories(currMaxTimestamp, inactiveTrajDeletionThreshold, objID);
-                    //Populating results
-                    trackerIDTrajLength.put(objID, (currMaxTimestamp-currMinTimestamp));
+                    if(!deleteHaltedTrajectories(currMaxTimestamp, inactiveTrajDeletionThreshold, objID)) {
+                        //Populating results
+                        trackerIDTrajLength.put(objID, (currMaxTimestamp - currMinTimestamp));
+                    }
                 }
                 //return Tuple3.of(p.gridID, trackerIDTrajLength.size(), trackerIDTrajLength);
                 return Tuple4.of(p.gridID, trackerIDTrajLength.size(), trackerIDTrajLength, latency);
@@ -234,9 +235,10 @@ public class TAggregateQuery implements Serializable {
                     Long currMinTimestamp = entry.getValue();
                     Long currMaxTimestamp = maxTimestampTrackerIDMapState.get(objID);
                     // Deleting halted trajectories
-                    deleteHaltedTrajectories(currMaxTimestamp, inactiveTrajDeletionThreshold, objID);
-                    counter++;
-                    sumTrajLength += (currMaxTimestamp-currMinTimestamp);
+                    if(!deleteHaltedTrajectories(currMaxTimestamp, inactiveTrajDeletionThreshold, objID)) {
+                        counter++;
+                        sumTrajLength += (currMaxTimestamp - currMinTimestamp);
+                    }
                 }
 
                 if(this.aggregateFunction.equalsIgnoreCase("SUM"))
@@ -265,13 +267,14 @@ public class TAggregateQuery implements Serializable {
                     Long currMinTimestamp = entry.getValue();
                     Long currMaxTimestamp = maxTimestampTrackerIDMapState.get(objID);
                     // Deleting halted trajectories
-                    deleteHaltedTrajectories(currMaxTimestamp, inactiveTrajDeletionThreshold, objID);
-                    counter++;
-                    Long trajLength = currMaxTimestamp-currMinTimestamp;
+                    if(!deleteHaltedTrajectories(currMaxTimestamp, inactiveTrajDeletionThreshold, objID)) {
+                        counter++;
+                        Long trajLength = currMaxTimestamp - currMinTimestamp;
 
-                    if(trajLength < minTrajLength){
-                        minTrajLength = trajLength;
-                        minTrajLengthObjID = objID;
+                        if (trajLength < minTrajLength) {
+                            minTrajLength = trajLength;
+                            minTrajLengthObjID = objID;
+                        }
                     }
                 }
 
@@ -291,13 +294,14 @@ public class TAggregateQuery implements Serializable {
                     Long currMinTimestamp = entry.getValue();
                     Long currMaxTimestamp = maxTimestampTrackerIDMapState.get(objID);
                     // Deleting halted trajectories
-                    deleteHaltedTrajectories(currMaxTimestamp, inactiveTrajDeletionThreshold, objID);
-                    counter++;
-                    Long trajLength = currMaxTimestamp-currMinTimestamp;
+                    if(!deleteHaltedTrajectories(currMaxTimestamp, inactiveTrajDeletionThreshold, objID)) {
+                        counter++;
+                        Long trajLength = currMaxTimestamp - currMinTimestamp;
 
-                    if(trajLength > maxTrajLength){
-                        maxTrajLength = trajLength;
-                        maxTrajLengthObjID = objID;
+                        if (trajLength > maxTrajLength) {
+                            maxTrajLength = trajLength;
+                            maxTrajLengthObjID = objID;
+                        }
                     }
                 }
 
@@ -306,13 +310,17 @@ public class TAggregateQuery implements Serializable {
                 return Tuple4.of(p.gridID, counter, trackerIDTrajLength, latency);
             }
             else{
+
                 trackerIDTrajLength.clear();
                 for (Map.Entry<String, Long> entry : minTimestampTrackerIDMapState.entries()) {
                     String objID = entry.getKey();
                     Long currMinTimestamp = entry.getValue();
                     Long currMaxTimestamp = maxTimestampTrackerIDMapState.get(objID);
-
-                    trackerIDTrajLength.put(objID, (currMaxTimestamp-currMinTimestamp));
+                    // Deleting halted trajectories
+                    if(!deleteHaltedTrajectories(currMaxTimestamp, inactiveTrajDeletionThreshold, objID)) {
+                        //Populating results
+                        trackerIDTrajLength.put(objID, (currMaxTimestamp - currMinTimestamp));
+                    }
                 }
                 //return Tuple3.of(p.gridID, trackerIDTrajLength.size(), trackerIDTrajLength);
                 return Tuple4.of(p.gridID, trackerIDTrajLength.size(), trackerIDTrajLength, latency);

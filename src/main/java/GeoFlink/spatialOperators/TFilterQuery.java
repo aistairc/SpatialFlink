@@ -22,7 +22,7 @@ import java.util.Set;
 
 public class TFilterQuery implements Serializable {
 
-    //--------------- TrajIDFilter QUERY - Infinite Window -----------------//
+    //--------------- TrajIDFilter QUERY - Real Time -----------------//
     public static DataStream<Point> TIDSpatialFilterQuery(DataStream<Point> pointStream, Set<String> trajIDSet){
 
         return pointStream.filter(new FilterFunction<Point>() {
