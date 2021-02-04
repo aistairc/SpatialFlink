@@ -19,10 +19,11 @@
 package GeoFlink;
 
 import GeoFlink.spatialIndices.UniformGrid;
+import GeoFlink.spatialObjects.LineString;
 import GeoFlink.spatialObjects.Point;
 import GeoFlink.spatialObjects.Polygon;
 import GeoFlink.spatialOperators.*;
-import GeoFlink.spatialStreams.SpatialStream;
+import GeoFlink.spatialStreams.*;
 import GeoFlink.utils.HelperClass;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
@@ -52,7 +53,7 @@ public class StreamingJob implements Serializable {
 
 		Configuration config = new Configuration();
 		config.setBoolean(ConfigConstants.LOCAL_START_WEBSERVER, true);
-		config.setString(RestOptions.BIND_PORT, "8081");
+		config.setString(RestOptions.BIND_PORT, "8082");
 
 		// Set up the streaming execution environment
 		final StreamExecutionEnvironment env;
@@ -155,10 +156,10 @@ public class StreamingJob implements Serializable {
 
 		// Preparing Kafka Connection to Get Stream Tuples
 		Properties kafkaProperties = new Properties();
-		kafkaProperties.setProperty("bootstrap.servers", bootStrapServers);
+		kafkaProperties.setProperty("bootstrap.servers", "localhost:9092");
 		kafkaProperties.setProperty("group.id", "messageStream");
-		//DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(topicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
-		//geoJSONStream.print();
+		//DataStream abc  = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+		//abc.print();
 		//DataStream csvStream  = env.addSource(new FlinkKafkaConsumer<>(topicName, new SimpleStringSchema(), kafkaProperties).setStartFromEarliest());
 
 		// Defining Grid
@@ -318,8 +319,6 @@ public class StreamingJob implements Serializable {
 			qPoint = new Point(0, 0, uGrid);
 		}
 
-
-
 		// Generating stream
 		DataStream inputStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 		//DataStream inputStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromLatest());
@@ -333,6 +332,7 @@ public class StreamingJob implements Serializable {
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to point spatial data stream
 				DataStream<Point> spatialPointStream = SpatialStream.PointStream(geoJSONStream, inputFormat, uGrid);
+
 				//DataStream<Point> spatialPointStream = SpatialStream.PointStream(csvStream, "CSV", uGrid);
 				DataStream<Point> rNeighbors= RangeQuery.SpatialRangeQuery(spatialPointStream, qPoint, radius, windowSize, windowSlideStep, uGrid);  // better than equivalent GB approach
 				rNeighbors.print();
@@ -538,6 +538,147 @@ public class StreamingJob implements Serializable {
 				//Window-based kNN
 				TKNNQuery.TSpatialKNNQuery(spatialTrajectoryStream, qPoint, radius, k, windowSize, windowSlideStep, allowedLateness, uGrid);
 
+				break;
+			}
+			case 41: { // Range Query (GeoJSON Point)
+				DataStream geoJSONStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				// Converting GeoJSON,CSV stream to point spatial data stream
+				DataStream<Point> spatialPointStream = SerializeStream.PointStream(geoJSONStream, "GeoJSON", uGrid);
+				spatialPointStream.print();
+//				DataStream<Point> rNeighbors= RangeQuery.SpatialRangeQuery(spatialPointStream, qPoint, radius, windowSize, windowSlideStep, uGrid);  // better than equivalent GB approach
+//				rNeighbors.print();
+
+				break;}
+			case 42:{ // Range Query (GeoJSON Polygon)
+				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				// Converting GeoJSON,CSV stream to polygon spatial data stream
+				DataStream<Polygon> spatialPolygonStream = SerializeStream.PolygonStream(geoJSONStream, "GeoJSON", uGrid);
+				spatialPolygonStream.print();
+				// Point-Polygon Range Query
+				DataStream<Polygon> pointPolygonRangeQueryOutput = RangeQuery.SpatialRangeQuery(spatialPolygonStream, qPoint, radius, uGrid, windowSize, windowSlideStep);
+				pointPolygonRangeQueryOutput.print();
+				break;
+			}
+			case 43:{ // Range Query (GeoJSON LineString)
+				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				geoJSONStream.print();
+				// Converting GeoJSON,CSV stream to polygon spatial data stream
+				DataStream<LineString> spatialLineStringStream = SerializeStream.LineStringStream(geoJSONStream, "GeoJSON", uGrid);
+				spatialLineStringStream.print();
+				break;
+			}
+			case 51: { // Range Query (CSV Point)
+				DataStream geoJSONStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				// Converting GeoJSON,CSV stream to point spatial data stream
+				DataStream<Point> spatialPointStream = SerializeStream.PointStream(geoJSONStream, "CSV", uGrid);
+				spatialPointStream.print();
+				DataStream<Point> rNeighbors= RangeQuery.SpatialRangeQuery(spatialPointStream, qPoint, radius, windowSize, windowSlideStep, uGrid);  // better than equivalent GB approach
+				rNeighbors.print();
+				break;}
+			case 52:{ // Range Query (CSV Polygon)
+				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				// Converting GeoJSON,CSV stream to polygon spatial data stream
+				DataStream<Polygon> spatialPolygonStream = SerializeStream.PolygonStream(geoJSONStream, "CSV", uGrid);
+				spatialPolygonStream.print();
+				// Point-Polygon Range Query
+				DataStream<Polygon> pointPolygonRangeQueryOutput = RangeQuery.SpatialRangeQuery(spatialPolygonStream, qPoint, radius, uGrid, windowSize, windowSlideStep);
+				pointPolygonRangeQueryOutput.print();
+				break;
+			}
+			case 53:{ // Range Query (CSV LineString)
+				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				// Converting GeoJSON,CSV stream to polygon spatial data stream
+				DataStream<LineString> spatialLineStringStream = SerializeStream.LineStringStream(geoJSONStream, "CSV", uGrid);
+				spatialLineStringStream.print();
+				break;
+			}
+			case 61: { // Range Query (TSV Point)
+				DataStream geoJSONStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				// Converting GeoJSON,CSV stream to point spatial data stream
+				DataStream<Point> spatialPointStream = SerializeStream.PointStream(geoJSONStream, "TSV", uGrid);
+				spatialPointStream.print();
+				DataStream<Point> rNeighbors= RangeQuery.SpatialRangeQuery(spatialPointStream, qPoint, radius, windowSize, windowSlideStep, uGrid);  // better than equivalent GB approach
+				rNeighbors.print();
+				break;}
+			case 62:{ // Range Query (TSV Polygon)
+				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				// Converting GeoJSON,CSV stream to polygon spatial data stream
+				DataStream<Polygon> spatialPolygonStream = SerializeStream.PolygonStream(geoJSONStream, "TSV", uGrid);
+				spatialPolygonStream.print();
+				// Point-Polygon Range Query
+				DataStream<Polygon> pointPolygonRangeQueryOutput = RangeQuery.SpatialRangeQuery(spatialPolygonStream, qPoint, radius, uGrid, windowSize, windowSlideStep);
+				pointPolygonRangeQueryOutput.print();
+				break;
+			}
+			case 63:{ // Range Query (TSV LineString)
+				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				// Converting GeoJSON,CSV stream to polygon spatial data stream
+				DataStream<LineString> spatialLineStringStream = SerializeStream.LineStringStream(geoJSONStream, "TSV", uGrid);
+				spatialLineStringStream.print();
+				break;
+			}
+
+			case 71:{ // TFilterQuery (GeoJSON Point Timestamp)
+				DataStream geoJSONStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				DataStream<Point> spatialTrajectoryStream = SerializeStream.TrajectoryStream(geoJSONStream, "GeoJSON", inputDateFormat, uGrid);
+				spatialTrajectoryStream.print();
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new PointToGeoJSONOutputSchema("kafka"), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				break;
+			}
+			case 72:{ // TFilterQuery (GeoJSON Polygon Timestamp)
+				DataStream geoJSONStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				DataStream<Polygon> spatialTrajectoryStream = SerializeStream.TrajectoryStreamPolygon(geoJSONStream, "GeoJSON", inputDateFormat, uGrid);
+				spatialTrajectoryStream.print();
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new PolygonToGeoJSONOutputSchema("kafka"), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				break;
+			}
+			case 73:{ // TFilterQuery (GeoJSON LineString Timestamp)
+				DataStream geoJSONStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				DataStream<LineString> spatialTrajectoryStream = SerializeStream.TrajectoryStreamLineString(geoJSONStream, "GeoJSON", inputDateFormat, uGrid);
+				spatialTrajectoryStream.print();
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new LineStringToGeoJSONOutputSchema("kafka"), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				break;
+			}
+			case 81:{ // TFilterQuery (CSV Point Timestamp)
+				DataStream geoJSONStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				DataStream<Point> spatialTrajectoryStream = SerializeStream.TrajectoryStream(geoJSONStream, "CSV", inputDateFormat, uGrid);
+				spatialTrajectoryStream.print();
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new PointToCSVOutputSchema("kafka"), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				break;
+			}
+			case 82:{ // TFilterQuery (CSV Polygon Timestamp)
+				DataStream geoJSONStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				DataStream<Polygon> spatialTrajectoryStream = SerializeStream.TrajectoryStreamPolygon(geoJSONStream, "CSV", inputDateFormat, uGrid);
+				spatialTrajectoryStream.print();
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new PolygonToCSVOutputSchema("kafka"), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				break;
+			}
+			case 83:{ // TFilterQuery (CSV LineString Timestamp)
+				DataStream geoJSONStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				DataStream<LineString> spatialTrajectoryStream = SerializeStream.TrajectoryStreamLineString(geoJSONStream, "CSV", inputDateFormat, uGrid);
+				spatialTrajectoryStream.print();
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new LineStringToCSVOutputSchema("kafka"), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				break;
+			}
+			case 91:{ // TFilterQuery (TSV Point Timestamp)
+				DataStream geoJSONStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				DataStream<Point> spatialTrajectoryStream = SerializeStream.TrajectoryStream(geoJSONStream, "TSV", inputDateFormat, uGrid);
+				spatialTrajectoryStream.print();
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new PointToTSVOutputSchema("kafka"), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				break;
+			}
+			case 92:{ // TFilterQuery (TSV Polygon Timestamp)
+				DataStream geoJSONStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				DataStream<Polygon> spatialTrajectoryStream = SerializeStream.TrajectoryStreamPolygon(geoJSONStream, "TSV", inputDateFormat, uGrid);
+				spatialTrajectoryStream.print();
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new PolygonToTSVOutputSchema("kafka"), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				break;
+			}
+			case 93:{ // TFilterQuery (TSV LineString Timestamp)
+				DataStream geoJSONStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				DataStream<LineString> spatialTrajectoryStream = SerializeStream.TrajectoryStreamLineString(geoJSONStream, "TSV", inputDateFormat, uGrid);
+				spatialTrajectoryStream.print();
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new LineStringToTSVOutputSchema("kafka"), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
 			case 99:{ // For testing with synthetic data

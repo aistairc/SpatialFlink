@@ -74,6 +74,17 @@ public class LineString extends SpatialObject implements Serializable {
             this.objID = objID;
         }
     }
+    public LineString(String objID, List<Coordinate> coordinates, long timeStampMillisec) {
+        if (coordinates.size() > 1) { // LineString can only be made with 2 or more points
+            GeometryFactory geofact = new GeometryFactory();
+            lineString = geofact.createLineString(coordinates.toArray(new Coordinate[0]));
+            this.boundingBox = HelperClass.getBoundingBox(lineString);
+            this.gridIDsSet = null;
+            this.gridID = "";
+            this.objID = objID;
+            this.timeStampMillisec = timeStampMillisec;
+        }
+    }
 
     //{"geometry": {"coordinates": [[[[-73.817854, 40.81909], [-73.817924, 40.819207], [-73.817791, 40.819253], [-73.817785, 40.819255], [-73.817596, 40.81932], [-73.81752, 40.819194], [-73.817521, 40.819193], [-73.817735, 40.819119], [-73.817755, 40.819113], [-73.817771, 40.819107], [-73.817798, 40.819098], [-73.817848, 40.81908], [-73.817852, 40.819087]]]], "type": "LineString"}, "type": "Feature"}
 
@@ -81,11 +92,13 @@ public class LineString extends SpatialObject implements Serializable {
     @Override
     public String toString() {
         try{
-            String str = "{\"geometry\":{\"coordinates\": [[[";
+            String str = "{\"geometry\":{\"coordinates\": [";
             Coordinate[] coordinates = lineString.getCoordinates();
             for(Coordinate coordinate: coordinates)
                 str = str + "[" + coordinate.getX()  + ", " + coordinate.getY() + "],";
-            str = str + "]]], \"type\": \"LineString\"}}";
+            str = str + "], \"type\": \"LineString\"}}";
+            str = str + ", " + "ObjID: " + this.objID;
+            str = str + ", " + this.timeStampMillisec;
             //str = str + ", Bounding Box: " + this.boundingBox;
             //str = str + ", Grid ID: " + this.gridIDsSet;
             //str = str + ", Obj ID: " + this.objID;
@@ -97,6 +110,4 @@ public class LineString extends SpatialObject implements Serializable {
         }
         return "Invalid Tuple";
     }
-
-
 }
