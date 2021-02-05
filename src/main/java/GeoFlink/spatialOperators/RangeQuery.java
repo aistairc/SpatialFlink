@@ -17,24 +17,20 @@ limitations under the License.
 package GeoFlink.spatialOperators;
 
 import GeoFlink.spatialIndices.UniformGrid;
+import GeoFlink.spatialObjects.LineString;
 import GeoFlink.spatialObjects.Point;
 import GeoFlink.spatialObjects.Polygon;
 import GeoFlink.utils.HelperClass;
 import org.apache.flink.api.common.functions.*;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.api.functions.windowing.AllWindowFunction;
 import org.apache.flink.streaming.api.functions.windowing.WindowFunction;
 import org.apache.flink.streaming.api.windowing.assigners.SlidingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
-import org.locationtech.jts.geom.Coordinate;
-import org.apache.flink.configuration.Configuration;
 
 import java.io.Serializable;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Set;
 
 public class RangeQuery implements Serializable {
@@ -129,6 +125,48 @@ public class RangeQuery implements Serializable {
         return rangeQueryNeighbours;
     }
 
+    //--------------- GRID-BASED RANGE QUERY - POINT - LineString -----------------//
+    public static DataStream<LineString> SpatialLineStringRangeQuery(DataStream<LineString> lineStringStream, Point queryPoint, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep ) {
+
+        Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint.gridID);
+        Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryPoint.gridID, guaranteedNeighboringCells);
+
+        DataStream<LineString> replicatedLineStringStream = lineStringStream.flatMap(new HelperClass.ReplicateLineStringStream());
+
+        // Filtering out the polygons which lie greater than queryRadius of the query point
+        DataStream<LineString> filteredLineStrings = replicatedLineStringStream.filter(new FilterFunction<LineString>() {
+            @Override
+            public boolean filter(LineString lineString) throws Exception {
+                return ((candidateNeighboringCells.contains(lineString.gridID)) || (guaranteedNeighboringCells.contains(lineString.gridID)));
+            }
+        });
+
+        DataStream<LineString> rangeQueryNeighbours = filteredLineStrings.keyBy(new KeySelector<LineString, String>() {
+            @Override
+            public String getKey(LineString lineString) throws Exception {
+                return lineString.gridID;
+            }
+        }).window(SlidingProcessingTimeWindows.of(Time.seconds(windowSize), Time.seconds(slideStep)))
+                .apply(new WindowFunction<LineString, LineString, String, TimeWindow>() {
+                    @Override
+                    public void apply(String gridID, TimeWindow timeWindow, Iterable<LineString> pointIterator, Collector<LineString> neighbors) throws Exception {
+                        for (LineString lineString : pointIterator) {
+                            if (guaranteedNeighboringCells.contains(lineString.gridID))
+                                neighbors.collect(lineString);
+                            else {
+                                //Double distance = HelperClass.computeEuclideanDistance(queryPoint.point.getX(), queryPoint.point.getY(), poly.point.getX(),poly.point.getY());
+                                Double distance = HelperClass.getPointLineStringMinEuclideanDistance(queryPoint, lineString);
+                                //System.out.println("Distance: " + distance);
+                                if (distance <= queryRadius){
+                                    neighbors.collect(lineString);
+                                }
+                            }
+                        }
+                    }
+                }).name("Windowed (Apply) Grid Based");
+
+        return rangeQueryNeighbours;
+    }
 
     //--------------- GRID-BASED RANGE QUERY - POLYGON - POLYGON -----------------//
     public static DataStream<Polygon> SpatialRangeQuery(DataStream<Polygon> polygonStream, Polygon queryPolygon, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep ) {
