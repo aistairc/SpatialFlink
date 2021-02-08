@@ -185,6 +185,12 @@
       <version>1.9.0</version>
       <scope>compile</scope>
     </dependency>
+    <dependency>
+      <groupId>org.locationtech.jts.io</groupId>
+      <artifactId>jts-io-common</artifactId>
+      <version>1.18.0</version>
+      <scope>compile</scope>
+    </dependency>
   </dependencies>
   <properties>
     <scala.binary.version>2.11</scala.binary.version>
