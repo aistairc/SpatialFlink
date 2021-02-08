@@ -38,7 +38,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-public class SerializeStream implements Serializable {
+public class Deserialization implements Serializable {
 
     private static GeoJsonReader geoJsonReader = new GeoJsonReader(new GeometryFactory());
 
