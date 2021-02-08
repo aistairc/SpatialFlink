@@ -18,7 +18,8 @@ package GeoFlink.spatialStreams;
 
 import GeoFlink.spatialIndices.UniformGrid;
 import GeoFlink.spatialObjects.*;
-import com.vividsolutions.jts.geom.Geometry;
+import org.json.JSONObject;
+import org.locationtech.jts.geom.Geometry;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ObjectNode;
@@ -26,7 +27,8 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.locationtech.jts.geom.Coordinate;
 import org.wololo.geojson.Feature;
 import org.wololo.geojson.GeoJSONFactory;
-import org.wololo.jts2geojson.GeoJSONReader;
+import org.locationtech.jts.io.geojson.GeoJsonReader;
+import org.locationtech.jts.geom.GeometryFactory;
 
 import java.io.Serializable;
 import java.text.DateFormat;
@@ -38,7 +40,7 @@ import java.util.List;
 
 public class SerializeStream implements Serializable {
 
-    private static GeoJSONReader geoJSONReader = new GeoJSONReader();
+    private static GeoJsonReader geoJsonReader = new GeoJsonReader(new GeometryFactory());
 
     public static DataStream<Point> PointStream(DataStream inputStream, String inputType, UniformGrid uGrid){
 
@@ -1112,15 +1114,8 @@ public class SerializeStream implements Serializable {
         return new Coordinate(x, y);
     }
 
-    private static Geometry readGeoJSON(String geoJson) {
-        final Geometry geometry;
-        if (geoJson.contains("Feature")) {
-            Feature feature = (Feature) GeoJSONFactory.create(geoJson);
-            geometry = geoJSONReader.read(feature.getGeometry());
-        } else {
-            geometry = geoJSONReader.read(geoJson);
-        }
-        return geometry;
+    private static Geometry readGeoJSON(String geoJson) throws org.locationtech.jts.io.ParseException {
+        return geoJsonReader.read(geoJson);
     }
 
     private static int findCount(String target, char c) {
