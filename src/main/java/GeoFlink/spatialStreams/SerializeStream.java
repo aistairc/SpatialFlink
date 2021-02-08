@@ -765,12 +765,12 @@ public class SerializeStream implements Serializable {
             if (geometry.getGeometryType().equalsIgnoreCase("MultiLineString")) {
                 List<List<Coordinate>> lists = convertCoordinates(
                         json, '[', ']', "],", ",", 3);
-                spatialLineString = new MultiLineString(null, lists);
+                spatialLineString = new MultiLineString(null, lists, uGrid);
             }
             else {
                 List<List<Coordinate>> parent = convertCoordinates(
                         json, '[', ']', "],", ",", 2);
-                spatialLineString = new LineString(null, parent.get(0));
+                spatialLineString = new LineString(null, parent.get(0), uGrid);
             }
             return spatialLineString;
         }
@@ -824,20 +824,20 @@ public class SerializeStream implements Serializable {
                 List<List<Coordinate>> lists = convertCoordinates(
                         json, '[', ']', "],", ",", 3);
                 if (time != 0) {
-                    spatialLineString = new MultiLineString(strOId, lists, time);
+                    spatialLineString = new MultiLineString(strOId, lists, time, uGrid);
                 }
                 else {
-                    spatialLineString = new MultiLineString(strOId, lists);
+                    spatialLineString = new MultiLineString(strOId, lists, uGrid);
                 }
             }
             else {
                 List<List<Coordinate>> parent = convertCoordinates(
                         json, '[', ']', "],", ",", 2);
                 if (time != 0) {
-                    spatialLineString = new LineString(strOId, parent.get(0), time);
+                    spatialLineString = new LineString(strOId, parent.get(0), time, uGrid);
                 }
                 else {
-                    spatialLineString = new LineString(strOId, parent.get(0));
+                    spatialLineString = new LineString(strOId, parent.get(0), uGrid);
                 }
             }
             return spatialLineString;
@@ -864,12 +864,12 @@ public class SerializeStream implements Serializable {
             if (strTuple.get("value").toString().contains("MULTILINESTRING")) {
                 List<List<Coordinate>> list = convertCoordinates(
                         strTuple.get("value").toString(), '(', ')', ",", " ", 2);
-                spatialLineString = new MultiLineString(null, list);
+                spatialLineString = new MultiLineString(null, list, uGrid);
             }
             else {
                 List<List<Coordinate>> parent = convertCoordinates(
                         strTuple.get("value").toString(), '(', ')', ",", " ", 1);
-                spatialLineString = new LineString(null, parent.get(0));
+                spatialLineString = new LineString(null, parent.get(0), uGrid);
             }
             return spatialLineString;
         }
@@ -912,20 +912,20 @@ public class SerializeStream implements Serializable {
                 List<List<Coordinate>> lists = convertCoordinates(
                         strTuple.get("value").toString(), '(', ')', ",", " ", 2);
                 if (time != 0) {
-                    spatialLineString = new MultiLineString(strOId, lists, time);
+                    spatialLineString = new MultiLineString(strOId, lists, time, uGrid);
                 }
                 else {
-                    spatialLineString = new MultiLineString(strOId, lists);
+                    spatialLineString = new MultiLineString(strOId, lists, uGrid);
                 }
             }
             else {
                 List<List<Coordinate>> lists = convertCoordinates(
                         strTuple.get("value").toString(), '(', ')', ",", " ", 1);
                 if (time != 0) {
-                    spatialLineString = new LineString(strOId, lists.get(0), time);
+                    spatialLineString = new LineString(strOId, lists.get(0), time, uGrid);
                 }
                 else {
-                    spatialLineString = new LineString(strOId, lists.get(0));
+                    spatialLineString = new LineString(strOId, lists.get(0), uGrid);
                 }
             }
             return spatialLineString;
@@ -952,12 +952,12 @@ public class SerializeStream implements Serializable {
             if (strTuple.get("value").toString().contains("MULTILINESTRING")) {
                 List<List<Coordinate>> list = convertCoordinates(
                         strTuple.get("value").toString(), '(', ')', ",", " ", 2);
-                spatialLineString = new MultiLineString(null, list);
+                spatialLineString = new MultiLineString(null, list, uGrid);
             }
             else {
                 List<List<Coordinate>> parent = convertCoordinates(
                         strTuple.get("value").toString(), '(', ')', ",", " ", 1);
-                spatialLineString = new LineString(null, parent.get(0));
+                spatialLineString = new LineString(null, parent.get(0), uGrid);
             }
             return spatialLineString;
         }
@@ -1000,20 +1000,20 @@ public class SerializeStream implements Serializable {
                 List<List<Coordinate>> lists = convertCoordinates(
                         strTuple.get("value").toString(), '(', ')', ",", " ", 2);
                 if (time != 0) {
-                    spatialLineString = new MultiLineString(strOId, lists, time);
+                    spatialLineString = new MultiLineString(strOId, lists, time, uGrid);
                 }
                 else {
-                    spatialLineString = new MultiLineString(strOId, lists);
+                    spatialLineString = new MultiLineString(strOId, lists, uGrid);
                 }
             }
             else {
                 List<List<Coordinate>> lists = convertCoordinates(
                         strTuple.get("value").toString(), '(', ')', ",", " ", 1);
                 if (time != 0) {
-                    spatialLineString = new LineString(strOId, lists.get(0), time);
+                    spatialLineString = new LineString(strOId, lists.get(0), time, uGrid);
                 }
                 else {
-                    spatialLineString = new LineString(strOId, lists.get(0));
+                    spatialLineString = new LineString(strOId, lists.get(0), uGrid);
                 }
             }
             return spatialLineString;

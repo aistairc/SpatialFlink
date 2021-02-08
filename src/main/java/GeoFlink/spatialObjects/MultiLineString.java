@@ -26,17 +26,13 @@ public class MultiLineString extends LineString implements Serializable {
         super(objID, lineString, uGrid);
     }
 
-    public MultiLineString(String objID, List<Coordinate> coordinates, UniformGrid uGrid) {
-        super(objID, coordinates, uGrid);
-    }
-
-    public MultiLineString(String objID, List<List<Coordinate>> listCoordinate) {
-        super(objID, listCoordinate.get(0));
+    public MultiLineString(String objID, List<List<Coordinate>> listCoordinate, UniformGrid uGrid) {
+        super(objID, listCoordinate.get(0), uGrid);
         this.listCoordinate = listCoordinate;
     }
 
-    public MultiLineString(String objID, List<List<Coordinate>> listCoordinate, long timeStampMillisec) {
-        super(objID, listCoordinate.get(0), timeStampMillisec);
+    public MultiLineString(String objID, List<List<Coordinate>> listCoordinate, long timeStampMillisec, UniformGrid uGrid) {
+        super(objID, listCoordinate.get(0), timeStampMillisec, uGrid);
         this.listCoordinate = listCoordinate;
     }
 

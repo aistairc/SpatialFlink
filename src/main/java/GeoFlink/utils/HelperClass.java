@@ -17,6 +17,7 @@ limitations under the License.
 package GeoFlink.utils;
 
 import GeoFlink.spatialIndices.UniformGrid;
+import GeoFlink.spatialObjects.LineString;
 import GeoFlink.spatialObjects.Point;
 import GeoFlink.spatialObjects.Polygon;
 import org.apache.flink.api.common.functions.FilterFunction;
@@ -295,6 +296,60 @@ public class HelperClass {
     }
 
 
+    // Get min distance between Point and LineString bounding box
+    public static double getPointLineStringMinEuclideanDistance(Point p, LineString lineString) {
+
+        // Point coordinates
+        double x = p.point.getX();
+        double y = p.point.getY();
+
+        // Line coordinate 1
+        double x1 = lineString.boundingBox.f0.getX();
+        double y1 = lineString.boundingBox.f0.getY();
+
+        // Line coordinate 2
+        double x2 = lineString.boundingBox.f1.getX();
+        double y2 = lineString.boundingBox.f1.getY();
+
+        if(x <= x1){
+
+            if(y <= y1){
+                return getPointPointEuclideanDistance(x,y,x1,y1);
+            }
+            else if (y >= y2){
+                return getPointPointEuclideanDistance(x,y,x1,y2);
+            }
+            else{ // y > y1 && y < y2
+                return getPointLineMinEuclideanDistance(x, y, x1, y1, x1, y2);
+            }
+        }
+        else if(x >= x2){
+
+            if(y <= y1){
+                return getPointPointEuclideanDistance(x,y,x2,y1);
+            }
+            else if (y >= y2){
+                return getPointPointEuclideanDistance(x,y,x2,y2);
+            }
+            else{ // y > y1 && y < y2
+                return getPointLineMinEuclideanDistance(x, y, x2, y1, x2, y2);
+            }
+        }
+        else{ // x > x1 && x < x2
+
+            if(y <= y1){
+                return getPointLineMinEuclideanDistance(x, y, x1, y1, x2, y1);
+            }
+            else if (y >= y2){
+                return getPointLineMinEuclideanDistance(x, y, x1, y2, x2, y2);
+            }
+            else{ // y > y1 && y < y2
+                return 0.0; // Query point is within bounding box or on the boundary
+            }
+        }
+    }
+
+
     // check the overlapping of 2 rectangles
     static boolean doRectanglesOverlap(Coordinate bottomLeft1, Coordinate topRight1, Coordinate bottomLeft2, Coordinate topRight2) {
         // If one rectangle is on left side of other
@@ -455,6 +510,34 @@ public class HelperClass {
             for (String gridID: poly.gridIDsSet) {
                 Polygon p = new Polygon(Arrays.asList(poly.polygon.getCoordinates()), uniqueObjID, poly.gridIDsSet, gridID, poly.boundingBox);
                 out.collect(p);
+            }
+
+            // Generating unique ID for each polygon, so that all the replicated tuples are assigned the same unique id
+            uniqueObjID += parallelism;
+        }
+    }
+
+
+    // Generation of replicated linestring stream corresponding to each grid cell a linestring belongs
+    public static class ReplicateLineStringStream extends RichFlatMapFunction<LineString, LineString> {
+
+        private long parallelism;
+        private long uniqueObjID;
+
+        @Override
+        public void open(Configuration parameters) {
+            RuntimeContext ctx = getRuntimeContext();
+            parallelism = ctx.getNumberOfParallelSubtasks();
+            uniqueObjID = ctx.getIndexOfThisSubtask();
+        }
+
+        @Override
+        public void flatMap(LineString lineString, Collector<LineString> out) throws Exception {
+
+            // Create duplicated polygon stream based on GridIDs
+            for (String gridID: lineString.gridIDsSet) {
+                LineString l = new LineString(String.valueOf(uniqueObjID), Arrays.asList(lineString.lineString.getCoordinates()), lineString.gridIDsSet, gridID, lineString.boundingBox);
+                out.collect(l);
             }
 
             // Generating unique ID for each polygon, so that all the replicated tuples are assigned the same unique id

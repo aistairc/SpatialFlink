@@ -74,12 +74,12 @@ public class LineString extends SpatialObject implements Serializable {
             this.objID = objID;
         }
     }
-    public LineString(String objID, List<Coordinate> coordinates, long timeStampMillisec) {
+    public LineString(String objID, List<Coordinate> coordinates, long timeStampMillisec, UniformGrid uGrid) {
         if (coordinates.size() > 1) { // LineString can only be made with 2 or more points
             GeometryFactory geofact = new GeometryFactory();
             lineString = geofact.createLineString(coordinates.toArray(new Coordinate[0]));
             this.boundingBox = HelperClass.getBoundingBox(lineString);
-            this.gridIDsSet = null;
+            this.gridIDsSet = HelperClass.assignGridCellID(this.boundingBox, uGrid);
             this.gridID = "";
             this.objID = objID;
             this.timeStampMillisec = timeStampMillisec;

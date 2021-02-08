@@ -592,6 +592,16 @@ public class StreamingJob implements Serializable {
 				spatialLineStringStream.print();
 				break;
 			}
+			case 45:{ // Range Query (Point-LineString)
+				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				// Converting GeoJSON,CSV stream to linestring spatial data stream
+				DataStream<LineString> spatialLineStringStream = SerializeStream.LineStringStream(geoJSONStream, "GeoJSON", uGrid);
+				spatialLineStringStream.print();
+				// Point-Polygon Range Query
+				DataStream<LineString> pointLineStringRangeQueryOutput = RangeQuery.SpatialLineStringRangeQuery(spatialLineStringStream, qPoint, radius, uGrid, windowSize, windowSlideStep);
+				pointLineStringRangeQueryOutput.print();
+				break;
+			}
 			case 51: { // Range Query (CSV Point)
 				DataStream geoJSONStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to point spatial data stream
