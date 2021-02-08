@@ -44,6 +44,8 @@ import scala.Serializable;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -60,6 +62,7 @@ public class StreamingJob implements Serializable {
 		//--onCluster "false" --dataset "TDriveBeijing" --queryOption "21" --inputTopicName "TaxiDrive17MillionGeoJSON" --outputTopicName "outputTopic" --inputFormat "GeoJSON" --dateFormat "yyyy-MM-dd HH:mm:ss" --radius "0.005" --aggregate "SUM" --wType "TIME" --wInterval "10" --wStep "10" --uniformGridSize 25 --k "5" --trajDeletionThreshold 1000 --outOfOrderAllowedLateness "1" --omegaJoinDuration "1"
 		//--onCluster "false" --dataset "TDriveBeijing" --queryOption "100" --inputTopicName "TaxiDrive17MillionGeoJSON" --queryTopicName "sampleTopic" --outputTopicName "QueryLatency" --inputFormat "GeoJSON" --dateFormat "yyyy-MM-dd HH:mm:ss" --radius "0.0005" --aggregate "SUM" --wType "TIME" --wInterval "10" --wStep "10" --uniformGridSize 100 --k "10" --trajDeletionThreshold 1000 --outOfOrderAllowedLateness "1" --omegaJoinDuration "1"
 		//--onCluster "false" --dataset "TDriveBeijing" --queryOption "100" --inputTopicName "DEIM2021" --queryTopicName "sampleTopic" --outputTopicName "QueryLatency" --inputFormat "GeoJSON" --dateFormat "yyyy-MM-dd HH:mm:ss" --radius "0.0005" --aggregate "SUM" --wType "TIME" --wInterval "10" --wStep "10" --uniformGridSize 100 --k "10" --trajDeletionThreshold 1000
+		//--onCluster "false" --dataset "NYCBuildingsPolygons" --queryOption "5" --inputTopicName "NYCBuildingsPolygons" --queryTopicName "sampleTopic" --outputTopicName "QueryLatency" --inputFormat "GeoJSON" --dateFormat "null" --radius "0.05" --aggregate "SUM" --wType "TIME" --wInterval "1" --wStep "1" --uniformGridSize 100 --k "10" --trajDeletionThreshold 1000 --outOfOrderAllowedLateness "1" --omegaJoinDuration "1" --gridMinX "-74.25540" --gridMaxX "-73.70007" --gridMinY "40.49843" --gridMaxY "40.91506" --trajIDSet "9211800, 9320801, 9090500, 7282400, 10390100" --queryPoint "[-74.0000, 40.72714]" --queryPolygon "[-73.984416, 40.675882], [-73.984511, 40.675767], [-73.984719, 40.675867], [-73.984726, 40.67587], [-73.984718, 40.675881], [-73.984631, 40.675986], [-73.984416, 40.675882]" --queryLineString "[-73.984416, 40.675882], [-73.984511, 40.675767]"
 		ParameterTool parameters = ParameterTool.fromArgs(args);
 
 		int queryOption = Integer.parseInt(parameters.get("queryOption"));
@@ -80,6 +83,15 @@ public class StreamingJob implements Serializable {
 		Long inactiveTrajDeletionThreshold = Long.parseLong(parameters.get("trajDeletionThreshold"));
 		int allowedLateness = Integer.parseInt(parameters.get("outOfOrderAllowedLateness"));
 		int omegaJoinDurationSeconds = Integer.parseInt(parameters.get("omegaJoinDuration"));
+
+		double gridMinX = Double.parseDouble(parameters.get("gridMinX"));
+		double gridMaxX = Double.parseDouble(parameters.get("gridMaxX"));
+		double gridMinY = Double.parseDouble(parameters.get("gridMinY"));
+		double gridMaxY = Double.parseDouble(parameters.get("gridMaxY"));
+		String trajIDSet = parameters.get("trajIDSet");
+		List<Coordinate> queryPointCoordinates = getCoordinates(parameters.get("queryPoint"));
+		List<Coordinate> queryLineStringCoordinates = getCoordinates(parameters.get("queryLineString"));
+		List<Coordinate> queryPolygonCoordinates = getCoordinates(parameters.get("queryPolygon"));
 
 		String bootStrapServers;
 		DateFormat inputDateFormat;
@@ -156,7 +168,8 @@ public class StreamingJob implements Serializable {
 
 		// Preparing Kafka Connection to Get Stream Tuples
 		Properties kafkaProperties = new Properties();
-		kafkaProperties.setProperty("bootstrap.servers", "localhost:9092");
+//		kafkaProperties.setProperty("bootstrap.servers", "localhost:9092");
+		kafkaProperties.setProperty("bootstrap.servers", bootStrapServers);
 		kafkaProperties.setProperty("group.id", "messageStream");
 		//DataStream abc  = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 		//abc.print();
@@ -204,7 +217,16 @@ public class StreamingJob implements Serializable {
 		Set<Polygon> polygonSet;
 		Point qPoint;
 		Polygon queryPoly;
+		LineString queryLineString;
 
+		uGrid = new UniformGrid(uniformGridSize, gridMinX, gridMaxX, gridMinY, gridMaxY);
+		String[] trajID = trajIDSet.split("\\s*,\\s*");
+		trajIDs = Stream.of(trajID).collect(Collectors.toSet());
+		qPoint = new Point(queryPointCoordinates.get(0).x, queryPointCoordinates.get(0).y, uGrid);
+		queryLineString = new LineString(null, queryLineStringCoordinates, uGrid);
+		queryPoly = new Polygon(queryPolygonCoordinates, uGrid);
+		polygonSet = Stream.of(queryPoly).collect(Collectors.toSet());
+		/*
 		if(dataset.equals("TDriveBeijing")) {
 			// T-Drive Beijing
 			minX = 115.50000;     //X - East-West longitude
@@ -237,6 +259,7 @@ public class StreamingJob implements Serializable {
 			qPoint = new Point(116.14319183444924, 40.07271444145411, uGrid);
 		}
 		else if(dataset.equals("ATCShoppingMall")){
+
 			// ATC Shopping Mall
 			// Boundaries for ATC Shopping Mall dataset
 			minX = -41543.0;
@@ -318,7 +341,7 @@ public class StreamingJob implements Serializable {
 
 			qPoint = new Point(0, 0, uGrid);
 		}
-
+		*/
 		// Generating stream
 		DataStream inputStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 		//DataStream inputStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromLatest());
@@ -371,11 +394,13 @@ public class StreamingJob implements Serializable {
 				//spatialPolygonStream.print();
 				// Point-Polygon Range Query
 				DataStream<Polygon> pointPolygonRangeQueryOutput = RangeQuery.SpatialRangeQuery(spatialPolygonStream, qPoint, radius, uGrid, windowSize, windowSlideStep);
-				//pointPolygonRangeQueryOutput.print();
+				pointPolygonRangeQueryOutput.print();
 				break;
 			}
 			case 6:{ // Range Query (Polygon-Polygon)
+
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+
 				// Converting GeoJSON,CSV stream to polygon spatial data stream
 				DataStream<Polygon> spatialPolygonStream = SpatialStream.PolygonStream(geoJSONStream, inputFormat, uGrid);
 				DataStream<Polygon> polygonPolygonRangeQueryOutput = RangeQuery.SpatialRangeQuery(spatialPolygonStream, queryPoly, radius, uGrid, windowSize, windowSlideStep);
@@ -746,6 +771,24 @@ public class StreamingJob implements Serializable {
 
 		// Execute program
 		env.execute("Geo Flink");
+	}
+
+	private static List<Coordinate> getCoordinates(String target) {
+		//"[100.0, 0.0], [103.0, 0.0], [103.0, 1.0], [102.0, 1.0], [100.0, 0.0]"
+		List<Coordinate> list = new ArrayList<Coordinate>();
+		if (target == null) {
+			return list;
+		}
+		Pattern pattern = Pattern.compile("\\[(.+?)\\]");
+		Matcher matcher = pattern.matcher(target);
+		while (matcher.find()) {
+			try {
+				String[] arr = matcher.group(1).trim().split("\\s*,\\s*");
+				list.add(new Coordinate(Double.valueOf(arr[0]), Double.valueOf(arr[1])));
+			}
+			catch (Exception e) {}
+		}
+		return list;
 	}
 }
 
