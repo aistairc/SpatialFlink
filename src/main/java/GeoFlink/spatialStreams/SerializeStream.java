@@ -26,8 +26,8 @@ import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.Obje
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.locationtech.jts.geom.Coordinate;
 //import org.locationtech.jts.geom.Geometry;
-import org.wololo.geojson.Feature;
-import org.wololo.geojson.GeoJSONFactory;
+//import org.wololo.geojson.Feature;
+//import org.wololo.geojson.GeoJSONFactory;
 import org.locationtech.jts.io.geojson.GeoJsonReader;
 import org.locationtech.jts.geom.GeometryFactory;
 

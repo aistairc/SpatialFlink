@@ -181,14 +181,14 @@ public class HelperClass {
     }
 
     // Point Line Distance. Source: https://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment
-    public static double getPointLineMinEuclideanDistance(Coordinate p, Coordinate c1, Coordinate c2){
-        return getPointLineMinEuclideanDistance(p.getX(), p.getY(), c1.getX(), c1.getY(), c2.getX(), c2.getY());
+    public static double getPointLineBBoxMinEuclideanDistance(Coordinate p, Coordinate c1, Coordinate c2){
+        return getPointLineBBoxMinEuclideanDistance(p.getX(), p.getY(), c1.getX(), c1.getY(), c2.getX(), c2.getY());
     }
 
 
 
     /*
-    public static double getPointLineMinEuclideanDistance(double x, double y, double x1, double y1, double x2, double y2){
+    public static double getPointLineStringMinEuclideanDistance(double x, double y, double x1, double y1, double x2, double y2){
 
         double A = x - x1;
         double B = y - y1;
@@ -222,7 +222,7 @@ public class HelperClass {
     }
     */
 
-    public static double getPointLineMinEuclideanDistance(double x, double y, double x1, double y1, double x2, double y2){
+    public static double getPointLineBBoxMinEuclideanDistance(double x, double y, double x1, double y1, double x2, double y2){
 
         if(x1 == x2){
             return getPointPointEuclideanDistance(x, y, x1, y);
@@ -231,7 +231,7 @@ public class HelperClass {
             return getPointPointEuclideanDistance(x, y, x, y1);
         }
         else{
-            System.out.println("getPointLineMinEuclideanDistance: invalid bbox coordinates");
+            System.out.println("getPointLineBBoxMinEuclideanDistance: invalid bbox coordinates");
         }
 
         return Double.MIN_VALUE;
@@ -266,7 +266,7 @@ public class HelperClass {
                 return getPointPointEuclideanDistance(x,y,x1,y2);
             }
             else{ // y > y1 && y < y2
-                return getPointLineMinEuclideanDistance(x, y, x1, y1, x1, y2);
+                return getPointLineBBoxMinEuclideanDistance(x, y, x1, y1, x1, y2);
             }
         }
         else if(x >= x2){
@@ -278,16 +278,16 @@ public class HelperClass {
                 return getPointPointEuclideanDistance(x,y,x2,y2);
             }
             else{ // y > y1 && y < y2
-                return getPointLineMinEuclideanDistance(x, y, x2, y1, x2, y2);
+                return getPointLineBBoxMinEuclideanDistance(x, y, x2, y1, x2, y2);
             }
         }
         else{ // x > x1 && x < x2
 
             if(y <= y1){
-                return getPointLineMinEuclideanDistance(x, y, x1, y1, x2, y1);
+                return getPointLineBBoxMinEuclideanDistance(x, y, x1, y1, x2, y1);
             }
             else if (y >= y2){
-                return getPointLineMinEuclideanDistance(x, y, x1, y2, x2, y2);
+                return getPointLineBBoxMinEuclideanDistance(x, y, x1, y2, x2, y2);
             }
             else{ // y > y1 && y < y2
                 return 0.0; // Query point is within bounding box or on the boundary
@@ -320,7 +320,7 @@ public class HelperClass {
                 return getPointPointEuclideanDistance(x,y,x1,y2);
             }
             else{ // y > y1 && y < y2
-                return getPointLineMinEuclideanDistance(x, y, x1, y1, x1, y2);
+                return getPointLineBBoxMinEuclideanDistance(x, y, x1, y1, x1, y2);
             }
         }
         else if(x >= x2){
@@ -332,16 +332,16 @@ public class HelperClass {
                 return getPointPointEuclideanDistance(x,y,x2,y2);
             }
             else{ // y > y1 && y < y2
-                return getPointLineMinEuclideanDistance(x, y, x2, y1, x2, y2);
+                return getPointLineBBoxMinEuclideanDistance(x, y, x2, y1, x2, y2);
             }
         }
         else{ // x > x1 && x < x2
 
             if(y <= y1){
-                return getPointLineMinEuclideanDistance(x, y, x1, y1, x2, y1);
+                return getPointLineBBoxMinEuclideanDistance(x, y, x1, y1, x2, y1);
             }
             else if (y >= y2){
-                return getPointLineMinEuclideanDistance(x, y, x1, y2, x2, y2);
+                return getPointLineBBoxMinEuclideanDistance(x, y, x1, y2, x2, y2);
             }
             else{ // y > y1 && y < y2
                 return 0.0; // Query point is within bounding box or on the boundary
@@ -402,7 +402,7 @@ public class HelperClass {
                 return getPointPointEuclideanDistance(a4, b2);
             }
             else{
-                return getPointLineMinEuclideanDistance(b2, a1, a4);
+                return getPointLineBBoxMinEuclideanDistance(b2, a1, a4);
             }
 
         } else if (p1 >= x2) {
@@ -414,16 +414,16 @@ public class HelperClass {
                 return getPointPointEuclideanDistance(a3, b1);
             }
             else{ // (q1 <= y2 && q2 >= y2 )
-                return getPointLineMinEuclideanDistance(b1, a2, a3);
+                return getPointLineBBoxMinEuclideanDistance(b1, a2, a3);
             }
 
         } else { // p2 > x1 && p1 < x2
 
             if(q2 <= y1) {
-                    return getPointLineMinEuclideanDistance(b4, a1, a2);
+                    return getPointLineBBoxMinEuclideanDistance(b4, a1, a2);
             }
             else if(q1 >= y2){ // q1 >= y2
-                    return getPointLineMinEuclideanDistance(b1, a3, a4);
+                    return getPointLineBBoxMinEuclideanDistance(b1, a3, a4);
             }
             else{
                 return 0.0; // The 2 polygons overlap
@@ -446,10 +446,10 @@ public class HelperClass {
                     return getPointPointEuclideanDistance(a4, b2);
                 }
                 else if( (q2 >= y1 && q1 <= y1) || (q2 <= y2 && q1 >= y1) ){
-                    return getPointLineMinEuclideanDistance(b3, a1, a4);
+                    return getPointLineBBoxMinEuclideanDistance(b3, a1, a4);
                 }
                 else{ // (q1 <= y2 && q2 >= y2 )
-                    return getPointLineMinEuclideanDistance(b2, a1, a4);
+                    return getPointLineBBoxMinEuclideanDistance(b2, a1, a4);
                 }
 
             } else if (p1 >= x2) {
@@ -461,10 +461,10 @@ public class HelperClass {
                     return getPointPointEuclideanDistance(a3, b1);
                 }
                 else if( (q2 >= y1 && q1 <= y1) || (q2 <= y2 && q1 >= y1) ){
-                    return getPointLineMinEuclideanDistance(b4, a2, a3);
+                    return getPointLineBBoxMinEuclideanDistance(b4, a2, a3);
                 }
                 else{ // (q1 <= y2 && q2 >= y2 )
-                    return getPointLineMinEuclideanDistance(b1, a2, a3);
+                    return getPointLineBBoxMinEuclideanDistance(b1, a2, a3);
                 }
 
             } else { // p2 > x1 && p1 < x2
@@ -472,17 +472,17 @@ public class HelperClass {
                 if(q2 <= y1) {
 
                     if( (p2 >= x1 && p1 <= x1) || (p2 <= x2 && p1 >= x1) )  {
-                        return getPointLineMinEuclideanDistance(b3, a1, a2);
+                        return getPointLineBBoxMinEuclideanDistance(b3, a1, a2);
                     } else{ // (p2 >= x2 && p1 <= x2
-                        return getPointLineMinEuclideanDistance(b4, a1, a2);
+                        return getPointLineBBoxMinEuclideanDistance(b4, a1, a2);
                     }
 
                 }else{ // q1 >= y2
 
                     if( (p2 >= x1 && p1 <= x1) || (p2 <= x2 && p1 >= x1) )  {
-                        return getPointLineMinEuclideanDistance(b2, a3, a4);
+                        return getPointLineBBoxMinEuclideanDistance(b2, a3, a4);
                     } else{ // (p2 >= x2 && p1 <= x2
-                        return getPointLineMinEuclideanDistance(b1, a3, a4);
+                        return getPointLineBBoxMinEuclideanDistance(b1, a3, a4);
                     }
                 }
             }
