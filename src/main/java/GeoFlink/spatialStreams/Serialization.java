@@ -157,15 +157,17 @@ public class Serialization {
                 jsonGeometry.put("coordinates", jsonCoordinate);
             }
             else {
-                Coordinate[] polygonCoordinates = polygon.polygon.getCoordinates();
-                List<double[]> coordinates = new ArrayList<double[]>();
-                for (Coordinate c : polygonCoordinates) {
-                    double[] coordinate = {c.x, c.y};
-                    coordinates.add(coordinate);
+                List<List<double[]>> jsonCoordinate = new ArrayList<List<double[]>>();
+                for (org.locationtech.jts.geom.Polygon p : polygon.polygon) {
+                    Coordinate[] polygonCoordinates = p.getCoordinates();
+                    List<double[]> coordinates = new ArrayList<double[]>();
+                    for (Coordinate c : polygonCoordinates) {
+                        double[] coordinate = {c.x, c.y};
+                        coordinates.add(coordinate);
+                    }
+                    jsonCoordinate.add(coordinates);
                 }
                 jsonGeometry.put("type", "Polygon");
-                List<List<double[]>> jsonCoordinate = new ArrayList<List<double[]>>();
-                jsonCoordinate.add(coordinates);
                 jsonGeometry.put("coordinates", jsonCoordinate);
             }
             jsonObj.put("geometry", jsonGeometry);
@@ -226,14 +228,20 @@ public class Serialization {
             }
             else {
                 buf.append("POLYGON");
-                buf.append("((");
-                Coordinate[] coordinates = polygon.polygon.getCoordinates();
-                for (Coordinate c : coordinates) {
-                    buf.append(c.x + " " + c.y + ", ");
+                buf.append("(");
+                for (org.locationtech.jts.geom.Polygon p : polygon.polygon) {
+                    buf.append("(");
+                    Coordinate[] coordinates = p.getCoordinates();
+                    for (Coordinate c : coordinates) {
+                        buf.append(c.x + " " + c.y + ", ");
+                    }
+                    buf.deleteCharAt(buf.length() - 1);
+                    buf.deleteCharAt(buf.length() - 1);
+                    buf.append("), ");
                 }
                 buf.deleteCharAt(buf.length() - 1);
                 buf.deleteCharAt(buf.length() - 1);
-                buf.append("))");
+                buf.append(")");
             }
             if (polygon.timeStampMillisec != 0) {
                 buf.append(SEPARATION + " ");
@@ -285,14 +293,20 @@ public class Serialization {
             }
             else {
                 buf.append("POLYGON");
-                buf.append("((");
-                Coordinate[] coordinates = polygon.polygon.getCoordinates();
-                for (Coordinate c : coordinates) {
-                    buf.append(c.x + " " + c.y + ", ");
+                buf.append("(");
+                for (org.locationtech.jts.geom.Polygon p : polygon.polygon) {
+                    buf.append("(");
+                    Coordinate[] coordinates = p.getCoordinates();
+                    for (Coordinate c : coordinates) {
+                        buf.append(c.x + " " + c.y + ", ");
+                    }
+                    buf.deleteCharAt(buf.length() - 1);
+                    buf.deleteCharAt(buf.length() - 1);
+                    buf.append("), ");
                 }
                 buf.deleteCharAt(buf.length() - 1);
                 buf.deleteCharAt(buf.length() - 1);
-                buf.append("))");
+                buf.append(")");
             }
             if (polygon.timeStampMillisec != 0) {
                 buf.append(SEPARATION + " ");

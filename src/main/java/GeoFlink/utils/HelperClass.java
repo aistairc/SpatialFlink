@@ -508,7 +508,7 @@ public class HelperClass {
 
             // Create duplicated polygon stream based on GridIDs
             for (String gridID: poly.gridIDsSet) {
-                Polygon p = new Polygon(Arrays.asList(poly.polygon.getCoordinates()), uniqueObjID, poly.gridIDsSet, gridID, poly.boundingBox);
+                Polygon p = new Polygon(new ArrayList<Coordinate>(Arrays.asList(poly.getCoordinates())), uniqueObjID, poly.gridIDsSet, gridID, poly.boundingBox);
                 out.collect(p);
             }
 
