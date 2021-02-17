@@ -18,15 +18,12 @@ package GeoFlink.spatialStreams;
 
 import GeoFlink.spatialIndices.UniformGrid;
 import GeoFlink.spatialObjects.*;
-import org.json.JSONObject;
 import org.locationtech.jts.geom.Geometry;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.locationtech.jts.geom.Coordinate;
-import org.wololo.geojson.Feature;
-import org.wololo.geojson.GeoJSONFactory;
 import org.locationtech.jts.io.geojson.GeoJsonReader;
 import org.locationtech.jts.geom.GeometryFactory;
 

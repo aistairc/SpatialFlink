@@ -20,6 +20,7 @@ package GeoFlink;
 
 import GeoFlink.spatialIndices.UniformGrid;
 import GeoFlink.spatialObjects.LineString;
+import GeoFlink.spatialObjects.MultiLineString;
 import GeoFlink.spatialObjects.Point;
 import GeoFlink.spatialObjects.Polygon;
 import GeoFlink.spatialOperators.*;
@@ -34,6 +35,7 @@ import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.RestOptions;
+import org.apache.flink.core.fs.Path;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
@@ -650,11 +652,28 @@ public class StreamingJob implements Serializable {
 				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.LineStringToTSVOutputSchema("kafka"), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
-			case 101:{
-				org.apache.flink.core.fs.Path path = new org.apache.flink.core.fs.Path("D:\\polygon\\japan_ver821.shp");
-				ShapeFilePolygonInputFormat<Polygon> shapeFilePolygonInputFormat = new ShapeFilePolygonInputFormat<Polygon>(path, uGrid);
+			case 101:{ // Shapefile (Point)
+				Path path = new Path("D:\\testData\\point\\W01-05_GML\\W01-05-g_Dam.shp");
+				ShapeFileInputFormat<Polygon> shapeFileInputFormat = new ShapeFileInputFormat<Polygon>(path, uGrid);
 				TypeInformation<Polygon> typeInfo = TypeInformation.of(Polygon.class);
-				DataStream<Polygon> stream =  env.createInput(shapeFilePolygonInputFormat, typeInfo);
+				DataStream<Polygon> stream =  env.createInput(shapeFileInputFormat, typeInfo);
+				stream.print();
+				break;
+			}
+			case 102:{ // Shapefile (Polygon)
+				Path path = new Path("D:\\testData\\polygon\\japan_ver821.shp");
+				ShapeFileInputFormat<Polygon> shapeFileInputFormat = new ShapeFileInputFormat<Polygon>(path, uGrid);
+				TypeInformation<Polygon> typeInfo = TypeInformation.of(Polygon.class);
+				DataStream<Polygon> stream =  env.createInput(shapeFileInputFormat, typeInfo);
+				stream.print();
+				break;
+			}
+			case 103:{ // Shapefile (LineString)
+				Path path = new Path("D:\\testData\\linestring\\A37-15_01_GML\\A37-15_PeninsulaRoadCirculation_01.shp");
+//				Path path = new Path("D:\\testData\\linestring\\C23-06_05_GML\\C23-06_05-g_Coastline.shp");
+				ShapeFileInputFormat<MultiLineString> shapeFileInputFormat = new ShapeFileInputFormat<MultiLineString>(path, uGrid);
+				TypeInformation<MultiLineString> typeInfo = TypeInformation.of(MultiLineString.class);
+				DataStream<MultiLineString> stream =  env.createInput(shapeFileInputFormat, typeInfo);
 				stream.print();
 				break;
 			}
