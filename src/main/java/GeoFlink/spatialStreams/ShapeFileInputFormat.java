@@ -2,6 +2,7 @@ package GeoFlink.spatialStreams;
 
 import GeoFlink.spatialIndices.UniformGrid;
 import GeoFlink.spatialObjects.MultiLineString;
+import GeoFlink.spatialObjects.Point;
 import org.apache.flink.api.common.io.FileInputFormat;
 import org.apache.flink.core.fs.FileInputSplit;
 import org.locationtech.jts.geom.Coordinate;
@@ -27,6 +28,7 @@ public class ShapeFileInputFormat<E> extends FileInputFormat<E> {
     private static Semaphore semaphore = new Semaphore(1, true);
 
     private static int FILE_CODE = 9994;
+    private static int SHAPE_TYPE_POINT    = 1;
     private static int SHAPE_TYPE_POLYLINE = 3;
     private static int SHAPE_TYPE_POLYGON  = 5;
 
@@ -49,8 +51,8 @@ public class ShapeFileInputFormat<E> extends FileInputFormat<E> {
     public void open(FileInputSplit fileSplit) throws IOException {
         getSema();
         long id = Thread.currentThread().getId();
-        if (threadId == -1) {
-            threadId = id;
+        if (this.threadId == -1) {
+            this.threadId = id;
         }
         releaseSema();
         super.open(fileSplit);
@@ -90,14 +92,15 @@ public class ShapeFileInputFormat<E> extends FileInputFormat<E> {
         // read record header
         byte[] recordHeader = new byte[8];
         long id = Thread.currentThread().getId();
-        if (threadId != id) {
+        if (this.threadId != id) {
+            this.end = true;
             return ret;
         }
         if (this.stream.read(recordHeader) < 0) {
             this.end = true;
             throw new IOException("Failed to read record header.");
         }
-        offset += recordHeader.length;
+        this.offset += recordHeader.length;
 
         // record number
         byte[] arrRecordNo = new byte[Integer.BYTES];
@@ -118,18 +121,41 @@ public class ShapeFileInputFormat<E> extends FileInputFormat<E> {
         System.arraycopy(record, 0, arrShapeType, 0, arrShapeType.length);
         int shapeType = ByteBuffer.wrap(arrShapeType).order(ByteOrder.LITTLE_ENDIAN).getInt();
 
+        // shape type : Point
+        if ((shapeType & 0xFF) == SHAPE_TYPE_POINT) {
+            ret = (E)readPointData(record);
+        }
         // shape type : Polygon
-        if ((shapeType & 0xFF) == SHAPE_TYPE_POLYGON) {
+        else if ((shapeType & 0xFF) == SHAPE_TYPE_POLYGON) {
             ret = (E)readPolygonData(record);
         }
+        // shape type : PolyLine
         else if ((shapeType & 0xFF) == SHAPE_TYPE_POLYLINE) {
             ret = (E)readPolyLineData(record);
         }
         else {
+            System.out.println("Unsupported shape type [" + (shapeType & 0xFF) + "]");
             ret = (E)null;
         }
         return ret;
      }
+
+    private Point readPointData(byte[] record) {
+        // read coordinate
+        byte[] arrX = new byte[Double.BYTES];
+        System.arraycopy(record, 0x04, arrX, 0, arrX.length);
+        double x = ByteBuffer.wrap(arrX).order(ByteOrder.LITTLE_ENDIAN).getDouble();
+        byte[] arrY = new byte[Double.BYTES];
+        System.arraycopy(record, 0x0C, arrY, 0, arrY.length);
+        double y = ByteBuffer.wrap(arrY).order(ByteOrder.LITTLE_ENDIAN).getDouble();
+        this.offset += record.length;
+
+        if (this.fileSize <= this.offset) {
+            this.end = true;
+        }
+        Point point = new Point(x, y, this.uGrid);
+        return point;
+    }
 
      private Polygon readPolygonData(byte[] record) {
          // NumParts
@@ -156,9 +182,9 @@ public class ShapeFileInputFormat<E> extends FileInputFormat<E> {
              offsetPoint += Double.BYTES;
              list.add(new Coordinate(x, y));
          }
-         offset += record.length;
+         this.offset += record.length;
 
-         if (fileSize <= offset) {
+         if (this.fileSize <= this.offset) {
              this.end = true;
          }
          Polygon polygon = new Polygon(list, this.uGrid);
@@ -211,9 +237,9 @@ public class ShapeFileInputFormat<E> extends FileInputFormat<E> {
             }
             list.add(coordinateList);
         }
-        offset += record.length;
+        this.offset += record.length;
 
-        if (fileSize <= offset) {
+        if (this.fileSize <= this.offset) {
             this.end = true;
         }
         MultiLineString multiLineString = new MultiLineString(null, list, this.uGrid);
