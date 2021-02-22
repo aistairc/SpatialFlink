@@ -78,6 +78,40 @@ public class Deserialization implements Serializable {
         return trajectoryStream;
     }
 
+    public static DataStream<Polygon> PolygonStream(DataStream inputStream, String inputType, UniformGrid uGrid){
+
+        DataStream<Polygon> polygonStream = null;
+
+        if(inputType.equals("GeoJSON")) {
+            polygonStream = inputStream.map(new GeoJSONToSpatialPolygon(uGrid)).startNewChain();
+        }
+        else if (inputType.equals("CSV")){
+            polygonStream = inputStream.map(new CSVToSpatialPolygon(uGrid));
+        }
+        else if (inputType.equals("TSV")){
+            polygonStream = inputStream.map(new TSVToSpatialPolygon(uGrid));
+        }
+
+        return polygonStream;
+    }
+
+    public static DataStream<Polygon> TrajectoryStreamPolygon(DataStream inputStream, String inputType, DateFormat dateFormat, UniformGrid uGrid){
+
+        DataStream<Polygon> trajectoryStream = null;
+
+        if(inputType.equals("GeoJSON")) {
+            trajectoryStream = inputStream.map(new GeoJSONToTSpatialPolygon(uGrid, dateFormat));
+        }
+        else if (inputType.equals("CSV")){
+            trajectoryStream = inputStream.map(new CSVToTSpatialPolygon(uGrid, dateFormat));
+        }
+        else if (inputType.equals("TSV")){
+            trajectoryStream = inputStream.map(new TSVToTSpatialPolygon(uGrid, dateFormat));
+        }
+
+        return trajectoryStream;
+    }
+
 
     public static class GeoJSONToSpatial extends RichMapFunction<ObjectNode, Point> {
 
@@ -155,7 +189,8 @@ public class Deserialization implements Serializable {
             }
             Point spatialPoint;
             if (time != 0) {
-                spatialPoint = new Point(strOId, geometry.getCoordinate().x, geometry.getCoordinate().y, time, uGrid);
+                //spatialPoint = new Point(strOId, geometry.getCoordinate().x, geometry.getCoordinate().y, time, uGrid);
+                spatialPoint = new Point(strOId, geometry.getCoordinate().x, geometry.getCoordinate().y, System.currentTimeMillis(), uGrid);
             }
             else {
                 spatialPoint = new Point(strOId, geometry.getCoordinate().x, geometry.getCoordinate().y, 0, uGrid);
@@ -302,39 +337,7 @@ public class Deserialization implements Serializable {
         }
     }
 
-    public static DataStream<Polygon> PolygonStream(DataStream inputStream, String inputType, UniformGrid uGrid){
 
-        DataStream<Polygon> polygonStream = null;
-
-        if(inputType.equals("GeoJSON")) {
-            polygonStream = inputStream.map(new GeoJSONToSpatialPolygon(uGrid)).startNewChain();
-        }
-        else if (inputType.equals("CSV")){
-            polygonStream = inputStream.map(new CSVToSpatialPolygon(uGrid));
-        }
-        else if (inputType.equals("TSV")){
-            polygonStream = inputStream.map(new TSVToSpatialPolygon(uGrid));
-        }
-
-        return polygonStream;
-    }
-
-    public static DataStream<Polygon> TrajectoryStreamPolygon(DataStream inputStream, String inputType, DateFormat dateFormat, UniformGrid uGrid){
-
-        DataStream<Polygon> trajectoryStream = null;
-
-        if(inputType.equals("GeoJSON")) {
-            trajectoryStream = inputStream.map(new GeoJSONToTSpatialPolygon(uGrid, dateFormat));
-        }
-        else if (inputType.equals("CSV")){
-            trajectoryStream = inputStream.map(new CSVToTSpatialPolygon(uGrid, dateFormat));
-        }
-        else if (inputType.equals("TSV")){
-            trajectoryStream = inputStream.map(new TSVToTSpatialPolygon(uGrid, dateFormat));
-        }
-
-        return trajectoryStream;
-    }
 
     public static class GeoJSONToSpatialPolygon extends RichMapFunction<ObjectNode, Polygon> {
 
@@ -443,7 +446,8 @@ public class Deserialization implements Serializable {
                     listCoodinate.add(list);
                 }
                 if (time != 0) {
-                    spatialPolygon = new MultiPolygon(listCoodinate, oId, time, uGrid);
+                    //spatialPolygon = new MultiPolygon(listCoodinate, oId, time, uGrid);
+                    spatialPolygon = new MultiPolygon(listCoodinate, oId, System.currentTimeMillis(), uGrid);
                 }
                 else {
                     spatialPolygon = new MultiPolygon(listCoodinate, oId, 0, uGrid);
@@ -454,7 +458,8 @@ public class Deserialization implements Serializable {
                         json, '[', ']', "],", ",", 3);
                 List<Coordinate> list = addLastCoordinate(parent.get(0));
                 if (time != 0) {
-                    spatialPolygon = new Polygon(oId, list, time, uGrid);
+                    //spatialPolygon = new Polygon(oId, list, time, uGrid);
+                    spatialPolygon = new Polygon(oId, list, System.currentTimeMillis(), uGrid);
                 }
                 else {
                     spatialPolygon = new Polygon(oId, list, 0, uGrid);

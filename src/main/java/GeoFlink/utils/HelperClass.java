@@ -113,6 +113,16 @@ public class HelperClass {
                 gridCellIDs.add(gridIDStr);
             }
 
+        double minX = bBox.f0.getX();
+        double minY = bBox.f0.getY();
+
+        for(int x = xCellIndex1; x <= xCellIndex2; x++)
+            for(int y = yCellIndex1; y <= yCellIndex2; y++)
+            {
+                String gridIDStr = HelperClass.padLeadingZeroesToInt(x, uGrid.getCellIndexStrLength()) + HelperClass.padLeadingZeroesToInt(y, uGrid.getCellIndexStrLength());
+                gridCellIDs.add(gridIDStr);
+            }
+
         return gridCellIDs;
     }
 
@@ -180,15 +190,42 @@ public class HelperClass {
         return Math.sqrt( Math.pow((lat1 - lat),2) + Math.pow((lon1 - lon),2));
     }
 
-    // Point Line Distance. Source: https://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment
-    public static double getPointLineBBoxMinEuclideanDistance(Coordinate p, Coordinate c1, Coordinate c2){
-        return getPointLineBBoxMinEuclideanDistance(p.getX(), p.getY(), c1.getX(), c1.getY(), c2.getX(), c2.getY());
+    static double getPointLineStringNearestBBoxBorderMinEuclideanDistance(Coordinate p, Coordinate c1, Coordinate c2){
+        return getPointLineStringNearestBBoxBorderMinEuclideanDistance(p.getX(), p.getY(), c1.getX(), c1.getY(), c2.getX(), c2.getY());
     }
 
+    // Get exact min distance between Point and Polygon
+    public static double getPointPolygonMinEuclideanDistance(Point p, Polygon poly) {
+        return getPointCoordinatesArrayMinEuclideanDistance(p, poly.polygon.getCoordinates());
+    }
 
+    static double getPointCoordinatesArrayMinEuclideanDistance(Point p, Coordinate[] coordinates) {
 
-    /*
-    public static double getPointLineStringMinEuclideanDistance(double x, double y, double x1, double y1, double x2, double y2){
+        double minDist = Double.MAX_VALUE;
+        for(int i = 0; i < coordinates.length - 1; i++){
+            double dist = getPointLineSegmentMinEuclideanDistance(p.point.getCoordinate(), coordinates[i], coordinates[i+1]);
+
+            if (dist < minDist){
+                minDist = dist;
+            }
+        }
+        return minDist;
+    }
+
+    // Get exact min distance between Point and LineString
+    public static double getPointLineStringMinEuclideanDistance(Point p, LineString lineString) {
+        return getPointCoordinatesArrayMinEuclideanDistance(p, lineString.lineString.getCoordinates());
+    }
+
+    // Exact Min distance between a point and a line segment of two points
+    // Point Line-Segment Distance. Source: https://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment
+    // x, y are point coordinates, whereas x1, y1 and x2, y2 are line segment co-ordinates
+
+    public static double getPointLineSegmentMinEuclideanDistance(Coordinate pointCoordinate, Coordinate lineSegmentCoordinate1, Coordinate lineSegmentCoordinate2){
+        return getPointLineSegmentMinEuclideanDistance(pointCoordinate.getX(), pointCoordinate.getY(),  lineSegmentCoordinate1.getX(), lineSegmentCoordinate1.getY(), lineSegmentCoordinate2.getX(), lineSegmentCoordinate2.getY());
+    }
+
+    public static double getPointLineSegmentMinEuclideanDistance(double x, double y, double x1, double y1, double x2, double y2){
 
         double A = x - x1;
         double B = y - y1;
@@ -220,9 +257,8 @@ public class HelperClass {
 
         return getPointPointEuclideanDistance(x, y, xx, yy);
     }
-    */
 
-    public static double getPointLineBBoxMinEuclideanDistance(double x, double y, double x1, double y1, double x2, double y2){
+    public static double getPointLineStringNearestBBoxBorderMinEuclideanDistance(double x, double y, double x1, double y1, double x2, double y2){
 
         if(x1 == x2){
             return getPointPointEuclideanDistance(x, y, x1, y);
@@ -231,7 +267,7 @@ public class HelperClass {
             return getPointPointEuclideanDistance(x, y, x, y1);
         }
         else{
-            System.out.println("getPointLineBBoxMinEuclideanDistance: invalid bbox coordinates");
+            System.out.println("getPointLineStringNearestBBoxBorderMinEuclideanDistance: invalid bbox coordinates");
         }
 
         return Double.MIN_VALUE;
@@ -243,7 +279,7 @@ public class HelperClass {
 
 
     // Get min distance between Point and Polygon bounding box
-    public static double getPointPolygonMinEuclideanDistance(Point p, Polygon poly) {
+    public static double getPointPolygonBBoxMinEuclideanDistance(Point p, Polygon poly) {
 
         // Point coordinates
         double x = p.point.getX();
@@ -266,7 +302,7 @@ public class HelperClass {
                 return getPointPointEuclideanDistance(x,y,x1,y2);
             }
             else{ // y > y1 && y < y2
-                return getPointLineBBoxMinEuclideanDistance(x, y, x1, y1, x1, y2);
+                return getPointLineStringNearestBBoxBorderMinEuclideanDistance(x, y, x1, y1, x1, y2);
             }
         }
         else if(x >= x2){
@@ -278,16 +314,16 @@ public class HelperClass {
                 return getPointPointEuclideanDistance(x,y,x2,y2);
             }
             else{ // y > y1 && y < y2
-                return getPointLineBBoxMinEuclideanDistance(x, y, x2, y1, x2, y2);
+                return getPointLineStringNearestBBoxBorderMinEuclideanDistance(x, y, x2, y1, x2, y2);
             }
         }
         else{ // x > x1 && x < x2
 
             if(y <= y1){
-                return getPointLineBBoxMinEuclideanDistance(x, y, x1, y1, x2, y1);
+                return getPointLineStringNearestBBoxBorderMinEuclideanDistance(x, y, x1, y1, x2, y1);
             }
             else if (y >= y2){
-                return getPointLineBBoxMinEuclideanDistance(x, y, x1, y2, x2, y2);
+                return getPointLineStringNearestBBoxBorderMinEuclideanDistance(x, y, x1, y2, x2, y2);
             }
             else{ // y > y1 && y < y2
                 return 0.0; // Query point is within bounding box or on the boundary
@@ -297,7 +333,7 @@ public class HelperClass {
 
 
     // Get min distance between Point and LineString bounding box
-    public static double getPointLineStringMinEuclideanDistance(Point p, LineString lineString) {
+    public static double getPointLineStringBBoxMinEuclideanDistance(Point p, LineString lineString) {
 
         // Point coordinates
         double x = p.point.getX();
@@ -311,6 +347,7 @@ public class HelperClass {
         double x2 = lineString.boundingBox.f1.getX();
         double y2 = lineString.boundingBox.f1.getY();
 
+        // identify the nearest bounding box boundary and compute distance from point
         if(x <= x1){
 
             if(y <= y1){
@@ -320,7 +357,7 @@ public class HelperClass {
                 return getPointPointEuclideanDistance(x,y,x1,y2);
             }
             else{ // y > y1 && y < y2
-                return getPointLineBBoxMinEuclideanDistance(x, y, x1, y1, x1, y2);
+                return getPointLineStringNearestBBoxBorderMinEuclideanDistance(x, y, x1, y1, x1, y2);
             }
         }
         else if(x >= x2){
@@ -332,16 +369,16 @@ public class HelperClass {
                 return getPointPointEuclideanDistance(x,y,x2,y2);
             }
             else{ // y > y1 && y < y2
-                return getPointLineBBoxMinEuclideanDistance(x, y, x2, y1, x2, y2);
+                return getPointLineStringNearestBBoxBorderMinEuclideanDistance(x, y, x2, y1, x2, y2);
             }
         }
         else{ // x > x1 && x < x2
 
             if(y <= y1){
-                return getPointLineBBoxMinEuclideanDistance(x, y, x1, y1, x2, y1);
+                return getPointLineStringNearestBBoxBorderMinEuclideanDistance(x, y, x1, y1, x2, y1);
             }
             else if (y >= y2){
-                return getPointLineBBoxMinEuclideanDistance(x, y, x1, y2, x2, y2);
+                return getPointLineStringNearestBBoxBorderMinEuclideanDistance(x, y, x1, y2, x2, y2);
             }
             else{ // y > y1 && y < y2
                 return 0.0; // Query point is within bounding box or on the boundary
@@ -366,14 +403,15 @@ public class HelperClass {
     }
 
 
-    // Get min distance between Polygon and Polygon
-    public static double getPolygonPolygonMinEuclideanDistance(Polygon poly1, Polygon poly2) {
+    public static double getBBoxBBoxMinEuclideanDistance(Tuple2<Coordinate, Coordinate> bBox1, Tuple2<Coordinate, Coordinate> bBox2) {
 
         // Polygon coordinate 1
-        double x1 = poly2.boundingBox.f0.getX();
-        double y1 = poly2.boundingBox.f0.getY();
-        double x2 = poly2.boundingBox.f1.getX();
-        double y2 = poly2.boundingBox.f1.getY();
+        //Tuple2<Coordinate, Coordinate> x = poly1.boundingBox;
+
+        double x1 = bBox1.f0.getX();
+        double y1 = bBox1.f0.getY();
+        double x2 = bBox1.f1.getX();
+        double y2 = bBox1.f1.getY();
 
         Coordinate a1 = new Coordinate(x1, y1);
         Coordinate a2 = new Coordinate(x2, y1);
@@ -381,10 +419,10 @@ public class HelperClass {
         Coordinate a4 = new Coordinate(x1, y2);
 
         // Polygon coordinate 2
-        double p1 = poly1.boundingBox.f0.getX();
-        double q1 = poly1.boundingBox.f0.getY();
-        double p2 = poly1.boundingBox.f1.getX();
-        double q2 = poly1.boundingBox.f1.getY();
+        double p1 = bBox2.f0.getX();
+        double q1 = bBox2.f0.getY();
+        double p2 = bBox2.f1.getX();
+        double q2 = bBox2.f1.getY();
 
         Coordinate b1 = new Coordinate(p1, q1);
         Coordinate b2 = new Coordinate(p2, q1);
@@ -402,7 +440,7 @@ public class HelperClass {
                 return getPointPointEuclideanDistance(a4, b2);
             }
             else{
-                return getPointLineBBoxMinEuclideanDistance(b2, a1, a4);
+                return getPointLineStringNearestBBoxBorderMinEuclideanDistance(b2, a1, a4);
             }
 
         } else if (p1 >= x2) {
@@ -414,16 +452,16 @@ public class HelperClass {
                 return getPointPointEuclideanDistance(a3, b1);
             }
             else{ // (q1 <= y2 && q2 >= y2 )
-                return getPointLineBBoxMinEuclideanDistance(b1, a2, a3);
+                return getPointLineStringNearestBBoxBorderMinEuclideanDistance(b1, a2, a3);
             }
 
         } else { // p2 > x1 && p1 < x2
 
             if(q2 <= y1) {
-                    return getPointLineBBoxMinEuclideanDistance(b4, a1, a2);
+                return getPointLineStringNearestBBoxBorderMinEuclideanDistance(b4, a1, a2);
             }
             else if(q1 >= y2){ // q1 >= y2
-                    return getPointLineBBoxMinEuclideanDistance(b1, a3, a4);
+                return getPointLineStringNearestBBoxBorderMinEuclideanDistance(b1, a3, a4);
             }
             else{
                 return 0.0; // The 2 polygons overlap
@@ -446,10 +484,10 @@ public class HelperClass {
                     return getPointPointEuclideanDistance(a4, b2);
                 }
                 else if( (q2 >= y1 && q1 <= y1) || (q2 <= y2 && q1 >= y1) ){
-                    return getPointLineBBoxMinEuclideanDistance(b3, a1, a4);
+                    return getPointLineStringNearestBBoxBorderMinEuclideanDistance(b3, a1, a4);
                 }
                 else{ // (q1 <= y2 && q2 >= y2 )
-                    return getPointLineBBoxMinEuclideanDistance(b2, a1, a4);
+                    return getPointLineStringNearestBBoxBorderMinEuclideanDistance(b2, a1, a4);
                 }
 
             } else if (p1 >= x2) {
@@ -461,10 +499,10 @@ public class HelperClass {
                     return getPointPointEuclideanDistance(a3, b1);
                 }
                 else if( (q2 >= y1 && q1 <= y1) || (q2 <= y2 && q1 >= y1) ){
-                    return getPointLineBBoxMinEuclideanDistance(b4, a2, a3);
+                    return getPointLineStringNearestBBoxBorderMinEuclideanDistance(b4, a2, a3);
                 }
                 else{ // (q1 <= y2 && q2 >= y2 )
-                    return getPointLineBBoxMinEuclideanDistance(b1, a2, a3);
+                    return getPointLineStringNearestBBoxBorderMinEuclideanDistance(b1, a2, a3);
                 }
 
             } else { // p2 > x1 && p1 < x2
@@ -472,23 +510,38 @@ public class HelperClass {
                 if(q2 <= y1) {
 
                     if( (p2 >= x1 && p1 <= x1) || (p2 <= x2 && p1 >= x1) )  {
-                        return getPointLineBBoxMinEuclideanDistance(b3, a1, a2);
+                        return getPointLineStringNearestBBoxBorderMinEuclideanDistance(b3, a1, a2);
                     } else{ // (p2 >= x2 && p1 <= x2
-                        return getPointLineBBoxMinEuclideanDistance(b4, a1, a2);
+                        return getPointLineStringNearestBBoxBorderMinEuclideanDistance(b4, a1, a2);
                     }
 
                 }else{ // q1 >= y2
 
                     if( (p2 >= x1 && p1 <= x1) || (p2 <= x2 && p1 >= x1) )  {
-                        return getPointLineBBoxMinEuclideanDistance(b2, a3, a4);
+                        return getPointLineStringNearestBBoxBorderMinEuclideanDistance(b2, a3, a4);
                     } else{ // (p2 >= x2 && p1 <= x2
-                        return getPointLineBBoxMinEuclideanDistance(b1, a3, a4);
+                        return getPointLineStringNearestBBoxBorderMinEuclideanDistance(b1, a3, a4);
                     }
                 }
             }
         }*/
+
     }
 
+
+    /*
+    // Get min distance between Polygon and Polygon
+    public static double getPolygonPolygonBBoxMinEuclideanDistance(Polygon poly1, Polygon poly2) {
+
+        return getBBoxBBoxMinEuclideanDistance(poly1.boundingBox, poly2.boundingBox);
+    }
+
+    // Get min distance between Polygon and LineString
+    public static double getPolygonLineStringBBoxMinEuclideanDistance(Polygon poly, LineString lineString) {
+        return getBBoxBBoxMinEuclideanDistance(poly.boundingBox, lineString.boundingBox);
+    }
+
+     */
 
     // Generation of replicated polygon stream corresponding to each grid cell a polygon belongs
     public static class ReplicatePolygonStream extends RichFlatMapFunction<Polygon, Polygon> {

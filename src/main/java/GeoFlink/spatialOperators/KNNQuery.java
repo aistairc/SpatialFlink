@@ -308,10 +308,10 @@ public class KNNQuery implements Serializable {
                         for (Polygon poly : inputTuples) {
 
                             if (kNNPQ.size() < k) {
-                                double distance = HelperClass.getPointPolygonMinEuclideanDistance(queryPoint, poly);
+                                double distance = HelperClass.getPointPolygonBBoxMinEuclideanDistance(queryPoint, poly);
                                 kNNPQ.offer(new Tuple2<Polygon, Double>(poly, distance));
                             } else {
-                                double distance = HelperClass.getPointPolygonMinEuclideanDistance(queryPoint, poly);
+                                double distance = HelperClass.getPointPolygonBBoxMinEuclideanDistance(queryPoint, poly);
                                 //double largestDistInPQ = HelperClass.getPointPolygonMinEuclideanDistance(queryPoint, kNNPQ.peek().f0);
                                 // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
                                 double largestDistInPQ = kNNPQ.peek().f1;
@@ -434,10 +434,10 @@ public class KNNQuery implements Serializable {
                         for (Polygon poly : inputTuples) {
 
                             if (kNNPQ.size() < k) {
-                                double distance = HelperClass.getPolygonPolygonMinEuclideanDistance(queryPolygon, poly);
+                                double distance = HelperClass.getBBoxBBoxMinEuclideanDistance(queryPolygon.boundingBox, poly.boundingBox);
                                 kNNPQ.offer(new Tuple2<Polygon, Double>(poly, distance));
                             } else {
-                                double distance = HelperClass.getPolygonPolygonMinEuclideanDistance(queryPolygon, poly);
+                                double distance = HelperClass.getBBoxBBoxMinEuclideanDistance(queryPolygon.boundingBox, poly.boundingBox);
                                 //double largestDistInPQ = HelperClass.getPointPolygonMinEuclideanDistance(queryPoint, kNNPQ.peek().f0);
                                 // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
                                 double largestDistInPQ = kNNPQ.peek().f1;

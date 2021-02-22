@@ -93,7 +93,7 @@ public class JoinQuery implements Serializable {
                 .apply(new JoinFunction<Polygon, Point, Tuple2<String,String>>() {
                     @Override
                     public Tuple2<String, String> join(Polygon poly, Point q) {
-                        if (HelperClass.getPointPolygonMinEuclideanDistance(q, poly) <= queryRadius) {
+                        if (HelperClass.getPointPolygonBBoxMinEuclideanDistance(q, poly) <= queryRadius) {
                             return Tuple2.of(poly.gridID, q.gridID);
                         } else {
                             return Tuple2.of(null, null);
@@ -133,7 +133,7 @@ public class JoinQuery implements Serializable {
                         if (q.f1 == true) {  // guaranteed neighbors
                             return Tuple2.of(poly.gridID, q.f0.gridID);
                         } else { // candidate neighbors
-                            if (HelperClass.getPointPolygonMinEuclideanDistance(q.f0, poly) <= queryRadius) {
+                            if (HelperClass.getPointPolygonBBoxMinEuclideanDistance(q.f0, poly) <= queryRadius) {
                                 return Tuple2.of(poly.gridID, q.f0.gridID);
                             } else {
                                 return Tuple2.of(null, null);
@@ -171,7 +171,7 @@ public class JoinQuery implements Serializable {
                 .apply(new JoinFunction<Polygon, Polygon, Tuple2<String,String>>() {
                     @Override
                     public Tuple2<String, String> join(Polygon poly, Polygon query) {
-                        if (HelperClass.getPolygonPolygonMinEuclideanDistance(query, poly) <= queryRadius) {
+                        if (HelperClass.getBBoxBBoxMinEuclideanDistance(query.boundingBox, poly.boundingBox) <= queryRadius) {
                             return Tuple2.of(poly.gridID, query.gridID);
                         } else {
                             return Tuple2.of(null, null);
@@ -210,7 +210,7 @@ public class JoinQuery implements Serializable {
                         if (query.f1 == true) {  // guaranteed neighbors
                             return Tuple2.of(poly.gridID, query.f0.gridID);
                         } else { // candidate neighbors
-                            if (HelperClass.getPolygonPolygonMinEuclideanDistance(query.f0, poly) <= queryRadius) {
+                            if (HelperClass.getBBoxBBoxMinEuclideanDistance(query.f0.boundingBox, poly.boundingBox) <= queryRadius) {
                                 return Tuple2.of(poly.gridID, query.f0.gridID);
                             } else {
                                 return Tuple2.of(null, null);

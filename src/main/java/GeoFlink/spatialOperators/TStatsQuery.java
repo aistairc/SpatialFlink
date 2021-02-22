@@ -214,6 +214,7 @@ public class TStatsQuery implements Serializable {
             Double lastPointCoordinateX = 0.0;
             Double lastPointCoordinateY = 0.0;
 
+
             // Check all points in the window
             for (Point p : input) {
                 if (lastTimestamp.equals(0L)){ // case of first point p in the loop

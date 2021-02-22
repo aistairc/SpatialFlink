@@ -150,7 +150,7 @@ public class TRangeQuery implements Serializable {
     */
 
     //--------------- TSpatialRangeQuery - Window-based - outputs a trajectory consisting of a complete sub-trajectory if any of its point lie within given region -----------------//
-    public static DataStream<LineString> TSpatialRangeQuery(DataStream<Point> pointStream, Set<Polygon> polygonSet, int windowSize, int windowSlideStep){
+    public static DataStream<LineString> TSpatialRangeQuery(DataStream<Point> pointStream, Set<Polygon> polygonSet, int windowSize, int windowSlideStep, int allowedLateness){
 
         HashSet<String> polygonsGridCellIDs = new HashSet<>();
 
@@ -160,9 +160,9 @@ public class TRangeQuery implements Serializable {
         }
 
         // Spatial stream with Timestamps and Watermarks
-        // Max Allowed Lateness: windowSize
+        // Max Allowed Lateness: allowedLateness
         DataStream<Point> pointStreamWithTsAndWm =
-                pointStream.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Point>(Time.seconds(windowSize)) {
+                pointStream.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Point>(Time.seconds(allowedLateness)) {
                     @Override
                     public long extractTimestamp(Point p) {
                         return p.timeStampMillisec;

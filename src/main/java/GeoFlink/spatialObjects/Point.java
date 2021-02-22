@@ -40,7 +40,7 @@ import java.util.List;
 public class Point extends SpatialObject implements Serializable {
     public String gridID;
     public org.locationtech.jts.geom.Point point;
-    public Long ingestionTime;
+    public long ingestionTime;
     //public String eventID;
     //public String deviceID;
     //public String userID;
