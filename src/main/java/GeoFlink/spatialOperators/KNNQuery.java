@@ -21,14 +21,12 @@ import GeoFlink.spatialObjects.Point;
 import GeoFlink.spatialObjects.Polygon;
 import GeoFlink.utils.Comparators;
 import GeoFlink.utils.HelperClass;
-import GeoFlink.utils.SpatialDistanceComparator;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
-import org.apache.flink.api.java.tuple.Tuple5;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.IterativeStream;
 import org.apache.flink.streaming.api.functions.windowing.AllWindowFunction;
@@ -347,13 +345,13 @@ public class KNNQuery implements Serializable {
                                 // If there are less than required (k) number of tuples in kNNPQWinAll
                                 if (kNNPQWinAll.size() < k) {
                                         // Add an object if it is not already there
-                                    if(!objIDs.contains(candidPQTuple.f0.objID)) {
+                                    if(!objIDs.contains(candidPQTuple.f0.lObjID)) {
                                         kNNPQWinAll.offer(candidPQTuple);
-                                        objIDs.add(candidPQTuple.f0.objID);
+                                        objIDs.add(candidPQTuple.f0.lObjID);
                                     }else{
                                         // (To avoid duplicate addition of an object in kNN) Object is already in PQ, check the existing object's distance compared to current object
                                         for (Tuple2<Polygon, Double> existingPQTuple : kNNPQWinAll){
-                                            if(existingPQTuple.f0.objID == candidPQTuple.f0.objID && existingPQTuple.f1 > candidPQTuple.f1){
+                                            if(existingPQTuple.f0.lObjID == candidPQTuple.f0.lObjID && existingPQTuple.f1 > candidPQTuple.f1){
                                                 kNNPQWinAll.remove(existingPQTuple);
                                                 kNNPQWinAll.offer(candidPQTuple);
                                                 break;
@@ -366,18 +364,18 @@ public class KNNQuery implements Serializable {
                                     double largestDistInkNNPQ = kNNPQWinAll.peek().f1;
                                     if (largestDistInkNNPQ > candidPQTuple.f1) {
                                         // Add an object if it is not already there
-                                        if(!objIDs.contains(candidPQTuple.f0.objID)) {
+                                        if(!objIDs.contains(candidPQTuple.f0.lObjID)) {
                                             // remove element with the largest distance and add the new element
                                             kNNPQWinAll.poll();
-                                            objIDs.remove(kNNPQWinAll.peek().f0.objID);
+                                            objIDs.remove(kNNPQWinAll.peek().f0.lObjID);
 
                                             kNNPQWinAll.offer(candidPQTuple);
-                                            objIDs.add(candidPQTuple.f0.objID);
+                                            objIDs.add(candidPQTuple.f0.lObjID);
                                         }
                                         else {
                                             // (To avoid duplicate addition of an object in kNN) Object is already in PQ, check the existing object's distance compared to current object
                                             for (Tuple2<Polygon, Double> existingPQTuple : kNNPQWinAll) {
-                                                if (existingPQTuple.f0.objID == candidPQTuple.f0.objID && existingPQTuple.f1 > candidPQTuple.f1) {
+                                                if (existingPQTuple.f0.lObjID == candidPQTuple.f0.lObjID && existingPQTuple.f1 > candidPQTuple.f1) {
                                                     kNNPQWinAll.remove(existingPQTuple);
                                                     kNNPQWinAll.offer(candidPQTuple);
                                                     break;
@@ -475,13 +473,13 @@ public class KNNQuery implements Serializable {
                                 // If there are less than required (k) number of tuples in kNNPQWinAll
                                 if (kNNPQWinAll.size() < k) {
                                     // Add an object if it is not already there
-                                    if(!objIDs.contains(candidPQTuple.f0.objID)) {
+                                    if(!objIDs.contains(candidPQTuple.f0.lObjID)) {
                                         kNNPQWinAll.offer(candidPQTuple);
-                                        objIDs.add(candidPQTuple.f0.objID);
+                                        objIDs.add(candidPQTuple.f0.lObjID);
                                     }else{
                                         // (To avoid duplicate addition of an object in kNN) Object is already in PQ, check the existing object's distance compared to current object
                                         for (Tuple2<Polygon, Double> existingPQTuple : kNNPQWinAll){
-                                            if(existingPQTuple.f0.objID == candidPQTuple.f0.objID && existingPQTuple.f1 > candidPQTuple.f1){
+                                            if(existingPQTuple.f0.lObjID == candidPQTuple.f0.lObjID && existingPQTuple.f1 > candidPQTuple.f1){
                                                 kNNPQWinAll.remove(existingPQTuple);
                                                 kNNPQWinAll.offer(candidPQTuple);
                                                 break;
@@ -494,18 +492,18 @@ public class KNNQuery implements Serializable {
                                     double largestDistInkNNPQ = kNNPQWinAll.peek().f1;
                                     if (largestDistInkNNPQ > candidPQTuple.f1) {
                                         // Add an object if it is not already there
-                                        if(!objIDs.contains(candidPQTuple.f0.objID)) {
+                                        if(!objIDs.contains(candidPQTuple.f0.lObjID)) {
                                             // remove element with the largest distance and add the new element
                                             kNNPQWinAll.poll();
-                                            objIDs.remove(kNNPQWinAll.peek().f0.objID);
+                                            objIDs.remove(kNNPQWinAll.peek().f0.lObjID);
 
                                             kNNPQWinAll.offer(candidPQTuple);
-                                            objIDs.add(candidPQTuple.f0.objID);
+                                            objIDs.add(candidPQTuple.f0.lObjID);
                                         }
                                         else {
                                             // (To avoid duplicate addition of an object in kNN) Object is already in PQ, check the existing object's distance compared to current object
                                             for (Tuple2<Polygon, Double> existingPQTuple : kNNPQWinAll) {
-                                                if (existingPQTuple.f0.objID == candidPQTuple.f0.objID && existingPQTuple.f1 > candidPQTuple.f1) {
+                                                if (existingPQTuple.f0.lObjID == candidPQTuple.f0.lObjID && existingPQTuple.f1 > candidPQTuple.f1) {
                                                     kNNPQWinAll.remove(existingPQTuple);
                                                     kNNPQWinAll.offer(candidPQTuple);
                                                     break;

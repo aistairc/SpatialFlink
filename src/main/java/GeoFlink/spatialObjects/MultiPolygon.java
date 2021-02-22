@@ -51,7 +51,7 @@ public class MultiPolygon extends Polygon implements Serializable {
             }
             str = str.substring(0, str.length() - 1);
             str = str + "], \"type\": \"MultiPolygon\"}}";
-            str = str + ", " + "ObjID: " + this.objID;
+            str = str + ", " + "ObjID: " + this.lObjID;
             str = str + ", " + this.timeStampMillisec;
             //str = str + ", Bounding Box: " + this.boundingBox;
             //str = str + ", Grid ID: " + this.gridIDsSet;

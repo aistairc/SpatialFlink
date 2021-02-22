@@ -18,7 +18,6 @@ package GeoFlink.spatialStreams;
 
 import GeoFlink.spatialIndices.UniformGrid;
 import GeoFlink.spatialObjects.*;
-import org.json.JSONObject;
 import org.locationtech.jts.geom.Geometry;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
@@ -383,8 +382,12 @@ public class Deserialization implements Serializable {
             else {
                 List<List<Coordinate>> parent = convertCoordinates(
                         json, '[', ']', "],", ",", 3);
-                List<Coordinate> list = addLastCoordinate(parent.get(0));
-                spatialPolygon = new Polygon(list, uGrid);
+                List<Coordinate> listCoodinate = new ArrayList<Coordinate>();
+                for (List<Coordinate> child : parent) {
+                    List<Coordinate> list = addLastCoordinate(child);
+                    listCoodinate.addAll(list);
+                }
+                spatialPolygon = new Polygon(listCoodinate, uGrid);
             }
             return spatialPolygon;
         }
@@ -456,13 +459,16 @@ public class Deserialization implements Serializable {
             else {
                 List<List<Coordinate>> parent = convertCoordinates(
                         json, '[', ']', "],", ",", 3);
-                List<Coordinate> list = addLastCoordinate(parent.get(0));
+                List<Coordinate> listCoodinate = new ArrayList<Coordinate>();
+                for (List<Coordinate> child : parent) {
+                    List<Coordinate> list = addLastCoordinate(child);
+                    listCoodinate.addAll(list);
+                }
                 if (time != 0) {
-                    //spatialPolygon = new Polygon(oId, list, time, uGrid);
-                    spatialPolygon = new Polygon(oId, list, System.currentTimeMillis(), uGrid);
+                    spatialPolygon = new Polygon(oId, listCoodinate, time, uGrid);
                 }
                 else {
-                    spatialPolygon = new Polygon(oId, list, 0, uGrid);
+                    spatialPolygon = new Polygon(oId, listCoodinate, 0, uGrid);
                 }
             }
             return spatialPolygon;

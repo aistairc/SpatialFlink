@@ -296,11 +296,11 @@ public class JoinQuery implements Serializable {
 
                 // Create duplicated polygon stream for all neighbouring cells based on GridIDs
                 for (String gridID: guaranteedNeighboringCells) {
-                    Polygon p = new Polygon(Arrays.asList(poly.polygon.getCoordinates()), uniqueObjID, poly.gridIDsSet, gridID, poly.boundingBox);
+                    Polygon p = new Polygon(Arrays.asList(poly.getCoordinates()), uniqueObjID, poly.gridIDsSet, gridID, poly.boundingBox);
                     out.collect(p);
                 }
                 for (String gridID: candidateNeighboringCells) {
-                    Polygon p = new Polygon(Arrays.asList(poly.polygon.getCoordinates()), uniqueObjID, poly.gridIDsSet, gridID, poly.boundingBox);
+                    Polygon p = new Polygon(Arrays.asList(poly.getCoordinates()), uniqueObjID, poly.gridIDsSet, gridID, poly.boundingBox);
                     out.collect(p);
                 }
 
@@ -330,11 +330,11 @@ public class JoinQuery implements Serializable {
 
                 // Create duplicated polygon stream based on GridIDs
                 for (String gridID: guaranteedNeighboringCells) {
-                    Polygon p = new Polygon(Arrays.asList(poly.polygon.getCoordinates()), uniqueObjID, poly.gridIDsSet, gridID, poly.boundingBox);
+                    Polygon p = new Polygon(Arrays.asList(poly.getCoordinates()), uniqueObjID, poly.gridIDsSet, gridID, poly.boundingBox);
                     out.collect(Tuple2.of(p,true));
                 }
                 for (String gridID: candidateNeighboringCells) {
-                    Polygon p = new Polygon(Arrays.asList(poly.polygon.getCoordinates()), uniqueObjID, poly.gridIDsSet, gridID, poly.boundingBox);
+                    Polygon p = new Polygon(Arrays.asList(poly.getCoordinates()), uniqueObjID, poly.gridIDsSet, gridID, poly.boundingBox);
                     out.collect(Tuple2.of(p,false));
                 }
 
