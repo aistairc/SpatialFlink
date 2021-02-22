@@ -18,7 +18,7 @@ public class DistanceFunctions {
     // Polygon-to-Polygon Distance
     public static double getDistance(Polygon obj1, Polygon obj2)
     {
-        return obj1.polygon.distance(obj2.polygon);
+        return obj1.polygon.get(0).distance(obj2.polygon.get(0));
     }
 
     // LineString-to-LineString Distance
@@ -30,7 +30,7 @@ public class DistanceFunctions {
     // Point-to-Polygon Distance
     public static double getDistance(Point obj1, Polygon obj2)
     {
-        return obj1.point.distance(obj2.polygon);
+        return obj1.point.distance(obj2.polygon.get(0));
     }
 
     // Point-to-LineString Distance
@@ -42,6 +42,6 @@ public class DistanceFunctions {
     // Polygon-to-LineString Distance
     public static double getDistance(Polygon obj1, LineString obj2)
     {
-        return obj1.polygon.distance(obj2.lineString);
+        return obj1.polygon.get(0).distance(obj2.lineString);
     }
 }

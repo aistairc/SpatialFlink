@@ -21,6 +21,18 @@ public class Polygon extends SpatialObject implements Serializable {
 
     public Polygon() {}; // required for POJO
 
+    //Polygon(Arrays.asList(poly.getCoordinates()), poly.objID, poly.gridIDsSet, gridID, poly.boundingBox);
+
+    public Polygon(List<Coordinate> coordinates, String objID, HashSet<String> gridIDsSet, String gridID, Tuple2<Coordinate, Coordinate> boundingBox) {
+        GeometryFactory geofact = new GeometryFactory();
+        //create geotools point object
+        polygon = createPolygonArray(coordinates);
+        this.gridIDsSet = gridIDsSet;
+        this.gridID = gridID;
+        objID = objID;
+        this.boundingBox = boundingBox;
+    }
+
     public Polygon(List<Coordinate> coordinates, long objID, HashSet<String> gridIDsSet, String gridID, Tuple2<Coordinate, Coordinate> boundingBox) {
         GeometryFactory geofact = new GeometryFactory();
         //create geotools point object
@@ -53,6 +65,9 @@ public class Polygon extends SpatialObject implements Serializable {
             this.lObjID = -1;
         }
     }
+
+
+
 
     public Polygon(long objID, List<Coordinate> coordinates, long timeStampMillisec, UniformGrid uGrid) {
         if (coordinates.size() > 1) {

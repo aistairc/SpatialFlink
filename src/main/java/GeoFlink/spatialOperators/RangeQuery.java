@@ -676,7 +676,8 @@ public class RangeQuery implements Serializable {
                                             distance = HelperClass.getPointPolygonBBoxMinEuclideanDistance(queryPoint, poly);
                                         } else {
                                             // https://locationtech.github.io/jts/javadoc/ (Euclidean Distance)
-                                            distance = poly.polygon.distance(queryPoint.point);
+                                            //distance = poly.polygon.distance(queryPoint.point);
+                                            distance = DistanceFunctions.getDistance(queryPoint, poly);
                                         }
 
                                         if (distance <= queryRadius) {
@@ -836,7 +837,8 @@ public class RangeQuery implements Serializable {
                                         //distance = HelperClass.getPointPolygonMinEuclideanDistance(queryPoint, poly);
                                         //System.out.println("HelperClass Dist: " + distance);
                                         // https://locationtech.github.io/jts/javadoc/ (Euclidean Distance)
-                                        distance = poly.polygon.distance(queryPoint.point);
+                                        //distance = poly.polygon.distance(queryPoint.point);
+                                        distance = DistanceFunctions.getDistance(queryPoint, poly);
                                         //System.out.println("LocationTech Dist: " + distance);
                                     }
 
@@ -942,7 +944,7 @@ public class RangeQuery implements Serializable {
                                     if(approximateQuery) {
                                         distance = HelperClass.getPointLineStringBBoxMinEuclideanDistance(queryPoint, lineString);
                                     }else{
-                                        distance = lineString.lineString.distance(queryPoint.point);
+                                        distance = DistanceFunctions.getDistance(queryPoint, lineString);
                                     }
 
                                     if (distance <= queryRadius) {
@@ -998,7 +1000,7 @@ public class RangeQuery implements Serializable {
                                 if(approximateQuery) {
                                     distance = HelperClass.getPointPolygonBBoxMinEuclideanDistance(point, queryPolygon);
                                 }else{
-                                        distance = point.point.distance(queryPolygon.polygon);
+                                        distance = DistanceFunctions.getDistance(point, queryPolygon);
                                 }
 
                                 if (distance <= queryRadius)
@@ -1098,7 +1100,7 @@ public class RangeQuery implements Serializable {
                                     if(approximateQuery) {
                                         distance = HelperClass.getBBoxBBoxMinEuclideanDistance(queryPolygon.boundingBox, poly.boundingBox);
                                     }else{
-                                        distance = queryPolygon.polygon.distance(poly.polygon);
+                                        distance = DistanceFunctions.getDistance(poly, queryPolygon);
                                     }
 
                                     if (distance <= queryRadius){
@@ -1156,7 +1158,7 @@ public class RangeQuery implements Serializable {
                                     if(approximateQuery) {
                                         distance = HelperClass.getBBoxBBoxMinEuclideanDistance(queryPolygon.boundingBox, lineString.boundingBox);
                                     }else{
-                                        distance = queryPolygon.polygon.distance(lineString.lineString);
+                                        distance = DistanceFunctions.getDistance(queryPolygon, lineString);
                                     }
 
                                     if (distance <= queryRadius) {
@@ -1263,7 +1265,7 @@ public class RangeQuery implements Serializable {
                                     if(approximateQuery) {
                                         distance = HelperClass.getBBoxBBoxMinEuclideanDistance(poly.boundingBox, queryLineString.boundingBox);
                                     }else{
-                                        distance = queryLineString.lineString.distance(poly.polygon);
+                                        distance = DistanceFunctions.getDistance(poly, queryLineString);
                                     }
 
                                     if (distance <= queryRadius){
@@ -1322,7 +1324,7 @@ public class RangeQuery implements Serializable {
                                     if(approximateQuery) {
                                         distance = HelperClass.getBBoxBBoxMinEuclideanDistance(queryLineString.boundingBox, lineString.boundingBox);
                                     }else{
-                                        distance = queryLineString.lineString.distance(lineString.lineString);
+                                        distance = DistanceFunctions.getDistance(lineString, queryLineString);
                                     }
 
                                     if (distance <= queryRadius) {
@@ -1378,7 +1380,7 @@ public class RangeQuery implements Serializable {
             Polygon outputPolygon;
             for(String gridID: poly.gridIDsSet) {
                 if (neighboringCells.contains(gridID)) {
-                    outputPolygon = new Polygon(Arrays.asList(poly.polygon.getCoordinates()), poly.objID, poly.gridIDsSet, gridID, poly.boundingBox);
+                    outputPolygon = new Polygon(Arrays.asList(poly.getCoordinates()), poly.objID, poly.gridIDsSet, gridID, poly.boundingBox);
                     output.collect(outputPolygon);
                     return;
                 }
