@@ -4,8 +4,6 @@ import GeoFlink.spatialIndices.UniformGrid;
 import GeoFlink.utils.HelperClass;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.Envelope;
-import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 
 import java.io.Serializable;
@@ -18,7 +16,7 @@ public class Polygon extends SpatialObject implements Serializable {
 
     public HashSet<String> gridIDsSet;
     public String gridID;
-    public long objID;
+    public long lObjID;
     public Tuple2<Coordinate, Coordinate> boundingBox;
     public List<org.locationtech.jts.geom.Polygon> polygon;
 
@@ -30,7 +28,7 @@ public class Polygon extends SpatialObject implements Serializable {
         polygon = createPolygonArray(coordinates);
         this.gridIDsSet = gridIDsSet;
         this.gridID = gridID;
-        this.objID = objID;
+        this.lObjID = objID;
         this.boundingBox = boundingBox;
     }
 
@@ -41,7 +39,7 @@ public class Polygon extends SpatialObject implements Serializable {
             this.boundingBox = HelperClass.getBoundingBox(polygon.get(0));
             this.gridIDsSet = HelperClass.assignGridCellID(this.boundingBox, uGrid);
             this.gridID = "";
-            this.objID = -1;
+            this.lObjID = -1;
         }
     }
 
@@ -53,7 +51,7 @@ public class Polygon extends SpatialObject implements Serializable {
             this.timeStampMillisec = timeStampMillisec;
             this.gridIDsSet = HelperClass.assignGridCellID(this.boundingBox, uGrid);
             this.gridID = "";
-            this.objID = -1;
+            this.lObjID = -1;
         }
     }
 
@@ -65,7 +63,7 @@ public class Polygon extends SpatialObject implements Serializable {
             this.timeStampMillisec = timeStampMillisec;
             this.gridIDsSet = HelperClass.assignGridCellID(this.boundingBox, uGrid);
             this.gridID = "";
-            this.objID = objID;
+            this.lObjID = objID;
         }
     }
 
@@ -115,7 +113,7 @@ public class Polygon extends SpatialObject implements Serializable {
             }
             str = str.substring(0, str.length() - 1);
             str = str + "], \"type\": \"Polygon\"}}";
-            str = str + ", " + "ObjID: " + this.objID;
+            str = str + ", " + "ObjID: " + this.lObjID;
             str = str + ", " + this.timeStampMillisec;
             //str = str + ", Bounding Box: " + this.boundingBox;
             //str = str + ", Grid ID: " + this.gridIDsSet;

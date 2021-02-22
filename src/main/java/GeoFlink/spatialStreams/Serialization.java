@@ -173,8 +173,8 @@ public class Serialization {
             jsonObj.put("geometry", jsonGeometry);
 
             JSONObject jsonpProperties = new JSONObject();
-            if (polygon.objID != -1) {
-                jsonpProperties.put("oID", String.valueOf(polygon.objID));
+            if (polygon.lObjID != -1) {
+                jsonpProperties.put("oID", String.valueOf(polygon.lObjID));
             }
             if (polygon.timeStampMillisec != 0) {
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -206,8 +206,8 @@ public class Serialization {
             StringBuffer buf = new StringBuffer();
 
             buf.append("\"");
-            if (polygon.objID != -1) {
-                buf.append(polygon.objID);
+            if (polygon.lObjID != -1) {
+                buf.append(polygon.lObjID);
                 buf.append(SEPARATION + " ");
             }
             if (polygon instanceof MultiPolygon) {
@@ -271,8 +271,8 @@ public class Serialization {
             StringBuffer buf = new StringBuffer();
 
             buf.append("\"");
-            if (polygon.objID != -1) {
-                buf.append(polygon.objID);
+            if (polygon.lObjID != -1) {
+                buf.append(polygon.lObjID);
                 buf.append(SEPARATION + " ");
             }
             if (polygon instanceof MultiPolygon) {
