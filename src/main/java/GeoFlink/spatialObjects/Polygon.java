@@ -15,7 +15,7 @@ public class Polygon extends SpatialObject implements Serializable {
 
     public HashSet<String> gridIDsSet;
     public String gridID;
-    public long lObjID;
+    //public long lObjID;
     public Tuple2<Coordinate, Coordinate> boundingBox;
     public List<org.locationtech.jts.geom.Polygon> polygon;
 
@@ -29,17 +29,7 @@ public class Polygon extends SpatialObject implements Serializable {
         polygon = createPolygonArray(coordinates);
         this.gridIDsSet = gridIDsSet;
         this.gridID = gridID;
-        objID = objID;
-        this.boundingBox = boundingBox;
-    }
-
-    public Polygon(List<Coordinate> coordinates, long objID, HashSet<String> gridIDsSet, String gridID, Tuple2<Coordinate, Coordinate> boundingBox) {
-        GeometryFactory geofact = new GeometryFactory();
-        //create geotools point object
-        polygon = createPolygonArray(coordinates);
-        this.gridIDsSet = gridIDsSet;
-        this.gridID = gridID;
-        this.lObjID = objID;
+        this.objID = objID;
         this.boundingBox = boundingBox;
     }
 
@@ -50,7 +40,7 @@ public class Polygon extends SpatialObject implements Serializable {
             this.boundingBox = HelperClass.getBoundingBox(polygon.get(0));
             this.gridIDsSet = HelperClass.assignGridCellID(this.boundingBox, uGrid);
             this.gridID = "";
-            this.lObjID = -1;
+            this.objID = "";
         }
     }
 
@@ -62,14 +52,14 @@ public class Polygon extends SpatialObject implements Serializable {
             this.timeStampMillisec = timeStampMillisec;
             this.gridIDsSet = HelperClass.assignGridCellID(this.boundingBox, uGrid);
             this.gridID = "";
-            this.lObjID = -1;
+            this.objID = "";
         }
     }
 
 
 
 
-    public Polygon(long objID, List<Coordinate> coordinates, long timeStampMillisec, UniformGrid uGrid) {
+    public Polygon(String objID, List<Coordinate> coordinates, long timeStampMillisec, UniformGrid uGrid) {
         if (coordinates.size() > 1) {
             GeometryFactory geofact = new GeometryFactory();
             polygon = createPolygonArray(coordinates);
@@ -77,7 +67,7 @@ public class Polygon extends SpatialObject implements Serializable {
             this.timeStampMillisec = timeStampMillisec;
             this.gridIDsSet = HelperClass.assignGridCellID(this.boundingBox, uGrid);
             this.gridID = "";
-            this.lObjID = objID;
+            this.objID = objID;
         }
     }
 
@@ -127,7 +117,7 @@ public class Polygon extends SpatialObject implements Serializable {
             }
             str = str.substring(0, str.length() - 1);
             str = str + "], \"type\": \"Polygon\"}}";
-            str = str + ", " + "ObjID: " + this.lObjID;
+            str = str + ", " + "ObjID: " + this.objID;
             str = str + ", " + this.timeStampMillisec;
             //str = str + ", Bounding Box: " + this.boundingBox;
             //str = str + ", Grid ID: " + this.gridIDsSet;
