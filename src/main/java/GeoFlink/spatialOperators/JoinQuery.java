@@ -28,14 +28,16 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.windowing.assigners.SlidingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.util.Collector;
+import org.locationtech.jts.geom.Coordinate;
+
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
 public class JoinQuery implements Serializable {
 
-    /*
     //--------------- GRID-BASED JOIN QUERY - POINT-POINT -----------------//
     public static DataStream<Tuple2<String, String>> SpatialJoinQuery(DataStream<Point> ordinaryPointStream, DataStream<Point> queryPointStream, double queryRadius, int windowSize, int slideStep, UniformGrid uGrid){
 
@@ -110,6 +112,7 @@ public class JoinQuery implements Serializable {
         });
     }
 
+    /*
     //--------------- (MODIFIED) GRID-BASED JOIN QUERY - POINT-POLYGON -----------------//
     public static DataStream<Tuple2<String, String>> SpatialJoinQueryOptimized(DataStream<Polygon> polygonStream, DataStream<Point> queryPointStream, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep){
 
@@ -151,6 +154,8 @@ public class JoinQuery implements Serializable {
         });
     }
 
+     */
+
 
     //--------------- GRID-BASED JOIN QUERY - POLYGON-POLYGON -----------------//
     public static DataStream<Tuple2<String,String>> SpatialJoinQuery(DataStream<Polygon> polygonStream, DataStream<Polygon> queryPolygonStream, int slideStep, int windowSize, double queryRadius, UniformGrid uGrid){
@@ -188,6 +193,7 @@ public class JoinQuery implements Serializable {
         });
     }
 
+    /*
     //--------------- (MODIFIED) GRID-BASED JOIN QUERY - POLYGON-POLYGON -----------------//
     public static DataStream<Tuple2<String,String>> SpatialJoinQueryOptimized(DataStream<Polygon> polygonStream, DataStream<Polygon> queryPolygonStream, int slideStep, int windowSize, double queryRadius, UniformGrid uGrid){
         DataStream<Tuple2<Polygon,Boolean>> replicatedQueryStream = JoinQuery.getReplicatedQueryStreamModified(queryPolygonStream, uGrid, queryRadius);
@@ -228,9 +234,7 @@ public class JoinQuery implements Serializable {
         });
 
     }
-
-
-
+     */
 
 
     //Replicate Query Point Stream for each Neighbouring Grid ID
@@ -252,6 +256,42 @@ public class JoinQuery implements Serializable {
         });
     }
 
+
+    //Replicate Query Polygon Stream for each Neighbouring Grid ID
+    public static DataStream<Polygon> getReplicatedQueryStream(DataStream<Polygon> queryPolygons, UniformGrid uGrid, double queryRadius){
+        return queryPolygons.flatMap(new RichFlatMapFunction<Polygon, Polygon>() {
+            private Integer parallelism;
+            private Integer uniqueObjID;
+
+            @Override
+            public void open(Configuration parameters) {
+                RuntimeContext ctx = getRuntimeContext();
+                parallelism = ctx.getNumberOfParallelSubtasks();
+                uniqueObjID = ctx.getIndexOfThisSubtask();
+            }
+
+            @Override
+            public void flatMap(Polygon poly, Collector<Polygon> out) throws Exception {
+                Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, poly);
+                Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, poly, guaranteedNeighboringCells);
+
+                // Create duplicated polygon stream for all neighbouring cells based on GridIDs
+                for (String gridID: guaranteedNeighboringCells) {
+                    Polygon p = new Polygon(Arrays.asList(poly.getCoordinates()), Integer.toString(uniqueObjID), poly.gridIDsSet, gridID, poly.boundingBox);
+                    out.collect(p);
+                }
+                for (String gridID: candidateNeighboringCells) {
+                    Polygon p = new Polygon(Arrays.asList(poly.getCoordinates()), Integer.toString(uniqueObjID), poly.gridIDsSet, gridID, poly.boundingBox);
+                    out.collect(p);
+                }
+
+                // Generating unique ID for each polygon, so that all the replicated tuples are assigned the same unique id
+                uniqueObjID += parallelism;
+            }
+        });
+    }
+
+    /*
     //Replicate Query Point Stream for each Candidate and Guaranteed Grid ID
     public static DataStream<Tuple2<Point,Boolean>> getReplicatedQueryStreamModified(DataStream<Point> queryPoints, double queryRadius, UniformGrid uGrid){
 
@@ -276,41 +316,9 @@ public class JoinQuery implements Serializable {
             }
         });
     }
+     */
 
-    //Replicate Query Polygon Stream for each Neighbouring Grid ID
-    public static DataStream<Polygon> getReplicatedQueryStream(DataStream<Polygon> queryPolygons, UniformGrid uGrid, double queryRadius){
-        return queryPolygons.flatMap(new RichFlatMapFunction<Polygon, Polygon>() {
-            private long parallelism;
-            private int uniqueObjID;
-
-            @Override
-            public void open(Configuration parameters) {
-                RuntimeContext ctx = getRuntimeContext();
-                parallelism = ctx.getNumberOfParallelSubtasks();
-                uniqueObjID = ctx.getIndexOfThisSubtask();
-            }
-
-            @Override
-            public void flatMap(Polygon poly, Collector<Polygon> out) throws Exception {
-                Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, poly);
-                Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, poly, guaranteedNeighboringCells);
-
-                // Create duplicated polygon stream for all neighbouring cells based on GridIDs
-                for (String gridID: guaranteedNeighboringCells) {
-                    Polygon p = new Polygon(Arrays.asList(poly.getCoordinates()), uniqueObjID, poly.gridIDsSet, gridID, poly.boundingBox);
-                    out.collect(p);
-                }
-                for (String gridID: candidateNeighboringCells) {
-                    Polygon p = new Polygon(Arrays.asList(poly.getCoordinates()), uniqueObjID, poly.gridIDsSet, gridID, poly.boundingBox);
-                    out.collect(p);
-                }
-
-                // Generating unique ID for each polygon, so that all the replicated tuples are assigned the same unique id
-                uniqueObjID += parallelism;
-            }
-        });
-    }
-
+    /*
     //Replicate Query Polygon Stream for each Candidate and Guaranteed Grid ID
     public static DataStream<Tuple2<Polygon,Boolean>> getReplicatedQueryStreamModified(DataStream<Polygon> queryPolygons, UniformGrid uGrid, double queryRadius){
         return queryPolygons.flatMap(new RichFlatMapFunction<Polygon, Tuple2<Polygon,Boolean>>() {
@@ -345,6 +353,7 @@ public class JoinQuery implements Serializable {
         });
     }
      */
+
 }
 
 

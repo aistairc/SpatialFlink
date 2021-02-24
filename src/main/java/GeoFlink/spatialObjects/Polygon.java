@@ -23,19 +23,21 @@ public class Polygon extends SpatialObject implements Serializable {
 
     //Polygon(Arrays.asList(poly.getCoordinates()), poly.objID, poly.gridIDsSet, gridID, poly.boundingBox);
 
-    public Polygon(List<Coordinate> coordinates, String objID, HashSet<String> gridIDsSet, String gridID, Tuple2<Coordinate, Coordinate> boundingBox) {
-        GeometryFactory geofact = new GeometryFactory();
-        //create geotools point object
-        polygon = createPolygonArray(coordinates);
 
-        this.gridIDsSet = gridIDsSet;
-        this.gridID = gridID;
-        this.objID = objID;
-        this.boundingBox = boundingBox;
+    public Polygon(List<Coordinate> coordinates, String objID, HashSet<String> gridIDsSet, String gridID, Tuple2<Coordinate, Coordinate> boundingBox) {
+        if (coordinates.size() > 3) {
+            GeometryFactory geofact = new GeometryFactory();
+            //create geotools point object
+            polygon = createPolygonArray(coordinates);
+            this.gridIDsSet = gridIDsSet;
+            this.gridID = gridID;
+            this.objID = objID;
+            this.boundingBox = boundingBox;
+        }
     }
 
     public Polygon(List<Coordinate> coordinates, UniformGrid uGrid) {
-        if (coordinates.size() > 1) {
+        if (coordinates.size() > 3) {
             GeometryFactory geofact = new GeometryFactory();
             polygon = createPolygonArray(coordinates);
             this.boundingBox = HelperClass.getBoundingBox(polygon.get(0));
@@ -46,7 +48,7 @@ public class Polygon extends SpatialObject implements Serializable {
     }
 
     public Polygon(List<Coordinate> coordinates, long timeStampMillisec, UniformGrid uGrid) {
-        if (coordinates.size() > 1) {
+        if (coordinates.size() > 3) {
             GeometryFactory geofact = new GeometryFactory();
             polygon = createPolygonArray(coordinates);
             this.boundingBox = HelperClass.getBoundingBox(polygon.get(0));
@@ -58,10 +60,8 @@ public class Polygon extends SpatialObject implements Serializable {
     }
 
 
-
-
     public Polygon(String objID, List<Coordinate> coordinates, long timeStampMillisec, UniformGrid uGrid) {
-        if (coordinates.size() > 1) {
+        if (coordinates.size() > 3) {
             GeometryFactory geofact = new GeometryFactory();
             polygon = createPolygonArray(coordinates);
             this.boundingBox = HelperClass.getBoundingBox(polygon.get(0));
@@ -95,6 +95,9 @@ public class Polygon extends SpatialObject implements Serializable {
         }
         if (list.size() > 0) {
             list.add(list.get(0));
+            if(list.size() < 4){
+                System.out.println("listCoordinate " + list);
+            }
             listPolygon.add(geofact.createPolygon(list.toArray(new Coordinate[0])));
         }
         return listPolygon;

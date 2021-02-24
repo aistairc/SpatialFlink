@@ -544,11 +544,10 @@ public class HelperClass {
      */
 
     // Generation of replicated polygon stream corresponding to each grid cell a polygon belongs
-    /*
     public static class ReplicatePolygonStream extends RichFlatMapFunction<Polygon, Polygon> {
 
-        private long parallelism;
-        private long uniqueObjID;
+        private Integer parallelism;
+        private Integer uniqueObjID;
 
         @Override
         public void open(Configuration parameters) {
@@ -562,7 +561,7 @@ public class HelperClass {
 
             // Create duplicated polygon stream based on GridIDs
             for (String gridID: poly.gridIDsSet) {
-                Polygon p = new Polygon(new ArrayList<Coordinate>(Arrays.asList(poly.getCoordinates())), uniqueObjID, poly.gridIDsSet, gridID, poly.boundingBox);
+                Polygon p = new Polygon(new ArrayList<Coordinate>(Arrays.asList(poly.getCoordinates())), Integer.toString(uniqueObjID), poly.gridIDsSet, gridID, poly.boundingBox);
                 out.collect(p);
             }
 
@@ -570,8 +569,6 @@ public class HelperClass {
             uniqueObjID += parallelism;
         }
     }
-
-     */
 
 
     // Generation of replicated linestring stream corresponding to each grid cell a linestring belongs

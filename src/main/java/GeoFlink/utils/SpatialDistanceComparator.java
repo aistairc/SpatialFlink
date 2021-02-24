@@ -28,7 +28,6 @@ import java.util.Comparator;
 // TODO: Obsolete class
     public class SpatialDistanceComparator implements Comparator<Tuple2<Point, Double>>, Serializable {
 
-
         Point queryPoint;
 
         public SpatialDistanceComparator() {

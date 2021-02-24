@@ -269,7 +269,6 @@ public class KNNQuery implements Serializable {
         return windowAllKNN;
     }
 
-    /* commented due to ReplicatePolygonStream
 
     //--------------- GRID-BASED kNN QUERY - POINT-POLYGON -----------------//
     //Outputs a stream of winStartTime, winEndTime and a PQ
@@ -399,10 +398,8 @@ public class KNNQuery implements Serializable {
         return windowAllKNN;
     }
 
-         */
 
 
-    /* Commented due to ReplicatePolygonStream
 
     //--------------- GRID-BASED kNN QUERY - POLYGON-POLYGON -----------------//
     public static DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Polygon, Double>>>> SpatialKNNQuery(DataStream<Polygon> polygonStream, Polygon queryPolygon, double queryRadius, Integer k, UniformGrid uGrid, int windowSize, int windowSlideStep) throws IOException {
@@ -531,7 +528,7 @@ public class KNNQuery implements Serializable {
         return windowAllKNN;
     }
 
-     */
+
 
 
 
