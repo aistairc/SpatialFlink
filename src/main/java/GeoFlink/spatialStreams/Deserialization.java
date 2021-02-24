@@ -421,7 +421,7 @@ public class Deserialization implements Serializable {
             }
 
             JsonNode nodeProperties = jsonObj.get("value").get("properties");
-            long oId = -1;
+            String oId = "";
             long time = 0;
             if (nodeProperties != null) {
                 JsonNode nodeTime = jsonObj.get("value").get("properties").get("timestamp");
@@ -434,7 +434,7 @@ public class Deserialization implements Serializable {
                 JsonNode nodeOId = jsonObj.get("value").get("properties").get("oID");
                 if (nodeOId != null) {
                     try {
-                        oId = Long.parseLong(nodeOId.textValue());
+                        oId = nodeOId.textValue();
                     }
                     catch (NumberFormatException e) {}
                 }
@@ -540,10 +540,10 @@ public class Deserialization implements Serializable {
             Polygon spatialPolygon;
             List<String> strArrayList = Arrays.asList(strTuple.get("value").toString().replace("\"", "").split("\\s*,\\s*")); // For parsing CSV with , followed by space
             long time = 0;
-            long oId = -1;
+            String oId = "";
             if (!strArrayList.get(0).trim().startsWith("POLYGON") && !strArrayList.get(0).trim().startsWith("MULTIPOLYGON")) {
                 try {
-                    oId = Long.parseLong(strArrayList.get(0));
+                    oId = strArrayList.get(0);
                 }
                 catch (NumberFormatException e) {}
             }
@@ -658,10 +658,10 @@ public class Deserialization implements Serializable {
             Polygon spatialPolygon;
             List<String> strArrayList = Arrays.asList(strTuple.get("value").toString().replace("\"", "").split("\\\\t")); // For parsing TSV with \t
             long time = 0;
-            long oId = -1;
+            String oId = "";
             if (!strArrayList.get(0).trim().startsWith("POLYGON") && !strArrayList.get(0).trim().startsWith("MULTIPOLYGON")) {
                 try {
-                    oId = Long.parseLong(strArrayList.get(0).trim());
+                    oId = strArrayList.get(0).trim();
                 }
                 catch (NumberFormatException e) {}
             }

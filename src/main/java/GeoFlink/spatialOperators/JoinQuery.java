@@ -35,6 +35,7 @@ import java.util.Set;
 
 public class JoinQuery implements Serializable {
 
+    /*
     //--------------- GRID-BASED JOIN QUERY - POINT-POINT -----------------//
     public static DataStream<Tuple2<String, String>> SpatialJoinQuery(DataStream<Point> ordinaryPointStream, DataStream<Point> queryPointStream, double queryRadius, int windowSize, int slideStep, UniformGrid uGrid){
 
@@ -343,8 +344,7 @@ public class JoinQuery implements Serializable {
             }
         });
     }
-
-
+     */
 }
 
 

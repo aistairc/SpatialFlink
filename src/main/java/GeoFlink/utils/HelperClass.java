@@ -544,6 +544,7 @@ public class HelperClass {
      */
 
     // Generation of replicated polygon stream corresponding to each grid cell a polygon belongs
+    /*
     public static class ReplicatePolygonStream extends RichFlatMapFunction<Polygon, Polygon> {
 
         private long parallelism;
@@ -569,6 +570,8 @@ public class HelperClass {
             uniqueObjID += parallelism;
         }
     }
+
+     */
 
 
     // Generation of replicated linestring stream corresponding to each grid cell a linestring belongs

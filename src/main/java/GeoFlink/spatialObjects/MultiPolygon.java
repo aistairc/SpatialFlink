@@ -15,7 +15,7 @@ public class MultiPolygon extends Polygon implements Serializable {
 
     public MultiPolygon() {}; // required for POJO
 
-    public MultiPolygon(List<Coordinate> coordinates, long objID, HashSet<String> gridIDsSet, String gridID, Tuple2<Coordinate, Coordinate> boundingBox) {
+    public MultiPolygon(List<Coordinate> coordinates, String objID, HashSet<String> gridIDsSet, String gridID, Tuple2<Coordinate, Coordinate> boundingBox) {
         super(coordinates, objID, gridIDsSet, gridID, boundingBox);
         listCoordinate.add(coordinates);
     }
@@ -30,7 +30,7 @@ public class MultiPolygon extends Polygon implements Serializable {
         this.listCoordinate = listCoordinate;
     }
 
-    public MultiPolygon(List<List<Coordinate>> listCoordinate, long objID, long timeStampMillisec, UniformGrid uGrid) {
+    public MultiPolygon(List<List<Coordinate>> listCoordinate, String objID, long timeStampMillisec, UniformGrid uGrid) {
         super(objID, listCoordinate.get(0), timeStampMillisec, uGrid);
         this.listCoordinate = listCoordinate;
     }
@@ -51,7 +51,7 @@ public class MultiPolygon extends Polygon implements Serializable {
             }
             str = str.substring(0, str.length() - 1);
             str = str + "], \"type\": \"MultiPolygon\"}}";
-            str = str + ", " + "ObjID: " + this.lObjID;
+            str = str + ", " + "ObjID: " + this.objID;
             str = str + ", " + this.timeStampMillisec;
             //str = str + ", Bounding Box: " + this.boundingBox;
             //str = str + ", Grid ID: " + this.gridIDsSet;

@@ -27,6 +27,7 @@ public class Polygon extends SpatialObject implements Serializable {
         GeometryFactory geofact = new GeometryFactory();
         //create geotools point object
         polygon = createPolygonArray(coordinates);
+
         this.gridIDsSet = gridIDsSet;
         this.gridID = gridID;
         this.objID = objID;
