@@ -245,7 +245,7 @@ public class Deserialization implements Serializable {
             long time = 0;
             String strOId = null;
             if (!strArrayList.get(0).startsWith("POINT")) {
-                strOId = strArrayList.get(0);
+                strOId = strArrayList.get(0).trim();
             }
             if (dateFormat != null) {
                 Collections.reverse(strArrayList);
@@ -314,7 +314,7 @@ public class Deserialization implements Serializable {
             long time = 0;
             String strOId = null;
             if (!strArrayList.get(0).trim().startsWith("POINT")) {
-                strOId = strArrayList.get(0);
+                strOId = strArrayList.get(0).trim();
             }
             if (dateFormat != null) {
                 Collections.reverse(strArrayList);
@@ -372,22 +372,22 @@ public class Deserialization implements Serializable {
             if (geometry.getGeometryType().equalsIgnoreCase("MultiPolygon")) {
                 List<List<Coordinate>> parent = convertCoordinates(
                         json, '[', ']', "],", ",", 4);
-                List<List<Coordinate>> listCoodinate = new ArrayList<List<Coordinate>>();
+                List<List<Coordinate>> listCoordinate = new ArrayList<List<Coordinate>>();
                 for (List<Coordinate> child : parent) {
                     List<Coordinate> list = addLastCoordinate(child);
-                    listCoodinate.add(list);
+                    listCoordinate.add(list);
                 }
-                spatialPolygon = new MultiPolygon(listCoodinate, uGrid);
+                spatialPolygon = new MultiPolygon(listCoordinate, uGrid);
             }
             else {
                 List<List<Coordinate>> parent = convertCoordinates(
                         json, '[', ']', "],", ",", 3);
-                List<Coordinate> listCoodinate = new ArrayList<Coordinate>();
+                List<List<Coordinate>> listCoordinate = new ArrayList<List<Coordinate>>();
                 for (List<Coordinate> child : parent) {
                     List<Coordinate> list = addLastCoordinate(child);
-                    listCoodinate.addAll(list);
+                    listCoordinate.add(list);
                 }
-                spatialPolygon = new Polygon(listCoodinate, uGrid);
+                spatialPolygon = new Polygon(listCoordinate, uGrid);
             }
             return spatialPolygon;
         }
@@ -421,7 +421,7 @@ public class Deserialization implements Serializable {
             }
 
             JsonNode nodeProperties = jsonObj.get("value").get("properties");
-            String oId = "";
+            String oId = null;
             long time = 0;
             if (nodeProperties != null) {
                 JsonNode nodeTime = jsonObj.get("value").get("properties").get("timestamp");
@@ -459,10 +459,10 @@ public class Deserialization implements Serializable {
             else {
                 List<List<Coordinate>> parent = convertCoordinates(
                         json, '[', ']', "],", ",", 3);
-                List<Coordinate> listCoodinate = new ArrayList<Coordinate>();
+                List<List<Coordinate>> listCoodinate = new ArrayList<List<Coordinate>>();
                 for (List<Coordinate> child : parent) {
                     List<Coordinate> list = addLastCoordinate(child);
-                    listCoodinate.addAll(list);
+                    listCoodinate.add(list);
                 }
                 if (time != 0) {
                     spatialPolygon = new Polygon(oId, listCoodinate, time, uGrid);
@@ -506,14 +506,12 @@ public class Deserialization implements Serializable {
             else {
                 List<List<Coordinate>> parent = convertCoordinates(
                         strTuple.get("value").toString(), '(', ')', ",", " ", 2);
-                List<Coordinate>  coordinates = new ArrayList<Coordinate>();
+                List<List<Coordinate>> listCoordinate = new ArrayList<List<Coordinate>>();
                 for (List<Coordinate> child : parent) {
                     List<Coordinate> list = addLastCoordinate(child);
-                    for (Coordinate c : list) {
-                        coordinates.add(c);
-                    }
+                    listCoordinate.add(list);
                 }
-                spatialPolygon = new Polygon(coordinates, uGrid);
+                spatialPolygon = new Polygon(listCoordinate, uGrid);
             }
             return spatialPolygon;
         }
@@ -540,10 +538,10 @@ public class Deserialization implements Serializable {
             Polygon spatialPolygon;
             List<String> strArrayList = Arrays.asList(strTuple.get("value").toString().replace("\"", "").split("\\s*,\\s*")); // For parsing CSV with , followed by space
             long time = 0;
-            String oId = "";
+            String oId = null;
             if (!strArrayList.get(0).trim().startsWith("POLYGON") && !strArrayList.get(0).trim().startsWith("MULTIPOLYGON")) {
                 try {
-                    oId = strArrayList.get(0);
+                    oId = strArrayList.get(0).trim();
                 }
                 catch (NumberFormatException e) {}
             }
@@ -575,18 +573,16 @@ public class Deserialization implements Serializable {
             else {
                 List<List<Coordinate>> parent = convertCoordinates(
                         strTuple.get("value").toString(), '(', ')', ",", " ", 2);
-                List<Coordinate>  coordinates = new ArrayList<Coordinate>();
+                List<List<Coordinate>> listCoordinate = new ArrayList<List<Coordinate>>();
                 for (List<Coordinate> child : parent) {
                     List<Coordinate> list = addLastCoordinate(child);
-                    for (Coordinate c : list) {
-                        coordinates.add(c);
-                    }
+                    listCoordinate.add(list);
                 }
                 if (time != 0) {
-                    spatialPolygon = new Polygon(oId, coordinates, time, uGrid);
+                    spatialPolygon = new Polygon(oId, listCoordinate, time, uGrid);
                 }
                 else {
-                    spatialPolygon = new Polygon(coordinates, uGrid);
+                    spatialPolygon = new Polygon(listCoordinate, uGrid);
                 }
             }
             return spatialPolygon;
@@ -624,14 +620,12 @@ public class Deserialization implements Serializable {
             else {
                 List<List<Coordinate>> parent = convertCoordinates(
                         strTuple.get("value").toString(), '(', ')', ",", " ", 2);
-                List<Coordinate>  coordinates = new ArrayList<Coordinate>();
+                List<List<Coordinate>>  listCoordinate = new ArrayList<List<Coordinate>>();
                 for (List<Coordinate> child : parent) {
                     List<Coordinate> list = addLastCoordinate(child);
-                    for (Coordinate c : list) {
-                        coordinates.add(c);
-                    }
+                    listCoordinate.add(list);
                 }
-                spatialPolygon = new Polygon(coordinates, uGrid);
+                spatialPolygon = new Polygon(listCoordinate, uGrid);
             }
             return spatialPolygon;
         }
@@ -658,7 +652,7 @@ public class Deserialization implements Serializable {
             Polygon spatialPolygon;
             List<String> strArrayList = Arrays.asList(strTuple.get("value").toString().replace("\"", "").split("\\\\t")); // For parsing TSV with \t
             long time = 0;
-            String oId = "";
+            String oId = null;
             if (!strArrayList.get(0).trim().startsWith("POLYGON") && !strArrayList.get(0).trim().startsWith("MULTIPOLYGON")) {
                 try {
                     oId = strArrayList.get(0).trim();
@@ -693,18 +687,16 @@ public class Deserialization implements Serializable {
             else {
                 List<List<Coordinate>> parent = convertCoordinates(
                         strTuple.get("value").toString(), '(', ')', ",", " ", 2);
-                List<Coordinate>  coordinates = new ArrayList<Coordinate>();
+                List<List<Coordinate>> listCoordinate = new ArrayList<List<Coordinate>>();
                 for (List<Coordinate> child : parent) {
                     List<Coordinate> list = addLastCoordinate(child);
-                    for (Coordinate c : list) {
-                        coordinates.add(c);
-                    }
+                    listCoordinate.add(list);
                 }
                 if (time != 0) {
-                    spatialPolygon = new Polygon(oId, coordinates, time, uGrid);
+                    spatialPolygon = new Polygon(oId, listCoordinate, time, uGrid);
                 }
                 else {
-                    spatialPolygon = new Polygon(coordinates, uGrid);
+                    spatialPolygon = new Polygon(listCoordinate, uGrid);
                 }
             }
             return spatialPolygon;

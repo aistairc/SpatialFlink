@@ -170,6 +170,7 @@ public class ShapeFileInputFormat<E> extends FileInputFormat<E> {
 
          // read coordinate
          List<Coordinate> list = new ArrayList<Coordinate>();
+         List<List<Coordinate>> listCoordinate = new ArrayList<List<Coordinate>>();
          int offsetPoint = 0x2C + (Integer.BYTES * numParts);
          for (int i = 0; i < numPoints; i++) {
              byte[] arrX = new byte[Double.BYTES];
@@ -181,13 +182,17 @@ public class ShapeFileInputFormat<E> extends FileInputFormat<E> {
              double y = ByteBuffer.wrap(arrY).order(ByteOrder.LITTLE_ENDIAN).getDouble();
              offsetPoint += Double.BYTES;
              list.add(new Coordinate(x, y));
+             if (list.size() > 1 && list.get(0).equals(list.get(list.size() - 1))) {
+                 listCoordinate.add(list);
+                 list = new ArrayList<Coordinate>();
+             }
          }
          this.offset += record.length;
 
          if (this.fileSize <= this.offset) {
              this.end = true;
          }
-         Polygon polygon = new Polygon(list, this.uGrid);
+         Polygon polygon = new Polygon(listCoordinate, this.uGrid);
          return polygon;
      }
 

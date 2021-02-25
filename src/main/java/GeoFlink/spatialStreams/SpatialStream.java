@@ -281,7 +281,9 @@ public class SpatialStream implements Serializable {
                 }
             }
 
-            Polygon spatialPolygon = new Polygon(coordinates, uGrid);
+            List<List<Coordinate>> listCoordinate = new ArrayList<List<Coordinate>>();
+            listCoordinate.add(coordinates);
+            Polygon spatialPolygon = new Polygon(listCoordinate, uGrid);
             return spatialPolygon;
         }
     }

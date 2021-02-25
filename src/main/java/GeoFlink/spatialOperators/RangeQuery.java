@@ -1475,7 +1475,7 @@ public class RangeQuery implements Serializable {
             Polygon outputPolygon;
             for(String gridID: poly.gridIDsSet) {
                 if (neighboringCells.contains(gridID)) {
-                    outputPolygon = new Polygon(Arrays.asList(poly.getCoordinates()), poly.objID, poly.gridIDsSet, gridID, poly.boundingBox);
+                    outputPolygon = new Polygon(poly.getCoordinates(), poly.objID, poly.gridIDsSet, gridID, poly.boundingBox);
                     output.collect(outputPolygon);
                     return;
                 }

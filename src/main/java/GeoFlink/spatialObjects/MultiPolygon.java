@@ -6,6 +6,7 @@ import org.locationtech.jts.geom.Coordinate;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
@@ -15,26 +16,35 @@ public class MultiPolygon extends Polygon implements Serializable {
 
     public MultiPolygon() {}; // required for POJO
 
-    public MultiPolygon(List<Coordinate> coordinates, String objID, HashSet<String> gridIDsSet, String gridID, Tuple2<Coordinate, Coordinate> boundingBox) {
+    public MultiPolygon(List<List<Coordinate>> coordinates, String objID, HashSet<String> gridIDsSet, String gridID, Tuple2<Coordinate, Coordinate> boundingBox) {
         super(coordinates, objID, gridIDsSet, gridID, boundingBox);
-        listCoordinate.add(coordinates);
+        this.listCoordinate = orderPolygonCoordinates(coordinates);
     }
 
-    public MultiPolygon(List<Coordinate> coordinates, long timeStampMillisec, UniformGrid uGrid) {
+    public MultiPolygon(List<List<Coordinate>> coordinates, long timeStampMillisec, UniformGrid uGrid) {
         super(coordinates, timeStampMillisec, uGrid);
-        listCoordinate.add(coordinates);
+        this.listCoordinate = orderPolygonCoordinates(coordinates);
     }
 
-    public MultiPolygon(List<List<Coordinate>> listCoordinate, UniformGrid uGrid) {
-        super(listCoordinate.get(0), uGrid);
-        this.listCoordinate = listCoordinate;
+    public MultiPolygon(List<List<Coordinate>> coordinates, UniformGrid uGrid) {
+        super(coordinates, uGrid);
+        this.listCoordinate = orderPolygonCoordinates(coordinates);
     }
 
-    public MultiPolygon(List<List<Coordinate>> listCoordinate, String objID, long timeStampMillisec, UniformGrid uGrid) {
-        super(objID, listCoordinate.get(0), timeStampMillisec, uGrid);
-        this.listCoordinate = listCoordinate;
+    public MultiPolygon(List<List<Coordinate>> coordinates, String objID, long timeStampMillisec, UniformGrid uGrid) {
+        super(objID, coordinates, timeStampMillisec, uGrid);
+        this.listCoordinate = orderPolygonCoordinates(coordinates);
     }
 
+    private List<List<Coordinate>> orderPolygonCoordinates(List<List<Coordinate>> listCoordinate) {
+        List<List<Coordinate>> list = new ArrayList<List<Coordinate>>();
+        List<org.locationtech.jts.geom.Polygon> listPolygon = createPolygonArray(listCoordinate);
+        for (org.locationtech.jts.geom.Polygon poly : listPolygon) {
+            list.add(new ArrayList<Coordinate>(Arrays.asList(poly.getCoordinates())));
+        }
+        return list;
+    }
+    
     // To print the point coordinates
     @Override
     public String toString() {

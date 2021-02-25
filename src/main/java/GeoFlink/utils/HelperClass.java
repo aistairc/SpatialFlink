@@ -196,7 +196,7 @@ public class HelperClass {
 
     // Get exact min distance between Point and Polygon
     public static double getPointPolygonMinEuclideanDistance(Point p, Polygon poly) {
-        return getPointCoordinatesArrayMinEuclideanDistance(p, poly.getCoordinates());
+        return getPointCoordinatesArrayMinEuclideanDistance(p, poly.polygon.get(0).getCoordinates());
     }
 
     static double getPointCoordinatesArrayMinEuclideanDistance(Point p, Coordinate[] coordinates) {
@@ -561,7 +561,7 @@ public class HelperClass {
 
             // Create duplicated polygon stream based on GridIDs
             for (String gridID: poly.gridIDsSet) {
-                Polygon p = new Polygon(new ArrayList<Coordinate>(Arrays.asList(poly.getCoordinates())), Integer.toString(uniqueObjID), poly.gridIDsSet, gridID, poly.boundingBox);
+                Polygon p = new Polygon(poly.getCoordinates(), Integer.toString(uniqueObjID), poly.gridIDsSet, gridID, poly.boundingBox);
                 out.collect(p);
             }
 

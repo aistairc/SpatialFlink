@@ -173,7 +173,7 @@ public class Serialization {
             jsonObj.put("geometry", jsonGeometry);
 
             JSONObject jsonpProperties = new JSONObject();
-            if (polygon.objID != "") {
+            if (polygon.objID != null) {
                 jsonpProperties.put("oID", polygon.objID);
             }
             if (polygon.timeStampMillisec != 0) {
@@ -206,7 +206,7 @@ public class Serialization {
             StringBuffer buf = new StringBuffer();
 
             buf.append("\"");
-            if (polygon.objID != "") {
+            if (polygon.objID != null) {
                 buf.append(polygon.objID);
                 buf.append(SEPARATION + " ");
             }
@@ -271,7 +271,7 @@ public class Serialization {
             StringBuffer buf = new StringBuffer();
 
             buf.append("\"");
-            if (polygon.objID != "") {
+            if (polygon.objID != null) {
                 buf.append(polygon.objID);
                 buf.append(SEPARATION + " ");
             }
