@@ -25,7 +25,7 @@ public class Polygon extends SpatialObject implements Serializable {
 
 
     public Polygon(List<List<Coordinate>> coordinates, String objID, HashSet<String> gridIDsSet, String gridID, Tuple2<Coordinate, Coordinate> boundingBox) {
-        if (coordinates.size() > 1 || coordinates.get(0).size() > 3) {
+        if (coordinates.size() >= 1 && coordinates.get(0).size() > 3) {
             GeometryFactory geofact = new GeometryFactory();
             //create geotools point object
             polygon = createPolygonArray(coordinates);
@@ -37,7 +37,7 @@ public class Polygon extends SpatialObject implements Serializable {
     }
 
     public Polygon(List<List<Coordinate>> coordinates, UniformGrid uGrid) {
-        if (coordinates.size() > 1 || coordinates.get(0).size() > 3) {
+        if (coordinates.size() >= 1 && coordinates.get(0).size() > 3) {
             GeometryFactory geofact = new GeometryFactory();
             polygon = createPolygonArray(coordinates);
             this.boundingBox = HelperClass.getBoundingBox(polygon.get(0));
@@ -48,7 +48,7 @@ public class Polygon extends SpatialObject implements Serializable {
     }
 
     public Polygon(List<List<Coordinate>> coordinates, long timeStampMillisec, UniformGrid uGrid) {
-        if (coordinates.size() > 1 || coordinates.get(0).size() > 3) {
+        if (coordinates.size() >= 1 && coordinates.get(0).size() > 3) {
             GeometryFactory geofact = new GeometryFactory();
             polygon = createPolygonArray(coordinates);
             this.boundingBox = HelperClass.getBoundingBox(polygon.get(0));
@@ -60,7 +60,7 @@ public class Polygon extends SpatialObject implements Serializable {
     }
 
     public Polygon(String objID, List<List<Coordinate>> coordinates, long timeStampMillisec, UniformGrid uGrid) {
-        if (coordinates.size() > 1 || coordinates.get(0).size() > 3) {
+        if (coordinates.size() >= 1 && coordinates.get(0).size() > 3) {
             GeometryFactory geofact = new GeometryFactory();
             polygon = createPolygonArray(coordinates);
             this.boundingBox = HelperClass.getBoundingBox(polygon.get(0));
