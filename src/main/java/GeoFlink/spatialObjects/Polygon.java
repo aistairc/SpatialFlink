@@ -5,6 +5,8 @@ import GeoFlink.utils.HelperClass;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.LinearRing;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,7 +19,7 @@ public class Polygon extends SpatialObject implements Serializable {
     public String gridID;
     //public long lObjID;
     public Tuple2<Coordinate, Coordinate> boundingBox;
-    public List<org.locationtech.jts.geom.Polygon> polygon;
+    public org.locationtech.jts.geom.Polygon polygon;
 
     public Polygon() {}; // required for POJO
 
@@ -25,7 +27,7 @@ public class Polygon extends SpatialObject implements Serializable {
         if (coordinates.size() >= 1 && coordinates.get(0).size() > 3) {
             //GeometryFactory geofact = new GeometryFactory();
             //create geotools point object
-            polygon = createPolygonArray(coordinates);
+            polygon = createPolygon(coordinates);
             this.gridIDsSet = gridIDsSet;
             this.gridID = gridID;
             this.objID = objID;
@@ -36,9 +38,14 @@ public class Polygon extends SpatialObject implements Serializable {
 
     public Polygon(List<List<Coordinate>> coordinates, UniformGrid uGrid) {
         if (coordinates.size() >= 1 && coordinates.get(0).size() > 3) {
+            /*
             //GeometryFactory geofact = new GeometryFactory();
             polygon = createPolygonArray(coordinates);
             this.boundingBox = HelperClass.getBoundingBox(polygon.get(0));
+            */
+            GeometryFactory geofact = new GeometryFactory();
+            polygon = createPolygon(coordinates);
+            this.boundingBox = HelperClass.getBoundingBox(polygon);
             this.gridIDsSet = HelperClass.assignGridCellID(this.boundingBox, uGrid);
             this.gridID = "";
             this.objID = null;
@@ -47,9 +54,14 @@ public class Polygon extends SpatialObject implements Serializable {
 
     public Polygon(List<List<Coordinate>> coordinates, long timeStampMillisec, UniformGrid uGrid) {
         if (coordinates.size() >= 1 && coordinates.get(0).size() > 3) {
+/*
             //GeometryFactory geofact = new GeometryFactory();
             polygon = createPolygonArray(coordinates);
             this.boundingBox = HelperClass.getBoundingBox(polygon.get(0));
+ */
+            GeometryFactory geofact = new GeometryFactory();
+            polygon = createPolygon(coordinates);
+            this.boundingBox = HelperClass.getBoundingBox(polygon);
             this.timeStampMillisec = timeStampMillisec;
             this.gridIDsSet = HelperClass.assignGridCellID(this.boundingBox, uGrid);
             this.gridID = "";
@@ -59,9 +71,14 @@ public class Polygon extends SpatialObject implements Serializable {
 
     public Polygon(String objID, List<List<Coordinate>> coordinates, long timeStampMillisec, UniformGrid uGrid) {
         if (coordinates.size() >= 1 && coordinates.get(0).size() > 3) {
+/*
             //GeometryFactory geofact = new GeometryFactory();
             polygon = createPolygonArray(coordinates);
             this.boundingBox = HelperClass.getBoundingBox(polygon.get(0));
+ */
+            GeometryFactory geofact = new GeometryFactory();
+            polygon = createPolygon(coordinates);
+            this.boundingBox = HelperClass.getBoundingBox(polygon);
             this.timeStampMillisec = timeStampMillisec;
             this.gridIDsSet = HelperClass.assignGridCellID(this.boundingBox, uGrid);
             this.gridID = "";
@@ -71,10 +88,9 @@ public class Polygon extends SpatialObject implements Serializable {
 
     public List<List<Coordinate>> getCoordinates() {
         List<List<Coordinate>> list = new ArrayList();
-        for (org.locationtech.jts.geom.Polygon p : polygon) {
-            Coordinate[] coordinates = p.getCoordinates();
-            List<Coordinate> listCoordinate = new ArrayList<Coordinate>(Arrays.asList(coordinates));
-            list.add(listCoordinate);
+        list.add(new ArrayList<Coordinate>(Arrays.asList(polygon.getExteriorRing().getCoordinates())));
+        for (int i = 0; i < polygon.getNumInteriorRing(); i++) {
+            list.add(new ArrayList<Coordinate>(Arrays.asList(polygon.getInteriorRingN(i).getCoordinates())));
         }
         return list;
     }
@@ -108,6 +124,22 @@ public class Polygon extends SpatialObject implements Serializable {
         return listPolygon;
     }
 
+    private org.locationtech.jts.geom.Polygon createPolygon(List<List<Coordinate>> coordinates) {
+        GeometryFactory geofact = new GeometryFactory();
+        if (coordinates.size() == 1) {
+            return geofact.createPolygon(coordinates.get(0).toArray(new Coordinate[0]));
+        }
+        else {
+            List<org.locationtech.jts.geom.Polygon> listPolygon = createPolygonArray(coordinates);
+            LinearRing shell = geofact.createLinearRing(listPolygon.get(0).getCoordinates());
+            LinearRing[] holes = new LinearRing[listPolygon.size() - 1];
+            for (int i = 0; i < holes.length; i++) {
+                holes[i] = geofact.createLinearRing(listPolygon.get(i + 1).getCoordinates());
+            }
+            return geofact.createPolygon(shell, holes);
+        }
+    }
+
 
     //{"geometry": {"coordinates": [[[[-73.817854, 40.81909], [-73.817924, 40.819207], [-73.817791, 40.819253], [-73.817785, 40.819255], [-73.817596, 40.81932], [-73.81752, 40.819194], [-73.817521, 40.819193], [-73.817735, 40.819119], [-73.817755, 40.819113], [-73.817771, 40.819107], [-73.817798, 40.819098], [-73.817848, 40.81908], [-73.817852, 40.819087], [-73.817854, 40.81909]]]], "type": "MultiPolygon"}, "type": "Feature"}
 
@@ -116,9 +148,9 @@ public class Polygon extends SpatialObject implements Serializable {
     public String toString() {
         try{
             String str = "{\"geometry\":{\"coordinates\": [";
-            for (org.locationtech.jts.geom.Polygon p : polygon) {
+            List<List<Coordinate>> listCoordinates = getCoordinates();
+            for (List<Coordinate> coordinates : listCoordinates) {
                 str = str + "[";
-                Coordinate[] coordinates = p.getCoordinates();
                 for (Coordinate coordinate : coordinates)
                     str = str + "[" + coordinate.getX() + ", " + coordinate.getY() + "],";
                 str = str.substring(0, str.length() - 1);

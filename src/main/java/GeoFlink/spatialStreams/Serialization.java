@@ -158,8 +158,7 @@ public class Serialization {
             }
             else {
                 List<List<double[]>> jsonCoordinate = new ArrayList<List<double[]>>();
-                for (org.locationtech.jts.geom.Polygon p : polygon.polygon) {
-                    Coordinate[] polygonCoordinates = p.getCoordinates();
+                for (List<Coordinate> polygonCoordinates : polygon.getCoordinates()) {
                     List<double[]> coordinates = new ArrayList<double[]>();
                     for (Coordinate c : polygonCoordinates) {
                         double[] coordinate = {c.x, c.y};
@@ -229,9 +228,8 @@ public class Serialization {
             else {
                 buf.append("POLYGON");
                 buf.append("(");
-                for (org.locationtech.jts.geom.Polygon p : polygon.polygon) {
+                for (List<Coordinate> coordinates : polygon.getCoordinates()) {
                     buf.append("(");
-                    Coordinate[] coordinates = p.getCoordinates();
                     for (Coordinate c : coordinates) {
                         buf.append(c.x + " " + c.y + ", ");
                     }
@@ -294,9 +292,8 @@ public class Serialization {
             else {
                 buf.append("POLYGON");
                 buf.append("(");
-                for (org.locationtech.jts.geom.Polygon p : polygon.polygon) {
+                for (List<Coordinate> coordinates : polygon.getCoordinates()) {
                     buf.append("(");
-                    Coordinate[] coordinates = p.getCoordinates();
                     for (Coordinate c : coordinates) {
                         buf.append(c.x + " " + c.y + ", ");
                     }
