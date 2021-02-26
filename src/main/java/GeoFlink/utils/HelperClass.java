@@ -196,7 +196,7 @@ public class HelperClass {
 
     // Get exact min distance between Point and Polygon
     public static double getPointPolygonMinEuclideanDistance(Point p, Polygon poly) {
-        return getPointCoordinatesArrayMinEuclideanDistance(p, poly.polygon.get(0).getCoordinates());
+        return getPointCoordinatesArrayMinEuclideanDistance(p, poly.polygon.getCoordinates());
     }
 
     static double getPointCoordinatesArrayMinEuclideanDistance(Point p, Coordinate[] coordinates) {
