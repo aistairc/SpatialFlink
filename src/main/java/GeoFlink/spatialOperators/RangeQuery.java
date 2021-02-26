@@ -610,17 +610,19 @@ public class RangeQuery implements Serializable {
         // Filtering out the polygons which lie greater than queryRadius of the query point
         DataStream<Polygon> filteredPolygons = streamWithTsAndWm.flatMap(new cellBasedPolygonFlatMap(neighboringCells));
 
+
         DataStream<Polygon> rangeQueryNeighbours = filteredPolygons.keyBy(new KeySelector<Polygon, String>() {
             @Override
             public String getKey(Polygon poly) throws Exception {
                 return poly.gridID;
             }
-        }).window(SlidingProcessingTimeWindows.of(Time.seconds(windowSize), Time.seconds(slideStep)))
+        }).window(SlidingEventTimeWindows.of(Time.seconds(windowSize), Time.seconds(slideStep)))
                 .apply(new RichWindowFunction<Polygon, Polygon, String, TimeWindow>() {
 
                     /**
                      * The ListState handle.
                      */
+
                     private transient ListState<Polygon> queryOutputListState;
 
                     @Override
@@ -634,8 +636,10 @@ public class RangeQuery implements Serializable {
                         this.queryOutputListState = getRuntimeContext().getListState(queryOutputStateDescriptor);
                     }
 
+
                     @Override
                     public void apply(String gridID, TimeWindow timeWindow, Iterable<Polygon> pointIterator, Collector<Polygon> neighbors) throws Exception {
+
 
                         List<Polygon> nextWindowUsefulOutputFromPastWindow = new ArrayList<>();
                         // Access the list state - past output
@@ -654,10 +658,12 @@ public class RangeQuery implements Serializable {
                         // Populating the list state with the points useful for next window
                         queryOutputListState.addAll(nextWindowUsefulOutputFromPastWindow);
 
-
                         for (Polygon poly : pointIterator) {
+
+                            //System.out.println(poly);
                             // Check for Range Query only for new objects
                             if(poly.timeStampMillisec >= (timeWindow.getEnd() - (slideStep * 1000))) {
+                            //if(true) {
 
                                 int cellIDCounter = 0;
                                 for (String polyGridID : poly.gridIDsSet) {
@@ -898,19 +904,21 @@ public class RangeQuery implements Serializable {
                 polygonStream.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Polygon>(Time.seconds(allowedLateness)) {
                     @Override
                     public long extractTimestamp(Polygon p) {
+                        //System.out.println("timeStampMillisec " + p.timeStampMillisec);
                         return p.timeStampMillisec;
                     }
                 }).startNewChain();
 
         // Filtering out the polygons which lie greater than queryRadius of the query point
         DataStream<Polygon> filteredPolygons = streamWithTsAndWm.flatMap(new cellBasedPolygonFlatMap(neighboringCells));
+        //filteredPolygons.print();
 
         DataStream<Polygon> rangeQueryNeighbours = filteredPolygons.keyBy(new KeySelector<Polygon, String>() {
             @Override
             public String getKey(Polygon poly) throws Exception {
                 return poly.gridID;
             }
-        }).window(SlidingProcessingTimeWindows.of(Time.seconds(windowSize), Time.seconds(slideStep)))
+        }).window(SlidingEventTimeWindows.of(Time.seconds(windowSize), Time.seconds(slideStep)))
                 .apply(new WindowFunction<Polygon, Polygon, String, TimeWindow>() {
                     @Override
                     public void apply(String gridID, TimeWindow timeWindow, Iterable<Polygon> pointIterator, Collector<Polygon> neighbors) throws Exception {
@@ -1475,7 +1483,8 @@ public class RangeQuery implements Serializable {
             Polygon outputPolygon;
             for(String gridID: poly.gridIDsSet) {
                 if (neighboringCells.contains(gridID)) {
-                    outputPolygon = new Polygon(poly.getCoordinates(), poly.objID, poly.gridIDsSet, gridID, poly.boundingBox);
+                    //outputPolygon = new Polygon(poly.getCoordinates(), poly.objID, poly.gridIDsSet, gridID, poly.boundingBox);
+                    outputPolygon = new Polygon(poly.getCoordinates(), poly.objID, poly.gridIDsSet, gridID, poly.timeStampMillisec, poly.boundingBox);
                     output.collect(outputPolygon);
                     return;
                 }

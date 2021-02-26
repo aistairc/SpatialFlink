@@ -277,11 +277,11 @@ public class JoinQuery implements Serializable {
 
                 // Create duplicated polygon stream for all neighbouring cells based on GridIDs
                 for (String gridID: guaranteedNeighboringCells) {
-                    Polygon p = new Polygon(poly.getCoordinates(), uniqueObjID, poly.gridIDsSet, gridID, poly.boundingBox);
+                    Polygon p = new Polygon(poly.getCoordinates(), uniqueObjID, poly.gridIDsSet, gridID, poly.timeStampMillisec, poly.boundingBox);
                     out.collect(p);
                 }
                 for (String gridID: candidateNeighboringCells) {
-                    Polygon p = new Polygon(poly.getCoordinates(), uniqueObjID, poly.gridIDsSet, gridID, poly.boundingBox);
+                    Polygon p = new Polygon(poly.getCoordinates(), uniqueObjID, poly.gridIDsSet, gridID, poly.timeStampMillisec, poly.boundingBox);
                     out.collect(p);
                 }
 

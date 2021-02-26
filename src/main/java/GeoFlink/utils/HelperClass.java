@@ -561,7 +561,7 @@ public class HelperClass {
 
             // Create duplicated polygon stream based on GridIDs
             for (String gridID: poly.gridIDsSet) {
-                Polygon p = new Polygon(poly.getCoordinates(), Integer.toString(uniqueObjID), poly.gridIDsSet, gridID, poly.boundingBox);
+                Polygon p = new Polygon(poly.getCoordinates(), Integer.toString(uniqueObjID), poly.gridIDsSet, gridID, poly.timeStampMillisec, poly.boundingBox);
                 out.collect(p);
             }
 

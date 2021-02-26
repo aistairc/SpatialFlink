@@ -82,7 +82,7 @@ public class Deserialization implements Serializable {
         DataStream<Polygon> polygonStream = null;
 
         if(inputType.equals("GeoJSON")) {
-            polygonStream = inputStream.map(new GeoJSONToSpatialPolygon(uGrid)).startNewChain();
+            polygonStream = inputStream.map(new GeoJSONToSpatialPolygon(uGrid));
         }
         else if (inputType.equals("CSV")){
             polygonStream = inputStream.map(new CSVToSpatialPolygon(uGrid));
@@ -424,7 +424,7 @@ public class Deserialization implements Serializable {
             String oId = null;
             long time = 0;
             if (nodeProperties != null) {
-                JsonNode nodeTime = jsonObj.get("value").get("properties").get("timestamp");
+                JsonNode nodeTime = jsonObj.get("value").get("properties").get("lstmoddate");
                 try {
                     if (nodeTime != null && dateFormat != null) {
                         time = dateFormat.parse(nodeTime.textValue()).getTime();
@@ -439,6 +439,7 @@ public class Deserialization implements Serializable {
                     catch (NumberFormatException e) {}
                 }
             }
+
             Polygon spatialPolygon;
             if (geometry.getGeometryType().equalsIgnoreCase("MultiPolygon")) {
                 List<List<Coordinate>> parent = convertCoordinates(
@@ -451,6 +452,7 @@ public class Deserialization implements Serializable {
                 if (time != 0) {
                     //spatialPolygon = new MultiPolygon(listCoodinate, oId, time, uGrid);
                     spatialPolygon = new MultiPolygon(listCoodinate, oId, System.currentTimeMillis(), uGrid);
+                    //System.out.println("print " + time + spatialPolygon);
                 }
                 else {
                     spatialPolygon = new MultiPolygon(listCoodinate, oId, 0, uGrid);
@@ -465,7 +467,9 @@ public class Deserialization implements Serializable {
                     listCoodinate.add(list);
                 }
                 if (time != 0) {
-                    spatialPolygon = new Polygon(oId, listCoodinate, time, uGrid);
+                    //spatialPolygon = new Polygon(oId, listCoodinate, time, uGrid);
+                    spatialPolygon = new MultiPolygon(listCoodinate, oId, System.currentTimeMillis(), uGrid);
+                    //System.out.println("print " + spatialPolygon);
                 }
                 else {
                     spatialPolygon = new Polygon(oId, listCoodinate, 0, uGrid);
@@ -708,7 +712,7 @@ public class Deserialization implements Serializable {
         DataStream<LineString> lineStringStream = null;
 
         if(inputType.equals("GeoJSON")) {
-            lineStringStream = inputStream.map(new GeoJSONToSpatialLineString(uGrid)).startNewChain();
+            lineStringStream = inputStream.map(new GeoJSONToSpatialLineString(uGrid));
         }
         else if (inputType.equals("CSV")){
             lineStringStream = inputStream.map(new CSVToSpatialLineString(uGrid));

@@ -21,24 +21,22 @@ public class Polygon extends SpatialObject implements Serializable {
 
     public Polygon() {}; // required for POJO
 
-    //Polygon(Arrays.asList(poly.getCoordinates()), poly.objID, poly.gridIDsSet, gridID, poly.boundingBox);
-
-
-    public Polygon(List<List<Coordinate>> coordinates, String objID, HashSet<String> gridIDsSet, String gridID, Tuple2<Coordinate, Coordinate> boundingBox) {
+    public Polygon(List<List<Coordinate>> coordinates, String objID, HashSet<String> gridIDsSet, String gridID, long timeStampMillisec, Tuple2<Coordinate, Coordinate> boundingBox) {
         if (coordinates.size() >= 1 && coordinates.get(0).size() > 3) {
-            GeometryFactory geofact = new GeometryFactory();
+            //GeometryFactory geofact = new GeometryFactory();
             //create geotools point object
             polygon = createPolygonArray(coordinates);
             this.gridIDsSet = gridIDsSet;
             this.gridID = gridID;
             this.objID = objID;
             this.boundingBox = boundingBox;
+            this.timeStampMillisec = timeStampMillisec;
         }
     }
 
     public Polygon(List<List<Coordinate>> coordinates, UniformGrid uGrid) {
         if (coordinates.size() >= 1 && coordinates.get(0).size() > 3) {
-            GeometryFactory geofact = new GeometryFactory();
+            //GeometryFactory geofact = new GeometryFactory();
             polygon = createPolygonArray(coordinates);
             this.boundingBox = HelperClass.getBoundingBox(polygon.get(0));
             this.gridIDsSet = HelperClass.assignGridCellID(this.boundingBox, uGrid);
@@ -49,7 +47,7 @@ public class Polygon extends SpatialObject implements Serializable {
 
     public Polygon(List<List<Coordinate>> coordinates, long timeStampMillisec, UniformGrid uGrid) {
         if (coordinates.size() >= 1 && coordinates.get(0).size() > 3) {
-            GeometryFactory geofact = new GeometryFactory();
+            //GeometryFactory geofact = new GeometryFactory();
             polygon = createPolygonArray(coordinates);
             this.boundingBox = HelperClass.getBoundingBox(polygon.get(0));
             this.timeStampMillisec = timeStampMillisec;
@@ -61,7 +59,7 @@ public class Polygon extends SpatialObject implements Serializable {
 
     public Polygon(String objID, List<List<Coordinate>> coordinates, long timeStampMillisec, UniformGrid uGrid) {
         if (coordinates.size() >= 1 && coordinates.get(0).size() > 3) {
-            GeometryFactory geofact = new GeometryFactory();
+            //GeometryFactory geofact = new GeometryFactory();
             polygon = createPolygonArray(coordinates);
             this.boundingBox = HelperClass.getBoundingBox(polygon.get(0));
             this.timeStampMillisec = timeStampMillisec;
@@ -93,6 +91,7 @@ public class Polygon extends SpatialObject implements Serializable {
             }
             org.locationtech.jts.geom.Polygon poly
                     = geofact.createPolygon(listCoordinate.toArray(new Coordinate[0]));
+
             if (listPolygon.size() == 0) {
                 listPolygon.add(poly);
             } else if (listPolygon.get(listPolygon.size() - 1).getArea() >= poly.getArea()) {

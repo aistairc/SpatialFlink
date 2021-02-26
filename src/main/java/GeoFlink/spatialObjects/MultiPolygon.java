@@ -16,8 +16,10 @@ public class MultiPolygon extends Polygon implements Serializable {
 
     public MultiPolygon() {}; // required for POJO
 
-    public MultiPolygon(List<List<Coordinate>> coordinates, String objID, HashSet<String> gridIDsSet, String gridID, Tuple2<Coordinate, Coordinate> boundingBox) {
-        super(coordinates, objID, gridIDsSet, gridID, boundingBox);
+
+
+    public MultiPolygon(List<List<Coordinate>> coordinates, String objID, HashSet<String> gridIDsSet, String gridID, long timeStampMillisec, Tuple2<Coordinate, Coordinate> boundingBox) {
+        super(coordinates, objID, gridIDsSet, gridID, timeStampMillisec, boundingBox);
         this.listCoordinate = orderPolygonCoordinates(coordinates);
     }
 
