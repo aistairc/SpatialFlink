@@ -33,6 +33,7 @@ import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.typeutils.ListTypeInfo;
 import org.apache.flink.api.java.typeutils.PojoTypeInfo;
 import org.apache.flink.api.java.typeutils.TypeExtractor;
@@ -44,6 +45,8 @@ import org.apache.flink.streaming.api.functions.windowing.WindowFunction;
 import org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.assigners.SlidingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
+import org.apache.flink.streaming.api.windowing.triggers.Trigger;
+import org.apache.flink.streaming.api.windowing.triggers.TriggerResult;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 import org.apache.kafka.common.protocol.types.Field;
@@ -593,6 +596,45 @@ public class RangeQuery implements Serializable {
         return rangeQueryNeighbours;
     }
 
+    public static class polygonStreamTrigger extends Trigger<Polygon, TimeWindow> {
+
+        private int slideStep;
+
+        //ctor
+        public polygonStreamTrigger(){}
+        public polygonStreamTrigger(int slideStep){
+            this.slideStep = slideStep;
+        }
+
+        @Override
+        public TriggerResult onElement(Polygon polygon, long l, TimeWindow timeWindow, TriggerContext triggerContext) throws Exception {
+
+            //Using states manage the first window, so that all the tuples can be processed
+            // If(firstWindow){
+            // return TriggerResult.CONTINUE;}
+            // else{
+            if(polygon.timeStampMillisec >= (timeWindow.getEnd() - (slideStep * 1000)))
+                return TriggerResult.CONTINUE; // Do nothing
+            else
+                return TriggerResult.PURGE; // Delete
+        }
+
+        @Override
+        public TriggerResult onProcessingTime(long l, TimeWindow timeWindow, TriggerContext triggerContext) throws Exception {
+            return TriggerResult.FIRE;
+        }
+
+        @Override
+        public TriggerResult onEventTime(long l, TimeWindow timeWindow, TriggerContext triggerContext) throws Exception {
+            return TriggerResult.FIRE;
+        }
+
+        @Override
+        public void clear(TimeWindow timeWindow, TriggerContext triggerContext) throws Exception {
+
+        }
+    }
+
     //--------------- Window-based - POINT - POLYGON - Incremental -----------------//
     public static DataStream<Polygon> PolygonRangeQueryIncremental(DataStream<Polygon> polygonStream, Point queryPoint, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery) {
 
@@ -609,94 +651,90 @@ public class RangeQuery implements Serializable {
 
         // Filtering out the polygons which lie greater than queryRadius of the query point
         DataStream<Polygon> filteredPolygons = streamWithTsAndWm.flatMap(new cellBasedPolygonFlatMap(neighboringCells));
-
-
         DataStream<Polygon> rangeQueryNeighbours = filteredPolygons.keyBy(new KeySelector<Polygon, String>() {
             @Override
             public String getKey(Polygon poly) throws Exception {
                 return poly.gridID;
             }
         }).window(SlidingEventTimeWindows.of(Time.seconds(windowSize), Time.seconds(slideStep)))
-                .apply(new RichWindowFunction<Polygon, Polygon, String, TimeWindow>() {
+            .trigger(new polygonStreamTrigger(slideStep))
+            .apply(new RichWindowFunction<Polygon, Polygon, String, TimeWindow>() {
 
-                    /**
-                     * The ListState handle.
-                     */
+                /**
+                 * The ListState handle.
+                 */
+                private transient ListState<Polygon> queryOutputListState;
 
-                    private transient ListState<Polygon> queryOutputListState;
+                @Override
+                public void open(Configuration config) {
+                    PojoTypeInfo<Polygon> objTypeInfo = (PojoTypeInfo<Polygon>) TypeInformation.of(Polygon.class);
 
-                    @Override
-                    public void open(Configuration config) {
-                        PojoTypeInfo<Polygon> objTypeInfo = (PojoTypeInfo<Polygon>) TypeInformation.of(Polygon.class);
+                    ListStateDescriptor<Polygon> queryOutputStateDescriptor = new ListStateDescriptor<Polygon>(
+                            "queryOutputStateDescriptor",// state name
+                            objTypeInfo);
+                    //TypeInformation.of(new TypeHint<Point>() {})
+                    this.queryOutputListState = getRuntimeContext().getListState(queryOutputStateDescriptor);
+                }
 
-                        ListStateDescriptor<Polygon> queryOutputStateDescriptor = new ListStateDescriptor<Polygon>(
-                                "queryOutputStateDescriptor",// state name
-                                objTypeInfo);
-                        //TypeInformation.of(new TypeHint<Point>() {})
-                        this.queryOutputListState = getRuntimeContext().getListState(queryOutputStateDescriptor);
+
+                @Override
+                public void apply(String gridID, TimeWindow timeWindow, Iterable<Polygon> pointIterator, Collector<Polygon> neighbors) throws Exception {
+
+                    List<Polygon> nextWindowUsefulOutputFromPastWindow = new ArrayList<>();
+                    // Access the list state - past output
+                    for(Polygon obj:queryOutputListState.get()){
+                        //System.out.println("state " + point);
+                        neighbors.collect(obj);
+
+                        // Storing points useful for next window
+                        if(obj.timeStampMillisec >= (timeWindow.getStart() + (slideStep * 1000))) {
+                            nextWindowUsefulOutputFromPastWindow.add(obj);
+                        }
                     }
 
+                    // Clear the list state
+                    queryOutputListState.clear();
+                    // Populating the list state with the points useful for next window
+                    queryOutputListState.addAll(nextWindowUsefulOutputFromPastWindow);
 
-                    @Override
-                    public void apply(String gridID, TimeWindow timeWindow, Iterable<Polygon> pointIterator, Collector<Polygon> neighbors) throws Exception {
+                    for (Polygon poly : pointIterator) {
+                        //System.out.println(poly);
+                        // Check for Range Query only for new objects
+                        if(poly.timeStampMillisec >= (timeWindow.getEnd() - (slideStep * 1000))) {
+                        //if(true) {
 
+                            int cellIDCounter = 0;
+                            for (String polyGridID : poly.gridIDsSet) {
 
-                        List<Polygon> nextWindowUsefulOutputFromPastWindow = new ArrayList<>();
-                        // Access the list state - past output
-                        for(Polygon obj:queryOutputListState.get()){
-                            //System.out.println("state " + point);
-                            neighbors.collect(obj);
-
-                            // Storing points useful for next window
-                            if(obj.timeStampMillisec >= (timeWindow.getStart() + (slideStep * 1000))) {
-                                nextWindowUsefulOutputFromPastWindow.add(obj);
-                            }
-                        }
-
-                        // Clear the list state
-                        queryOutputListState.clear();
-                        // Populating the list state with the points useful for next window
-                        queryOutputListState.addAll(nextWindowUsefulOutputFromPastWindow);
-
-                        for (Polygon poly : pointIterator) {
-
-                            //System.out.println(poly);
-                            // Check for Range Query only for new objects
-                            if(poly.timeStampMillisec >= (timeWindow.getEnd() - (slideStep * 1000))) {
-                            //if(true) {
-
-                                int cellIDCounter = 0;
-                                for (String polyGridID : poly.gridIDsSet) {
-
-                                    if (guaranteedNeighboringCells.contains(polyGridID)) { // guaranteed neighbors
-                                        cellIDCounter++;
-                                        // If all the polygon bbox cells are guaranteed neighbors (GNs) then the polygon is GN
-                                        if (cellIDCounter == poly.gridIDsSet.size()) {
-                                            neighbors.collect(poly);
-                                            queryOutputListState.add(poly); // add new output useful for next window
-                                        }
-                                    } else { // candidate neighbors
-
-                                        Double distance;
-                                        if (approximateQuery) {
-                                            distance = HelperClass.getPointPolygonBBoxMinEuclideanDistance(queryPoint, poly);
-                                        } else {
-                                            // https://locationtech.github.io/jts/javadoc/ (Euclidean Distance)
-                                            //distance = poly.polygon.distance(queryPoint.point);
-                                            distance = DistanceFunctions.getDistance(queryPoint, poly);
-                                        }
-
-                                        if (distance <= queryRadius) {
-                                            neighbors.collect(poly);
-                                            queryOutputListState.add(poly); // add new output useful for next window
-                                        }
-                                        break;
+                                if (guaranteedNeighboringCells.contains(polyGridID)) { // guaranteed neighbors
+                                    cellIDCounter++;
+                                    // If all the polygon bbox cells are guaranteed neighbors (GNs) then the polygon is GN
+                                    if (cellIDCounter == poly.gridIDsSet.size()) {
+                                        neighbors.collect(poly);
+                                        queryOutputListState.add(poly); // add new output useful for next window
                                     }
+                                } else { // candidate neighbors
+
+                                    Double distance;
+                                    if (approximateQuery) {
+                                        distance = HelperClass.getPointPolygonBBoxMinEuclideanDistance(queryPoint, poly);
+                                    } else {
+                                        // https://locationtech.github.io/jts/javadoc/ (Euclidean Distance)
+                                        //distance = poly.polygon.distance(queryPoint.point);
+                                        distance = DistanceFunctions.getDistance(queryPoint, poly);
+                                    }
+
+                                    if (distance <= queryRadius) {
+                                        neighbors.collect(poly);
+                                        queryOutputListState.add(poly); // add new output useful for next window
+                                    }
+                                    break;
                                 }
                             }
                         }
                     }
-                }).name("Window-based - POINT - POLYGON");
+                }
+            }).name("Window-based - POINT - POLYGON");
 
         return rangeQueryNeighbours;
     }
@@ -1465,6 +1503,8 @@ public class RangeQuery implements Serializable {
             return CellIDs.contains(cellIDCount.f0);
         }
     }
+
+
 
     public static class cellBasedPolygonFlatMap implements FlatMapFunction<Polygon, Polygon>{
 

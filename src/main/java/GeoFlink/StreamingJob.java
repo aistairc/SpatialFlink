@@ -71,10 +71,6 @@ public class StreamingJob implements Serializable {
 		//--onCluster "false" --dataset "NYCBuildingsPolygons" --queryOption "5" --inputTopicName "NYCBuildingsPolygons" --queryTopicName "sampleTopic" --outputTopicName "QueryLatency" --inputFormat "GeoJSON" --dateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --radius "0.05" --aggregate "SUM" --wType "TIME" --wInterval "1" --wStep "1" --uniformGridSize 100 --k "10" --trajDeletionThreshold 1000 --outOfOrderAllowedLateness "1" --omegaJoinDuration "1" --gridMinX "-74.25540" --gridMaxX "-73.70007" --gridMinY "40.49843" --gridMaxY "40.91506" --trajIDSet "9211800, 9320801, 9090500, 7282400, 10390100" --queryPoint "[-74.0000, 40.72714]" --queryPolygon "[-73.984416, 40.675882], [-73.984511, 40.675767], [-73.984719, 40.675867], [-73.984726, 40.67587], [-73.984718, 40.675881], [-73.984631, 40.675986], [-73.984416, 40.675882]" --queryLineString "[-73.984416, 40.675882], [-73.984511, 40.675767]"
 		//TaxiDriveGeoJSON_Live
 
-
-
-
-
 		ParameterTool parameters = ParameterTool.fromArgs(args);
 
 		int queryOption = Integer.parseInt(parameters.get("queryOption"));
@@ -142,7 +138,7 @@ public class StreamingJob implements Serializable {
 		}
 		env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 		//env.setStreamTimeCharacteristic(TimeCharacteristic.ProcessingTime);
-		env.setParallelism(10);
+		env.setParallelism(30);
 
 		double minX;
 		double maxX;
