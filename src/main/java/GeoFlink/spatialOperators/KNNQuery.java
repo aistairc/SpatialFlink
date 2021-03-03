@@ -295,9 +295,8 @@ public class KNNQuery implements Serializable {
                         kNNPQ.clear();
 
                         for (Polygon poly : inputTuples) {
-
+                            double distance;
                             if (kNNPQ.size() < k) {
-                                double distance;
                                 if(approximateQuery) {
                                     distance = HelperClass.getPointPolygonBBoxMinEuclideanDistance(queryPoint, poly);
                                 }else{
@@ -305,7 +304,11 @@ public class KNNQuery implements Serializable {
                                 }
                                 kNNPQ.offer(new Tuple2<Polygon, Double>(poly, distance));
                             } else {
-                                double distance = HelperClass.getPointPolygonBBoxMinEuclideanDistance(queryPoint, poly);
+                                if(approximateQuery) {
+                                    distance = HelperClass.getPointPolygonBBoxMinEuclideanDistance(queryPoint, poly);
+                                }else{
+                                    distance = DistanceFunctions.getDistance(queryPoint, poly);
+                                }
                                 //double largestDistInPQ = HelperClass.getPointPolygonMinEuclideanDistance(queryPoint, kNNPQ.peek().f0);
                                 // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
                                 double largestDistInPQ = kNNPQ.peek().f1;
