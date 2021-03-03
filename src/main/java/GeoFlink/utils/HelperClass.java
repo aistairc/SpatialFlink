@@ -388,6 +388,20 @@ public class HelperClass {
     }
 
 
+    // Get min distance between Polygon and Polygon bounding box
+    public static double getPolygonPolygonBBoxMinEuclideanDistance(Polygon srcPoly, Polygon dstPoly) {
+        Tuple2<Coordinate, Coordinate> bBox1
+                = new Tuple2<Coordinate, Coordinate>(
+                        new Coordinate(srcPoly.boundingBox.f0.getX(), srcPoly.boundingBox.f0.getY()),
+                        new Coordinate(srcPoly.boundingBox.f1.getX(), srcPoly.boundingBox.f1.getY()));
+        Tuple2<Coordinate, Coordinate> bBox2
+                = new Tuple2<Coordinate, Coordinate>(
+                        new Coordinate(dstPoly.boundingBox.f0.getX(), dstPoly.boundingBox.f0.getY()),
+                        new Coordinate(dstPoly.boundingBox.f1.getX(), dstPoly.boundingBox.f1.getY()));
+        return getBBoxBBoxMinEuclideanDistance(bBox1, bBox2);
+    }
+
+
     // check the overlapping of 2 rectangles
     static boolean doRectanglesOverlap(Coordinate bottomLeft1, Coordinate topRight1, Coordinate bottomLeft2, Coordinate topRight2) {
         // If one rectangle is on left side of other
@@ -701,6 +715,33 @@ public class HelperClass {
                 if (neighboringCells.contains(gridID)) {
                     outputPolygon = new Polygon(poly.getCoordinates(), poly.objID, poly.gridIDsSet, gridID, poly.boundingBox);
                     output.collect(outputPolygon);
+                    return;
+                }
+            }
+        }
+    }
+
+    public static class cellBasedLineStringFlatMap implements FlatMapFunction<LineString, LineString> {
+
+        Set<String> neighboringCells = new HashSet<String>();
+
+        //ctor
+        public cellBasedLineStringFlatMap() {}
+        public cellBasedLineStringFlatMap(Set<String> neighboringCells) {
+            this.neighboringCells = neighboringCells;
+        }
+
+        @Override
+        public void flatMap(LineString lineString, Collector<LineString> output) throws Exception {
+
+            // If a polygon is either a CN or GN
+            LineString outputLineString;
+            for(String gridID: lineString.gridIDsSet) {
+                if (neighboringCells.contains(gridID)) {
+                    outputLineString = new LineString(
+                            lineString.objID, new ArrayList<Coordinate>(Arrays.asList(lineString.lineString.getCoordinates())),
+                            lineString.gridIDsSet, gridID, lineString.boundingBox);
+                    output.collect(outputLineString);
                     return;
                 }
             }
