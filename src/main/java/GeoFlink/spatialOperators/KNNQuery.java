@@ -20,6 +20,7 @@ import GeoFlink.spatialIndices.UniformGrid;
 import GeoFlink.spatialObjects.Point;
 import GeoFlink.spatialObjects.Polygon;
 import GeoFlink.utils.Comparators;
+import GeoFlink.utils.DistanceFunctions;
 import GeoFlink.utils.HelperClass;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.FlatMapFunction;
@@ -272,24 +273,12 @@ public class KNNQuery implements Serializable {
 
     //--------------- GRID-BASED kNN QUERY - POINT-POLYGON -----------------//
     //Outputs a stream of winStartTime, winEndTime and a PQ
-    public static DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Polygon, Double>>>> SpatialKNNQuery(DataStream<Polygon> polygonStream, Point queryPoint, double queryRadius, Integer k, UniformGrid uGrid, int windowSize, int windowSlideStep) throws IOException {
+    public static DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Polygon, Double>>>> SpatialKNNQuery(DataStream<Polygon> polygonStream, Point queryPoint, double queryRadius, Integer k, UniformGrid uGrid, int windowSize, int windowSlideStep, boolean approximateQuery) throws IOException {
 
-
-
-        // Generate a replicated polygon stream to know the grid IDs of each polygon
-        DataStream<Polygon> replicatedPolygonStream = polygonStream.flatMap(new HelperClass.ReplicatePolygonStream());
-
-        // Compute the neighboring layers cells for filtering
+        Set<String> neighboringCells = uGrid.getNeighboringCells(queryRadius, queryPoint);
         Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint.gridID);
-        Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryPoint.gridID, guaranteedNeighboringCells);
-
-        // Filter out the polygons which lie greater than queryRadius of the query point
-        DataStream<Polygon> filteredPolygons = replicatedPolygonStream.filter(new FilterFunction<Polygon>() {
-            @Override
-            public boolean filter(Polygon poly) throws Exception {
-                return ((candidateNeighboringCells.contains(poly.gridID)) || (guaranteedNeighboringCells.contains(poly.gridID)));
-            }
-        });
+        // Filtering out the polygons which lie greater than queryRadius of the query point
+        DataStream<Polygon> filteredPolygons = polygonStream.flatMap(new HelperClass.cellBasedPolygonFlatMap(neighboringCells));
 
         DataStream<PriorityQueue<Tuple2<Polygon, Double>>> windowedKNN = filteredPolygons.keyBy(new KeySelector<Polygon, String>() {
             @Override
@@ -308,7 +297,12 @@ public class KNNQuery implements Serializable {
                         for (Polygon poly : inputTuples) {
 
                             if (kNNPQ.size() < k) {
-                                double distance = HelperClass.getPointPolygonBBoxMinEuclideanDistance(queryPoint, poly);
+                                double distance;
+                                if(approximateQuery) {
+                                    distance = HelperClass.getPointPolygonBBoxMinEuclideanDistance(queryPoint, poly);
+                                }else{
+                                    distance = DistanceFunctions.getDistance(queryPoint, poly);
+                                }
                                 kNNPQ.offer(new Tuple2<Polygon, Double>(poly, distance));
                             } else {
                                 double distance = HelperClass.getPointPolygonBBoxMinEuclideanDistance(queryPoint, poly);
