@@ -21,6 +21,7 @@ import GeoFlink.spatialObjects.LineString;
 import GeoFlink.spatialObjects.Point;
 import GeoFlink.spatialObjects.Polygon;
 import org.apache.flink.api.common.functions.FilterFunction;
+import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.RichFlatMapFunction;
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -387,6 +388,34 @@ public class HelperClass {
     }
 
 
+    // Get min distance between Polygon and Polygon bounding box
+    public static double getPolygonPolygonBBoxMinEuclideanDistance(Polygon srcPoly, Polygon dstPoly) {
+        Tuple2<Coordinate, Coordinate> bBox1
+                = new Tuple2<Coordinate, Coordinate>(
+                        new Coordinate(srcPoly.boundingBox.f0.getX(), srcPoly.boundingBox.f0.getY()),
+                        new Coordinate(srcPoly.boundingBox.f1.getX(), srcPoly.boundingBox.f1.getY()));
+        Tuple2<Coordinate, Coordinate> bBox2
+                = new Tuple2<Coordinate, Coordinate>(
+                        new Coordinate(dstPoly.boundingBox.f0.getX(), dstPoly.boundingBox.f0.getY()),
+                        new Coordinate(dstPoly.boundingBox.f1.getX(), dstPoly.boundingBox.f1.getY()));
+        return getBBoxBBoxMinEuclideanDistance(bBox1, bBox2);
+    }
+
+
+    // Get min distance between Polygon and LineString bounding box
+    public static double getPolygonLineStringBBoxMinEuclideanDistance(Polygon poly, LineString lineString) {
+        Tuple2<Coordinate, Coordinate> bBox1
+                = new Tuple2<Coordinate, Coordinate>(
+                new Coordinate(poly.boundingBox.f0.getX(), poly.boundingBox.f0.getY()),
+                new Coordinate(poly.boundingBox.f1.getX(), poly.boundingBox.f1.getY()));
+        Tuple2<Coordinate, Coordinate> bBox2
+                = new Tuple2<Coordinate, Coordinate>(
+                new Coordinate(lineString.boundingBox.f0.getX(), lineString.boundingBox.f0.getY()),
+                new Coordinate(lineString.boundingBox.f1.getX(), lineString.boundingBox.f1.getY()));
+        return getBBoxBBoxMinEuclideanDistance(bBox1, bBox2);
+    }
+
+
     // check the overlapping of 2 rectangles
     static boolean doRectanglesOverlap(Coordinate bottomLeft1, Coordinate topRight1, Coordinate bottomLeft2, Coordinate topRight2) {
         // If one rectangle is on left side of other
@@ -678,6 +707,58 @@ public class HelperClass {
             //String outputStr = queryID.toString() + ", " + element.f3.toString();
             String outputStr = element.f3.toString();
             return new ProducerRecord<byte[], byte[]>(outputTopic, outputStr.getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    public static class cellBasedPolygonFlatMap implements FlatMapFunction<Polygon, Polygon> {
+
+        Set<String> neighboringCells = new HashSet<String>();
+
+        //ctor
+        public cellBasedPolygonFlatMap() {}
+        public cellBasedPolygonFlatMap(Set<String> neighboringCells) {
+            this.neighboringCells = neighboringCells;
+        }
+
+        @Override
+        public void flatMap(Polygon poly, Collector<Polygon> output) throws Exception {
+
+            // If a polygon is either a CN or GN
+            Polygon outputPolygon;
+            for(String gridID: poly.gridIDsSet) {
+                if (neighboringCells.contains(gridID)) {
+                    outputPolygon = new Polygon(poly.getCoordinates(), poly.objID, poly.gridIDsSet, gridID, poly.boundingBox);
+                    output.collect(outputPolygon);
+                    return;
+                }
+            }
+        }
+    }
+
+    public static class cellBasedLineStringFlatMap implements FlatMapFunction<LineString, LineString> {
+
+        Set<String> neighboringCells = new HashSet<String>();
+
+        //ctor
+        public cellBasedLineStringFlatMap() {}
+        public cellBasedLineStringFlatMap(Set<String> neighboringCells) {
+            this.neighboringCells = neighboringCells;
+        }
+
+        @Override
+        public void flatMap(LineString lineString, Collector<LineString> output) throws Exception {
+
+            // If a polygon is either a CN or GN
+            LineString outputLineString;
+            for(String gridID: lineString.gridIDsSet) {
+                if (neighboringCells.contains(gridID)) {
+                    outputLineString = new LineString(
+                            lineString.objID, new ArrayList<Coordinate>(Arrays.asList(lineString.lineString.getCoordinates())),
+                            lineString.gridIDsSet, gridID, lineString.boundingBox);
+                    output.collect(outputLineString);
+                    return;
+                }
+            }
         }
     }
 }

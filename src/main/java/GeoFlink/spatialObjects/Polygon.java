@@ -23,6 +23,19 @@ public class Polygon extends SpatialObject implements Serializable {
 
     public Polygon() {}; // required for POJO
 
+    public Polygon(List<List<Coordinate>> coordinates, String objID, HashSet<String> gridIDsSet, String gridID, Tuple2<Coordinate, Coordinate> boundingBox) {
+        if (coordinates.size() >= 1 && coordinates.get(0).size() > 3) {
+            //GeometryFactory geofact = new GeometryFactory();
+            //create geotools point object
+            polygon = createPolygon(coordinates);
+            this.gridIDsSet = gridIDsSet;
+            this.gridID = gridID;
+            this.objID = objID;
+            this.boundingBox = boundingBox;
+            this.timeStampMillisec = timeStampMillisec;
+        }
+    }
+
     public Polygon(List<List<Coordinate>> coordinates, String objID, HashSet<String> gridIDsSet, String gridID, long timeStampMillisec, Tuple2<Coordinate, Coordinate> boundingBox) {
         if (coordinates.size() >= 1 && coordinates.get(0).size() > 3) {
             //GeometryFactory geofact = new GeometryFactory();
@@ -86,7 +99,7 @@ public class Polygon extends SpatialObject implements Serializable {
         }
     }
 
-    public List<List<Coordinate>> getCoordinates() {
+    protected List<List<Coordinate>> getCoordinates(org.locationtech.jts.geom.Polygon polygon) {
         List<List<Coordinate>> list = new ArrayList();
         list.add(new ArrayList<Coordinate>(Arrays.asList(polygon.getExteriorRing().getCoordinates())));
         for (int i = 0; i < polygon.getNumInteriorRing(); i++) {
@@ -95,7 +108,11 @@ public class Polygon extends SpatialObject implements Serializable {
         return list;
     }
 
-    protected List<org.locationtech.jts.geom.Polygon> createPolygonArray(List<List<Coordinate>> coordinates) {
+    public List<List<Coordinate>> getCoordinates() {
+        return getCoordinates(this.polygon);
+    }
+
+    private List<org.locationtech.jts.geom.Polygon> createPolygonArray(List<List<Coordinate>> coordinates) {
         List<org.locationtech.jts.geom.Polygon> listPolygon = new ArrayList<org.locationtech.jts.geom.Polygon>();
         GeometryFactory geofact = new GeometryFactory();
         for (List<Coordinate> listCoordinate : coordinates) {
@@ -104,6 +121,9 @@ public class Polygon extends SpatialObject implements Serializable {
             	for (int i = 0; i < 4; i++) {
             		listCoordinate.add(listCoordinate.get(0));
             	}
+            }
+            if (!listCoordinate.get(0).equals(listCoordinate.get(listCoordinate.size() - 1))) {
+                listCoordinate.add(listCoordinate.get(0));
             }
             org.locationtech.jts.geom.Polygon poly
                     = geofact.createPolygon(listCoordinate.toArray(new Coordinate[0]));
@@ -124,10 +144,14 @@ public class Polygon extends SpatialObject implements Serializable {
         return listPolygon;
     }
 
-    private org.locationtech.jts.geom.Polygon createPolygon(List<List<Coordinate>> coordinates) {
+    protected org.locationtech.jts.geom.Polygon createPolygon(List<List<Coordinate>> coordinates) {
         GeometryFactory geofact = new GeometryFactory();
         if (coordinates.size() == 1) {
-            return geofact.createPolygon(coordinates.get(0).toArray(new Coordinate[0]));
+            List<Coordinate> listCoordinate = coordinates.get(0);
+            if (!listCoordinate.get(0).equals(listCoordinate.get(listCoordinate.size() - 1))) {
+                listCoordinate.add(listCoordinate.get(0));
+            }
+            return geofact.createPolygon(listCoordinate.toArray(new Coordinate[0]));
         }
         else {
             List<org.locationtech.jts.geom.Polygon> listPolygon = createPolygonArray(coordinates);

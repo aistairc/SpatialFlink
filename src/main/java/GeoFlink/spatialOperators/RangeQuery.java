@@ -113,7 +113,7 @@ public class RangeQuery implements Serializable {
         Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint.gridID);
 
         // Filtering out the polygons which lie greater than queryRadius of the query point
-        DataStream<Polygon> filteredPolygons = polygonStream.flatMap(new cellBasedPolygonFlatMap(neighboringCells));
+        DataStream<Polygon> filteredPolygons = polygonStream.flatMap(new HelperClass.cellBasedPolygonFlatMap(neighboringCells));
 
         DataStream<Polygon> rangeQueryNeighbours = filteredPolygons.keyBy(new KeySelector<Polygon, String>() {
             @Override
@@ -260,7 +260,7 @@ public class RangeQuery implements Serializable {
         Set<String> neighboringCells = Stream.concat(guaranteedNeighboringCells.stream(),candidateNeighboringCells.stream()).collect(Collectors.toSet());
 
         // Filtering out the polygons which lie greater than queryRadius of the query point
-        DataStream<Polygon> filteredPolygons = polygonStream.flatMap(new cellBasedPolygonFlatMap(neighboringCells));
+        DataStream<Polygon> filteredPolygons = polygonStream.flatMap(new HelperClass.cellBasedPolygonFlatMap(neighboringCells));
 
         DataStream<Polygon> rangeQueryNeighbours = filteredPolygons.keyBy(new KeySelector<Polygon, String>() {
             @Override
@@ -401,7 +401,7 @@ public class RangeQuery implements Serializable {
         Set<String> neighboringCells = Stream.concat(guaranteedNeighboringCells.stream(),candidateNeighboringCells.stream()).collect(Collectors.toSet());
 
         // Filtering out the polygons which lie greater than queryRadius of the query point
-        DataStream<Polygon> filteredPolygons = polygonStream.flatMap(new cellBasedPolygonFlatMap(neighboringCells));
+        DataStream<Polygon> filteredPolygons = polygonStream.flatMap(new HelperClass.cellBasedPolygonFlatMap(neighboringCells));
 
         DataStream<Polygon> rangeQueryNeighbours = filteredPolygons.keyBy(new KeySelector<Polygon, String>() {
             @Override
@@ -650,7 +650,7 @@ public class RangeQuery implements Serializable {
                 }).startNewChain();
 
         // Filtering out the polygons which lie greater than queryRadius of the query point
-        DataStream<Polygon> filteredPolygons = streamWithTsAndWm.flatMap(new cellBasedPolygonFlatMap(neighboringCells));
+        DataStream<Polygon> filteredPolygons = streamWithTsAndWm.flatMap(new HelperClass.cellBasedPolygonFlatMap(neighboringCells));
         DataStream<Polygon> rangeQueryNeighbours = filteredPolygons.keyBy(new KeySelector<Polygon, String>() {
             @Override
             public String getKey(Polygon poly) throws Exception {
@@ -948,8 +948,7 @@ public class RangeQuery implements Serializable {
                 }).startNewChain();
 
         // Filtering out the polygons which lie greater than queryRadius of the query point
-        DataStream<Polygon> filteredPolygons = streamWithTsAndWm.flatMap(new cellBasedPolygonFlatMap(neighboringCells));
-        //filteredPolygons.print();
+        DataStream<Polygon> filteredPolygons = streamWithTsAndWm.flatMap(new HelperClass.cellBasedPolygonFlatMap(neighboringCells));
 
         DataStream<Polygon> rangeQueryNeighbours = filteredPolygons.keyBy(new KeySelector<Polygon, String>() {
             @Override
@@ -1216,7 +1215,7 @@ public class RangeQuery implements Serializable {
                 });
 
         // Filtering out the polygons which lie greater than queryRadius of the query point
-        DataStream<Polygon> filteredPolygons = streamWithTsAndWm.flatMap(new cellBasedPolygonFlatMap(neighboringCells));
+        DataStream<Polygon> filteredPolygons = streamWithTsAndWm.flatMap(new HelperClass.cellBasedPolygonFlatMap(neighboringCells));
 
         DataStream<Polygon> rangeQueryNeighbours = filteredPolygons.keyBy(new KeySelector<Polygon, String>() {
             @Override
@@ -1379,7 +1378,7 @@ public class RangeQuery implements Serializable {
         Set<String> neighboringCells = Stream.concat(guaranteedNeighboringCells.stream(),candidateNeighboringCells.stream()).collect(Collectors.toSet());
 
         // Filtering out the polygons which lie greater than queryRadius of the query point
-        DataStream<Polygon> filteredPolygons = polygonStream.flatMap(new cellBasedPolygonFlatMap(neighboringCells));
+        DataStream<Polygon> filteredPolygons = polygonStream.flatMap(new HelperClass.cellBasedPolygonFlatMap(neighboringCells));
 
         DataStream<Polygon> rangeQueryNeighbours = filteredPolygons.keyBy(new KeySelector<Polygon, String>() {
             @Override
@@ -1501,34 +1500,6 @@ public class RangeQuery implements Serializable {
         public boolean filter(Tuple2<String, Integer> cellIDCount) throws Exception
         {
             return CellIDs.contains(cellIDCount.f0);
-        }
-    }
-
-
-
-    public static class cellBasedPolygonFlatMap implements FlatMapFunction<Polygon, Polygon>{
-
-        Set<String> neighboringCells = new HashSet<String>();
-
-        //ctor
-        public cellBasedPolygonFlatMap() {}
-        public cellBasedPolygonFlatMap(Set<String> neighboringCells) {
-            this.neighboringCells = neighboringCells;
-        }
-
-        @Override
-        public void flatMap(Polygon poly, Collector<Polygon> output) throws Exception {
-
-            // If a polygon is either a CN or GN
-            Polygon outputPolygon;
-            for(String gridID: poly.gridIDsSet) {
-                if (neighboringCells.contains(gridID)) {
-                    //outputPolygon = new Polygon(poly.getCoordinates(), poly.objID, poly.gridIDsSet, gridID, poly.boundingBox);
-                    outputPolygon = new Polygon(poly.getCoordinates(), poly.objID, poly.gridIDsSet, gridID, poly.timeStampMillisec, poly.boundingBox);
-                    output.collect(outputPolygon);
-                    return;
-                }
-            }
         }
     }
 

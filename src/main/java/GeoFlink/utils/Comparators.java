@@ -50,12 +50,12 @@ public class Comparators {
         }
     }
 
-    public static class inTupleLineStringDistanceComparator implements Comparator<Tuple2<Map<String, LineString>, Double>>, Serializable {
+        public static class inTupleLineStringDistanceComparator implements Comparator<Tuple2<LineString, Double>>, Serializable {
 
         public inTupleLineStringDistanceComparator() {}
 
         @Override
-        public int compare(Tuple2<Map<String, LineString>, Double> t1, Tuple2<Map<String, LineString>, Double> t2) {
+        public int compare(Tuple2<LineString, Double> t1, Tuple2<LineString, Double> t2) {
 
             double distance1 = t1.f1;
             double distance2 = t2.f1;

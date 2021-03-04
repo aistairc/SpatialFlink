@@ -141,16 +141,18 @@ public class Serialization {
 
             JSONObject jsonGeometry = new JSONObject();
             if (polygon instanceof MultiPolygon) {
-                List<List<Coordinate>> listCoordinate = ((MultiPolygon)polygon).getListCoordinate();
                 List<List<List<double[]>>> jsonCoordinate = new ArrayList<List<List<double[]>>>();
-                for (List<Coordinate> l : listCoordinate) {
-                    List<double[]> arrCoordinate = new ArrayList<double[]>();
-                    for (Coordinate c : l) {
-                        double[] coordinate = {c.x, c.y};
-                        arrCoordinate.add(coordinate);
-                    }
+                List<List<List<Coordinate>>> listListCoordinate = ((MultiPolygon)polygon).getListCoordinate();
+                for (List<List<Coordinate>> listCoordinate : listListCoordinate) {
                     List<List<double[]>> coordinates = new ArrayList<List<double[]>>();
-                    coordinates.add(arrCoordinate);
+                    for (List<Coordinate> l : listCoordinate) {
+                        List<double[]> arrCoordinate = new ArrayList<double[]>();
+                        for (Coordinate c : l) {
+                            double[] coordinate = {c.x, c.y};
+                            arrCoordinate.add(coordinate);
+                        }
+                        coordinates.add(arrCoordinate);
+                    }
                     jsonCoordinate.add(coordinates);
                 }
                 jsonGeometry.put("type", "MultiPolygon");
@@ -212,15 +214,20 @@ public class Serialization {
             if (polygon instanceof MultiPolygon) {
                 buf.append("MULTIPOLYGON");
                 buf.append("(");
-                List<List<Coordinate>> listCoordinate = ((MultiPolygon)polygon).getListCoordinate();
-                for (List<Coordinate> l : listCoordinate) {
-                    buf.append("((");
-                    for (Coordinate c : l) {
-                        buf.append(c.x + " " + c.y + ", ");
+                List<List<List<Coordinate>>> listListCoordinate = ((MultiPolygon)polygon).getListCoordinate();
+                for (List<List<Coordinate>> listCoordinate : listListCoordinate) {
+                    buf.append("(");
+                    for (List<Coordinate> l : listCoordinate) {
+                        buf.append("(");
+                        for (Coordinate c : l) {
+                            buf.append(c.x + " " + c.y + ", ");
+                        }
+                        buf.deleteCharAt(buf.length() - 1);
+                        buf.deleteCharAt(buf.length() - 1);
+                        buf.append("),");
                     }
                     buf.deleteCharAt(buf.length() - 1);
-                    buf.deleteCharAt(buf.length() - 1);
-                    buf.append(")),");
+                    buf.append("),");
                 }
                 buf.deleteCharAt(buf.length() - 1);
                 buf.append(")");
@@ -276,15 +283,20 @@ public class Serialization {
             if (polygon instanceof MultiPolygon) {
                 buf.append("MULTIPOLYGON");
                 buf.append("(");
-                List<List<Coordinate>> listCoordinate = ((MultiPolygon)polygon).getListCoordinate();
-                for (List<Coordinate> l : listCoordinate) {
-                    buf.append("((");
-                    for (Coordinate c : l) {
-                        buf.append(c.x + " " + c.y + ", ");
+                List<List<List<Coordinate>>> listListCoordinate = ((MultiPolygon)polygon).getListCoordinate();
+                for (List<List<Coordinate>> listCoordinate : listListCoordinate) {
+                    buf.append("(");
+                    for (List<Coordinate> l : listCoordinate) {
+                        buf.append("(");
+                        for (Coordinate c : l) {
+                            buf.append(c.x + " " + c.y + ", ");
+                        }
+                        buf.deleteCharAt(buf.length() - 1);
+                        buf.deleteCharAt(buf.length() - 1);
+                        buf.append("),");
                     }
                     buf.deleteCharAt(buf.length() - 1);
-                    buf.deleteCharAt(buf.length() - 1);
-                    buf.append(")),");
+                    buf.append("),");
                 }
                 buf.deleteCharAt(buf.length() - 1);
                 buf.append(")");
