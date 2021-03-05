@@ -416,6 +416,20 @@ public class HelperClass {
     }
 
 
+    // Get min distance between Polygon and LineString bounding box
+    public static double getLineStringLineStringBBoxMinEuclideanDistance(LineString srcLineString, LineString dstLineString) {
+        Tuple2<Coordinate, Coordinate> bBox1
+                = new Tuple2<Coordinate, Coordinate>(
+                new Coordinate(srcLineString.boundingBox.f0.getX(), srcLineString.boundingBox.f0.getY()),
+                new Coordinate(srcLineString.boundingBox.f1.getX(), srcLineString.boundingBox.f1.getY()));
+        Tuple2<Coordinate, Coordinate> bBox2
+                = new Tuple2<Coordinate, Coordinate>(
+                new Coordinate(dstLineString.boundingBox.f0.getX(), dstLineString.boundingBox.f0.getY()),
+                new Coordinate(dstLineString.boundingBox.f1.getX(), dstLineString.boundingBox.f1.getY()));
+        return getBBoxBBoxMinEuclideanDistance(bBox1, bBox2);
+    }
+
+
     // check the overlapping of 2 rectangles
     static boolean doRectanglesOverlap(Coordinate bottomLeft1, Coordinate topRight1, Coordinate bottomLeft2, Coordinate topRight2) {
         // If one rectangle is on left side of other

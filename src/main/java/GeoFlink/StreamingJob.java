@@ -382,7 +382,7 @@ public class StreamingJob implements Serializable {
 				DataStream<Point> spatialPointStream = Deserialization.TrajectoryStream(geoJSONStream, inputFormat, inputDateFormat, uGrid);
 				//DataStream<Point> spatialPointStream = SpatialStream.PointStream(geoJSONStream, inputFormat, uGrid);
 				//DataStream<Point> spatialPointStream = SpatialStream.PointStream(csvStream, "CSV", uGrid);
-				DataStream < Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> kNNPQStream = KNNQuery.SpatialKNNQuery(spatialPointStream, qPoint, radius, k, windowSize, windowSlideStep, uGrid);
+				DataStream < Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> kNNPQStream = KNNQuery.SpatialPointKNNQuery(spatialPointStream, qPoint, radius, k, windowSize, windowSlideStep, uGrid);
 				kNNPQStream.print();
 				break;}
 			case 3: { // KNN (Grid based - Iterative approach)

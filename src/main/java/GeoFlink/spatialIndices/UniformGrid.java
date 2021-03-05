@@ -273,6 +273,42 @@ public class UniformGrid implements Serializable {
         return neighboringCellsSet;
     }
 
+    // Return all the neighboring cells including candidate cells and guaranteed cells
+    public HashSet<String> getNeighboringCells(double queryRadius, LineString querylineString)
+    {
+        // return all the cells in the set
+        if(queryRadius == 0){
+            return this.girdCellsSet;
+        }
+
+        //queryRadius = CoordinatesConversion.metersToDD(queryRadius,cellLength,cellLengthMeters); // UNCOMMENT FOR HAVERSINE (METERS)
+        String queryCellID = querylineString.gridID;
+        HashSet<String> neighboringCellsSet = new HashSet<String>();
+        int numNeighboringLayers = getCandidateNeighboringLayers(queryRadius);
+
+        if(numNeighboringLayers <= 0)
+        {
+            System.out.println("candidateNeighboringLayers cannot be 0 or less");
+            System.exit(1); // Unsuccessful termination
+        }
+        else //numNeighboringLayers > 0
+        {
+            ArrayList<Integer> queryCellIndices = HelperClass.getIntCellIndices(queryCellID);
+
+            for(int i = queryCellIndices.get(0) - numNeighboringLayers; i <= queryCellIndices.get(0) + numNeighboringLayers; i++)
+                for(int j = queryCellIndices.get(1) - numNeighboringLayers; j <= queryCellIndices.get(1) + numNeighboringLayers; j++)
+                {
+                    if(validKey(i,j))
+                    {
+                        String neighboringCellKey = HelperClass.padLeadingZeroesToInt(i, CELLINDEXSTRLENGTH) + HelperClass.padLeadingZeroesToInt(j, CELLINDEXSTRLENGTH);
+                        neighboringCellsSet.add(neighboringCellKey);
+                    }
+                }
+
+        }
+        return neighboringCellsSet;
+    }
+
     // Query Point
     public HashSet<String> getCandidateNeighboringCells(double queryRadius, String queryGridCellID, Set<String> guaranteedNeighboringCellsSet)
     {
