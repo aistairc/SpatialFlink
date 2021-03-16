@@ -31,6 +31,7 @@ public class Comparators {
         }
     }
 
+    /* TODO remove this block
     public static class inTupleDoubleDistanceComparator implements Comparator<Tuple2<String, Double>>, Serializable {
 
         public inTupleDoubleDistanceComparator() {}
@@ -49,6 +50,7 @@ public class Comparators {
             return 1;
         }
     }
+     */
 
         public static class inTupleLineStringDistanceComparator implements Comparator<Tuple2<LineString, Double>>, Serializable {
 

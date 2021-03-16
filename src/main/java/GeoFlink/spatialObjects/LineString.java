@@ -7,6 +7,7 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 
 import java.io.Serializable;
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -32,6 +33,19 @@ public class LineString extends SpatialObject implements Serializable {
         }
     }
 
+    public LineString(String objID, List<Coordinate> coordinates, HashSet<String> gridIDsSet, String gridID, long timestamp, Tuple2<Coordinate, Coordinate> boundingBox) {
+        if (coordinates.size() > 1) {
+            GeometryFactory geofact = new GeometryFactory();
+            //create geotools point object
+            lineString = geofact.createLineString(coordinates.toArray(new Coordinate[0]));
+            this.gridIDsSet = gridIDsSet;
+            this.gridID = gridID;
+            this.objID = objID;
+            this.boundingBox = boundingBox;
+            this.timeStampMillisec = timestamp;
+        }
+    }
+
     public LineString(String objID, org.locationtech.jts.geom.LineString lineString, UniformGrid uGrid) {
         if (lineString.getNumPoints() > 1) {
             GeometryFactory geofact = new GeometryFactory();
@@ -51,6 +65,17 @@ public class LineString extends SpatialObject implements Serializable {
             this.gridIDsSet = HelperClass.assignGridCellID(this.boundingBox, uGrid);
             this.gridID = "";
             this.objID = objID;
+        }
+    }
+
+    public LineString(List<Coordinate> coordinates, UniformGrid uGrid) {
+        if (coordinates.size() > 1) { // LineString can only be made with 2 or more points
+            GeometryFactory geofact = new GeometryFactory();
+            lineString = geofact.createLineString(coordinates.toArray(new Coordinate[0]));
+            this.boundingBox = HelperClass.getBoundingBox(lineString);
+            this.gridIDsSet = HelperClass.assignGridCellID(this.boundingBox, uGrid);
+            this.gridID = "";
+            this.objID = "";
         }
     }
 

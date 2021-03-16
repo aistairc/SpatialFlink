@@ -183,7 +183,7 @@ public class Polygon extends SpatialObject implements Serializable {
             str = str.substring(0, str.length() - 1);
             str = str + "], \"type\": \"Polygon\"}}";
             str = str + ", " + "ObjID: " + this.objID;
-            str = str + ", " + this.timeStampMillisec;
+            str = str + ", " + "TimeStamp(ms): " + this.timeStampMillisec;
             //str = str + ", Bounding Box: " + this.boundingBox;
             //str = str + ", Grid ID: " + this.gridIDsSet;
             //str = str + ", Obj ID: " + this.objID;

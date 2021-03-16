@@ -152,6 +152,7 @@ public class HelperClass {
         ArrayList<Integer> cellIndices = new ArrayList<Integer>();
 
         //substring(int startIndex, int endIndex): endIndex is excluded
+        //System.out.println("cellIndices.size() " + cellIndices.size());
         String cellIDX = cellID.substring(0,5);
         String cellIDY = cellID.substring(5);
 
@@ -594,8 +595,20 @@ public class HelperClass {
                 out.collect(p);
             }
 
-            // Generating unique ID for each polygon, so that all the replicated tuples are assigned the same unique id
+            // Generating unique ID for each polygon, so that all the replicated tuples are assigned the same unique id by each parallel process
             uniqueObjID += parallelism;
+        }
+    }
+
+    public static class ReplicatePolygonStreamUsingObjID extends RichFlatMapFunction<Polygon, Polygon> {
+        @Override
+        public void flatMap(Polygon poly, Collector<Polygon> out) throws Exception {
+
+            // Create duplicated polygon stream based on GridIDs
+            for (String gridID: poly.gridIDsSet) {
+                Polygon p = new Polygon(poly.getCoordinates(), poly.objID, poly.gridIDsSet, gridID, poly.timeStampMillisec, poly.boundingBox);
+                out.collect(p);
+            }
         }
     }
 
@@ -624,6 +637,19 @@ public class HelperClass {
 
             // Generating unique ID for each polygon, so that all the replicated tuples are assigned the same unique id
             uniqueObjID += parallelism;
+        }
+    }
+
+    // Generation of replicated linestring stream corresponding to each grid cell a linestring belongs
+    public static class ReplicateLineStringStreamUsingObjID extends RichFlatMapFunction<LineString, LineString> {
+        @Override
+        public void flatMap(LineString lineString, Collector<LineString> out) throws Exception {
+
+            // Create duplicated polygon stream based on GridIDs
+            for (String gridID: lineString.gridIDsSet) {
+                LineString l = new LineString(lineString.objID, Arrays.asList(lineString.lineString.getCoordinates()), lineString.gridIDsSet, gridID, lineString.boundingBox);
+                out.collect(l);
+            }
         }
     }
 
@@ -724,10 +750,11 @@ public class HelperClass {
         public void flatMap(Polygon poly, Collector<Polygon> output) throws Exception {
 
             // If a polygon is either a CN or GN
+            // Return 0 or 1 Polygon with gridID which is either a CN or GN
             Polygon outputPolygon;
             for(String gridID: poly.gridIDsSet) {
                 if (neighboringCells.contains(gridID)) {
-                    outputPolygon = new Polygon(poly.getCoordinates(), poly.objID, poly.gridIDsSet, gridID, poly.boundingBox);
+                    outputPolygon = new Polygon(poly.getCoordinates(), poly.objID, poly.gridIDsSet, poly.gridID, poly.timeStampMillisec, poly.boundingBox);
                     output.collect(outputPolygon);
                     return;
                 }
@@ -749,6 +776,7 @@ public class HelperClass {
         public void flatMap(LineString lineString, Collector<LineString> output) throws Exception {
 
             // If a polygon is either a CN or GN
+            // Return 0 or 1 LineString with gridID which is either a CN or GN
             LineString outputLineString;
             for(String gridID: lineString.gridIDsSet) {
                 if (neighboringCells.contains(gridID)) {

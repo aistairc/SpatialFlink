@@ -24,13 +24,11 @@ import GeoFlink.utils.DistanceFunctions;
 import GeoFlink.utils.HelperClass;
 import org.apache.flink.api.common.functions.*;
 import org.apache.flink.api.common.functions.util.ListCollector;
-import org.apache.flink.api.common.state.ListState;
-import org.apache.flink.api.common.state.ListStateDescriptor;
-import org.apache.flink.api.common.state.MapState;
-import org.apache.flink.api.common.state.MapStateDescriptor;
+import org.apache.flink.api.common.state.*;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.common.typeutils.base.BooleanSerializer;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
@@ -53,6 +51,7 @@ import org.apache.kafka.common.protocol.types.Field;
 
 import javax.sound.sampled.Line;
 import java.io.Serializable;
+import java.sql.Types;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -60,19 +59,20 @@ import java.util.stream.Stream;
 public class RangeQuery implements Serializable {
 
     // ********* Real-time Queries ********* //
-
     //--------------- Real-time - POINT - POINT -----------------//
     public static DataStream<Point> PointRangeQuery(DataStream<Point> pointStream, Point queryPoint, double queryRadius, UniformGrid uGrid, boolean approximateQuery){
 
         Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint.gridID);
         Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryPoint.gridID, guaranteedNeighboringCells);
 
+        //pointStream.print();
         DataStream<Point> filteredPoints = pointStream.filter(new FilterFunction<Point>() {
             @Override
             public boolean filter(Point point) throws Exception {
                 return ((candidateNeighboringCells.contains(point.gridID)) || (guaranteedNeighboringCells.contains(point.gridID)));
             }
-        });
+        }).startNewChain();
+
 
         DataStream<Point> rangeQueryNeighbours = filteredPoints.keyBy(new KeySelector<Point, String>() {
             @Override
@@ -113,7 +113,7 @@ public class RangeQuery implements Serializable {
         Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint.gridID);
 
         // Filtering out the polygons which lie greater than queryRadius of the query point
-        DataStream<Polygon> filteredPolygons = polygonStream.flatMap(new HelperClass.cellBasedPolygonFlatMap(neighboringCells));
+        DataStream<Polygon> filteredPolygons = polygonStream.flatMap(new HelperClass.cellBasedPolygonFlatMap(neighboringCells)).startNewChain();
 
         DataStream<Polygon> rangeQueryNeighbours = filteredPolygons.keyBy(new KeySelector<Polygon, String>() {
             @Override
@@ -123,6 +123,8 @@ public class RangeQuery implements Serializable {
         }).flatMap(new FlatMapFunction<Polygon, Polygon>() {
             @Override
             public void flatMap(Polygon poly, Collector<Polygon> collector) throws Exception {
+
+                //System.out.println(poly);
 
                 int cellIDCounter = 0;
                 for(String polyGridID: poly.gridIDsSet) {
@@ -164,7 +166,7 @@ public class RangeQuery implements Serializable {
         Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint.gridID);
 
         // Filtering out the linestrings which lie greater than queryRadius of the query point
-        DataStream<LineString> filteredLineStrings = lineStringStream.flatMap(new cellBasedLineStringFlatMap(neighboringCells));
+        DataStream<LineString> filteredLineStrings = lineStringStream.flatMap(new cellBasedLineStringFlatMap(neighboringCells)).startNewChain();
 
         DataStream<LineString> rangeQueryNeighbours = filteredLineStrings.keyBy(new KeySelector<LineString, String>() {
             @Override
@@ -218,7 +220,7 @@ public class RangeQuery implements Serializable {
             public boolean filter(Point point) throws Exception {
                 return ((candidateNeighboringCells.contains(point.gridID)) || (guaranteedNeighboringCells.contains(point.gridID)));
             }
-        });
+        }).startNewChain();
 
         DataStream<Point> rangeQueryNeighbours = filteredPoints.keyBy(new KeySelector<Point, String>() {
             @Override
@@ -260,7 +262,7 @@ public class RangeQuery implements Serializable {
         Set<String> neighboringCells = Stream.concat(guaranteedNeighboringCells.stream(),candidateNeighboringCells.stream()).collect(Collectors.toSet());
 
         // Filtering out the polygons which lie greater than queryRadius of the query point
-        DataStream<Polygon> filteredPolygons = polygonStream.flatMap(new HelperClass.cellBasedPolygonFlatMap(neighboringCells));
+        DataStream<Polygon> filteredPolygons = polygonStream.flatMap(new HelperClass.cellBasedPolygonFlatMap(neighboringCells)).startNewChain();
 
         DataStream<Polygon> rangeQueryNeighbours = filteredPolygons.keyBy(new KeySelector<Polygon, String>() {
             @Override
@@ -309,7 +311,7 @@ public class RangeQuery implements Serializable {
         Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryPolygon, guaranteedNeighboringCells);
         Set<String> neighboringCells = Stream.concat(guaranteedNeighboringCells.stream(),candidateNeighboringCells.stream()).collect(Collectors.toSet());
 
-        DataStream<LineString> filteredLineStrings = lineStringStream.flatMap(new cellBasedLineStringFlatMap(neighboringCells));
+        DataStream<LineString> filteredLineStrings = lineStringStream.flatMap(new cellBasedLineStringFlatMap(neighboringCells)).startNewChain();
 
         DataStream<LineString> rangeQueryNeighbours = filteredLineStrings.keyBy(new KeySelector<LineString, String>() {
             @Override
@@ -361,7 +363,7 @@ public class RangeQuery implements Serializable {
             public boolean filter(Point point) throws Exception {
                 return ((candidateNeighboringCells.contains(point.gridID)) || (guaranteedNeighboringCells.contains(point.gridID)));
             }
-        });
+        }).startNewChain();
 
         DataStream<Point> rangeQueryNeighbours = filteredPoints.keyBy(new KeySelector<Point, String>() {
             @Override
@@ -401,7 +403,7 @@ public class RangeQuery implements Serializable {
         Set<String> neighboringCells = Stream.concat(guaranteedNeighboringCells.stream(),candidateNeighboringCells.stream()).collect(Collectors.toSet());
 
         // Filtering out the polygons which lie greater than queryRadius of the query point
-        DataStream<Polygon> filteredPolygons = polygonStream.flatMap(new HelperClass.cellBasedPolygonFlatMap(neighboringCells));
+        DataStream<Polygon> filteredPolygons = polygonStream.flatMap(new HelperClass.cellBasedPolygonFlatMap(neighboringCells)).startNewChain();
 
         DataStream<Polygon> rangeQueryNeighbours = filteredPolygons.keyBy(new KeySelector<Polygon, String>() {
             @Override
@@ -451,7 +453,7 @@ public class RangeQuery implements Serializable {
         Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryLineString, guaranteedNeighboringCells);
         Set<String> neighboringCells = Stream.concat(guaranteedNeighboringCells.stream(),candidateNeighboringCells.stream()).collect(Collectors.toSet());
 
-        DataStream<LineString> filteredLineStrings = lineStringStream.flatMap(new cellBasedLineStringFlatMap(neighboringCells));
+        DataStream<LineString> filteredLineStrings = lineStringStream.flatMap(new cellBasedLineStringFlatMap(neighboringCells)).startNewChain();
 
         DataStream<LineString> rangeQueryNeighbours = filteredLineStrings.keyBy(new KeySelector<LineString, String>() {
             @Override
@@ -596,27 +598,43 @@ public class RangeQuery implements Serializable {
         return rangeQueryNeighbours;
     }
 
-    public static class polygonStreamTrigger extends Trigger<Polygon, TimeWindow> {
+    public static class polygonTrigger extends Trigger<Polygon, TimeWindow> {
 
         private int slideStep;
+        ValueStateDescriptor<Boolean> firstWindowDesc = new ValueStateDescriptor<Boolean>("isFirstWindow", Boolean.class);
 
         //ctor
-        public polygonStreamTrigger(){}
-        public polygonStreamTrigger(int slideStep){
+        public polygonTrigger(){}
+        public polygonTrigger(int slideStep){
             this.slideStep = slideStep;
         }
 
         @Override
         public TriggerResult onElement(Polygon polygon, long l, TimeWindow timeWindow, TriggerContext triggerContext) throws Exception {
 
+            ValueState<Boolean> firstWindow = triggerContext.getPartitionedState(firstWindowDesc);
+
+
+
+
             //Using states manage the first window, so that all the tuples can be processed
-            // If(firstWindow){
-            // return TriggerResult.CONTINUE;}
-            // else{
-            if(polygon.timeStampMillisec >= (timeWindow.getEnd() - (slideStep * 1000)))
-                return TriggerResult.CONTINUE; // Do nothing
-            else
-                return TriggerResult.PURGE; // Delete
+            if(firstWindow.value() == null){
+
+                if(true) {
+                    firstWindow.update(false);
+                }
+
+                return TriggerResult.CONTINUE;
+
+
+
+            }
+            else {
+                if (polygon.timeStampMillisec >= (timeWindow.getEnd() - (slideStep * 1000)))
+                    return TriggerResult.CONTINUE; // Do nothing
+                else
+                    return TriggerResult.PURGE; // Delete
+            }
         }
 
         @Override
@@ -657,7 +675,7 @@ public class RangeQuery implements Serializable {
                 return poly.gridID;
             }
         }).window(SlidingEventTimeWindows.of(Time.seconds(windowSize), Time.seconds(slideStep)))
-            .trigger(new polygonStreamTrigger(slideStep))
+            .trigger(new polygonTrigger(slideStep))
             .apply(new RichWindowFunction<Polygon, Polygon, String, TimeWindow>() {
 
                 /**
@@ -751,7 +769,7 @@ public class RangeQuery implements Serializable {
                     public long extractTimestamp(LineString ls) {
                         return ls.timeStampMillisec;
                     }
-                });
+                }).startNewChain();
 
         // Filtering out the linestrings which lie greater than queryRadius of the query point
         DataStream<LineString> filteredLineStrings = streamWithTsAndWm.flatMap(new cellBasedLineStringFlatMap(neighboringCells));
@@ -1056,7 +1074,7 @@ public class RangeQuery implements Serializable {
                     public long extractTimestamp(LineString ls) {
                         return ls.timeStampMillisec;
                     }
-                });
+                }).startNewChain();
 
         // Filtering out the linestrings which lie greater than queryRadius of the query point
         DataStream<LineString> filteredLineStrings = streamWithTsAndWm.flatMap(new cellBasedLineStringFlatMap(neighboringCells));
@@ -1115,7 +1133,7 @@ public class RangeQuery implements Serializable {
                     public long extractTimestamp(Point p) {
                         return p.timeStampMillisec;
                     }
-                });
+                }).startNewChain();
 
         DataStream<Point> filteredPoints = pointStreamWithTsAndWm.filter(new FilterFunction<Point>() {
             @Override
@@ -1212,7 +1230,7 @@ public class RangeQuery implements Serializable {
                     public long extractTimestamp(Polygon p) {
                         return p.timeStampMillisec;
                     }
-                });
+                }).startNewChain();
 
         // Filtering out the polygons which lie greater than queryRadius of the query point
         DataStream<Polygon> filteredPolygons = streamWithTsAndWm.flatMap(new HelperClass.cellBasedPolygonFlatMap(neighboringCells));
@@ -1271,7 +1289,7 @@ public class RangeQuery implements Serializable {
                     public long extractTimestamp(LineString ls) {
                         return ls.timeStampMillisec;
                     }
-                });
+                }).startNewChain();
 
         DataStream<LineString> filteredLineStrings = streamWithTsAndWm.flatMap(new cellBasedLineStringFlatMap(neighboringCells));
 
@@ -1329,7 +1347,7 @@ public class RangeQuery implements Serializable {
                     public long extractTimestamp(Point p) {
                         return p.timeStampMillisec;
                     }
-                });
+                }).startNewChain();
 
         DataStream<Point> filteredPoints = pointStreamWithTsAndWm.filter(new FilterFunction<Point>() {
             @Override
@@ -1356,7 +1374,7 @@ public class RangeQuery implements Serializable {
                                 if(approximateQuery) {
                                     distance = HelperClass.getPointLineStringBBoxMinEuclideanDistance(point, queryLineString);
                                 }else{
-                                    distance = queryLineString.lineString.distance(point.point);
+                                    distance = DistanceFunctions.getDistance(point, queryLineString);
                                 }
 
                                 if (distance <= queryRadius)
@@ -1377,8 +1395,16 @@ public class RangeQuery implements Serializable {
         Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryLineString, guaranteedNeighboringCells);
         Set<String> neighboringCells = Stream.concat(guaranteedNeighboringCells.stream(),candidateNeighboringCells.stream()).collect(Collectors.toSet());
 
+        DataStream<Polygon> streamWithTsAndWm =
+                polygonStream.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Polygon>(Time.seconds(allowedLateness)) {
+                    @Override
+                    public long extractTimestamp(Polygon p) {
+                        return p.timeStampMillisec;
+                    }
+                }).startNewChain();
+
         // Filtering out the polygons which lie greater than queryRadius of the query point
-        DataStream<Polygon> filteredPolygons = polygonStream.flatMap(new HelperClass.cellBasedPolygonFlatMap(neighboringCells));
+        DataStream<Polygon> filteredPolygons = streamWithTsAndWm.flatMap(new HelperClass.cellBasedPolygonFlatMap(neighboringCells));
 
         DataStream<Polygon> rangeQueryNeighbours = filteredPolygons.keyBy(new KeySelector<Polygon, String>() {
             @Override
@@ -1437,7 +1463,7 @@ public class RangeQuery implements Serializable {
                     public long extractTimestamp(LineString ls) {
                         return ls.timeStampMillisec;
                     }
-                });
+                }).startNewChain();
 
         DataStream<LineString> filteredLineStrings = streamWithTsAndWm.flatMap(new cellBasedLineStringFlatMap(neighboringCells));
 
