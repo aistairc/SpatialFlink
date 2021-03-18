@@ -44,4 +44,10 @@ public class DistanceFunctions {
     {
         return obj1.polygon.distance(obj2.lineString);
     }
+
+    // LineString-to-Polygon Distance
+    public static double getDistance(LineString obj1, Polygon obj2)
+    {
+        return obj1.lineString.distance(obj2.polygon);
+    }
 }
