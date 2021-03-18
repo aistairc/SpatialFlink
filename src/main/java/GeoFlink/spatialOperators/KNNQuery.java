@@ -1902,6 +1902,7 @@ public class KNNQuery implements Serializable {
      */
 
 
+    /*
     //--------------- GRID-BASED kNN QUERY - POLYGON-POINT -----------------//
     public static DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> SpatialPointKNNQuery(DataStream<Point> pointStream, LineString queryLineString, double queryRadius, Integer k, int windowSize, int windowSlideStep, UniformGrid uGrid, boolean approximateQuery) throws IOException {
 
@@ -2031,10 +2032,10 @@ public class KNNQuery implements Serializable {
         //Output kNN Stream
         return windowAllKNN;
     }
+     */
 
 
-
-
+    /*
     //--------------- GRID-BASED kNN QUERY - POLYGON-POLYGON -----------------//
     public static DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Polygon, Double>>>> SpatialPolygonKNNQuery(DataStream<Polygon> polygonStream, LineString queryLineString, double queryRadius, Integer k, UniformGrid uGrid, int windowSize, int windowSlideStep, boolean approximateQuery) throws IOException {
 
@@ -2160,11 +2161,10 @@ public class KNNQuery implements Serializable {
         //Output kNN Stream
         return windowAllKNN;
     }
-
-
-
+     */
 
     //--------------- GRID-BASED kNN QUERY - POLYGON-LINESTRING -----------------//
+    /*
     public static DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<LineString, Double>>>> SpatialLineStringKNNQuery(DataStream<LineString> lineStringStream, LineString queryLineString, double queryRadius, Integer k, UniformGrid uGrid, int windowSize, int windowSlideStep, boolean approximateQuery) throws IOException {
 
         Set<String> neighboringCells = uGrid.getNeighboringCells(queryRadius, queryLineString);
@@ -2289,4 +2289,5 @@ public class KNNQuery implements Serializable {
         //Output kNN Stream
         return windowAllKNN;
     }
+     */
 }
