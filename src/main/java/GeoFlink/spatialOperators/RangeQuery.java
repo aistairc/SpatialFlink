@@ -46,7 +46,9 @@ import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.triggers.Trigger;
 import org.apache.flink.streaming.api.windowing.triggers.TriggerResult;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer;
 import org.apache.flink.util.Collector;
+import org.apache.flink.util.OutputTag;
 import org.apache.kafka.common.protocol.types.Field;
 
 import javax.sound.sampled.Line;
@@ -245,6 +247,54 @@ public class RangeQuery implements Serializable {
 
                     if (distance <= queryRadius)
                     { collector.collect(point);}
+                }
+
+            }
+        }).name("Real-time - POLYGON - POINT");
+
+        return rangeQueryNeighbours;
+    }
+
+    //--------------- Real-time - POLYGON - POINT -----------------//
+    public static DataStream<Long> PointRangeQueryLatency(DataStream<Point> pointStream, Polygon queryPolygon, double queryRadius, UniformGrid uGrid, boolean approximateQuery){
+
+        Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPolygon);
+        Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryPolygon, guaranteedNeighboringCells);
+
+        final OutputTag<String> outputTag = new OutputTag<String>("side-output"){};
+
+        DataStream<Point> filteredPoints = pointStream.filter(new FilterFunction<Point>() {
+            @Override
+            public boolean filter(Point point) throws Exception {
+                return ((candidateNeighboringCells.contains(point.gridID)) || (guaranteedNeighboringCells.contains(point.gridID)));
+            }
+        }).startNewChain();
+
+        DataStream<Long> rangeQueryNeighbours = filteredPoints.keyBy(new KeySelector<Point, String>() {
+            @Override
+            public String getKey(Point p) throws Exception {
+                return p.gridID;
+            }
+        }).flatMap(new FlatMapFunction<Point, Long>() {
+            @Override
+            public void flatMap(Point point, Collector<Long> collector) throws Exception {
+
+                if (guaranteedNeighboringCells.contains(point.gridID)) {
+                    Date date = new Date();
+                    Long latency = date.getTime() -  point.timeStampMillisec;
+                    collector.collect(latency);
+                }
+                else {
+
+                    Double distance;
+                    if(approximateQuery) {
+                        distance = HelperClass.getPointPolygonBBoxMinEuclideanDistance(point, queryPolygon);
+                    }else{
+                        distance = DistanceFunctions.getDistance(point, queryPolygon);
+                    }
+                    Date date = new Date();
+                    Long latency = date.getTime() -  point.timeStampMillisec;
+                    collector.collect(latency);
                 }
 
             }
@@ -1165,6 +1215,61 @@ public class RangeQuery implements Serializable {
 
                                 if (distance <= queryRadius)
                                 { neighbors.collect(point);}
+                            }
+                        }
+                    }
+                }).name("Window-based - POLYGON - POINT");
+
+        return rangeQueryNeighbours;
+    }
+
+    //--------------- Window-based - POLYGON - POINT -----------------//
+    public static DataStream<Long> PointRangeQueryLatency(DataStream<Point> pointStream, Polygon queryPolygon, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery){
+
+        Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPolygon);
+        Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryPolygon, guaranteedNeighboringCells);
+
+        DataStream<Point> pointStreamWithTsAndWm =
+                pointStream.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Point>(Time.seconds(allowedLateness)) {
+                    @Override
+                    public long extractTimestamp(Point p) {
+                        return p.timeStampMillisec;
+                    }
+                }).startNewChain();
+
+        DataStream<Point> filteredPoints = pointStreamWithTsAndWm.filter(new FilterFunction<Point>() {
+            @Override
+            public boolean filter(Point point) throws Exception {
+                return ((candidateNeighboringCells.contains(point.gridID)) || (guaranteedNeighboringCells.contains(point.gridID)));
+            }
+        });
+
+        DataStream<Long> rangeQueryNeighbours = filteredPoints.keyBy(new KeySelector<Point, String>() {
+            @Override
+            public String getKey(Point p) throws Exception {
+                return p.gridID;
+            }
+        }).window(SlidingProcessingTimeWindows.of(Time.seconds(windowSize), Time.seconds(slideStep)))
+                .apply(new WindowFunction<Point, Long, String, TimeWindow>() {
+                    @Override
+                    public void apply(String gridID, TimeWindow timeWindow, Iterable<Point> pointIterator, Collector<Long> neighbors) throws Exception {
+                        for (Point point : pointIterator) {
+                            if (guaranteedNeighboringCells.contains(point.gridID)) {
+                                Date date = new Date();
+                                Long latency = date.getTime() -  point.timeStampMillisec;
+                                neighbors.collect(latency);
+                            }
+                            else {
+
+                                Double distance;
+                                if(approximateQuery) {
+                                    distance = HelperClass.getPointPolygonBBoxMinEuclideanDistance(point, queryPolygon);
+                                }else{
+                                    distance = DistanceFunctions.getDistance(point, queryPolygon);
+                                }
+                                Date date = new Date();
+                                Long latency = date.getTime() -  point.timeStampMillisec;
+                                neighbors.collect(latency);
                             }
                         }
                     }

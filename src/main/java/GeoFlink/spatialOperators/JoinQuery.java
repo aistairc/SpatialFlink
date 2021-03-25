@@ -28,23 +28,22 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrdernessTimestampExtractor;
+import org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.assigners.SlidingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
+import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.util.Collector;
 import org.locationtech.jts.geom.Coordinate;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 public class JoinQuery implements Serializable {
 
     // REAL-TIME
     //--------------- JOIN QUERY - POINT-POINT -----------------//
-    public static DataStream<Tuple2<Point, Point>> PointJoinQuery(DataStream<Point> ordinaryPointStream, DataStream<Point> queryPointStream, double queryRadius, int omegaJoinDurationSeconds, UniformGrid uGrid, int allowedLateness, boolean approximateQuery){
+    public static DataStream<Tuple2<Point, Point>> PointJoinQuery(DataStream<Point> ordinaryPointStream, DataStream<Point> queryPointStream, double queryRadius, int omegaJoinDurationSeconds, UniformGrid uGrid, UniformGrid qGrid, int allowedLateness, boolean approximateQuery){
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: allowedLateness
@@ -56,7 +55,7 @@ public class JoinQuery implements Serializable {
                     }
                 }).startNewChain();
 
-        DataStream<Point> replicatedQueryStream = JoinQuery.getReplicatedPointQueryStream(queryPointStream, queryRadius, uGrid);
+        DataStream<Point> replicatedQueryStream = JoinQuery.getReplicatedPointQueryStream(queryPointStream, queryRadius, qGrid);
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: allowedLateness
@@ -108,7 +107,7 @@ public class JoinQuery implements Serializable {
 
 
     //--------------- JOIN QUERY - POLYGON STREAM - POINT QUERY STREAM -----------------//
-    public static DataStream<Tuple2<Polygon, Point>> PolygonJoinQuery(DataStream<Polygon> polygonStream, DataStream<Point> queryPointStream, double queryRadius, int omegaJoinDurationSeconds, UniformGrid uGrid, int allowedLateness, boolean approximateQuery){
+    public static DataStream<Tuple2<Polygon, Point>> PolygonJoinQuery(DataStream<Polygon> polygonStream, DataStream<Point> queryPointStream, double queryRadius, int omegaJoinDurationSeconds, UniformGrid uGrid, UniformGrid qGrid, int allowedLateness, boolean approximateQuery){
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: allowedLateness
@@ -128,7 +127,7 @@ public class JoinQuery implements Serializable {
                     }
                 }).startNewChain();
 
-        DataStream<Point> replicatedQueryStream = JoinQuery.getReplicatedPointQueryStream(queryPointStreamWithTsAndWm, queryRadius, uGrid);
+        DataStream<Point> replicatedQueryStream = JoinQuery.getReplicatedPointQueryStream(queryPointStreamWithTsAndWm, queryRadius, qGrid);
         DataStream<Polygon> replicatedPolygonStream = polygonStreamWithTsAndWm.flatMap(new HelperClass.ReplicatePolygonStreamUsingObjID());
 
         DataStream<Tuple2<Polygon, Point>> joinOutput = replicatedPolygonStream.join(replicatedQueryStream)
@@ -173,7 +172,7 @@ public class JoinQuery implements Serializable {
 
 
     //--------------- JOIN QUERY - POLYGON STREAM - POINT QUERY STREAM -----------------//
-    public static DataStream<Tuple2<LineString, Point>> LineStringJoinQuery(DataStream<LineString> lineStringStream, DataStream<Point> queryPointStream, double queryRadius, int omegaJoinDurationSeconds, UniformGrid uGrid, int allowedLateness, boolean approximateQuery){
+    public static DataStream<Tuple2<LineString, Point>> LineStringJoinQuery(DataStream<LineString> lineStringStream, DataStream<Point> queryPointStream, double queryRadius, int omegaJoinDurationSeconds, UniformGrid uGrid, UniformGrid qGrid, int allowedLateness, boolean approximateQuery){
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: allowedLateness
@@ -193,7 +192,7 @@ public class JoinQuery implements Serializable {
                     }
                 }).startNewChain();
 
-        DataStream<Point> replicatedQueryStream = JoinQuery.getReplicatedPointQueryStream(queryPointStreamWithTsAndWm, queryRadius, uGrid);
+        DataStream<Point> replicatedQueryStream = JoinQuery.getReplicatedPointQueryStream(queryPointStreamWithTsAndWm, queryRadius, qGrid);
         DataStream<LineString> replicatedLineStringStream = lineStringStreamWithTsAndWm.flatMap(new HelperClass.ReplicateLineStringStreamUsingObjID());
 
         DataStream<Tuple2<LineString, Point>> joinOutput = replicatedLineStringStream.join(replicatedQueryStream)
@@ -237,7 +236,7 @@ public class JoinQuery implements Serializable {
 
 
     //--------------- JOIN QUERY - POINT-POINT -----------------//
-    public static DataStream<Tuple2<Point, Polygon>> PointJoinQuery(DataStream<Point> ordinaryPointStream, DataStream<Polygon> queryPolygonStream, UniformGrid uGrid, double queryRadius, int omegaJoinDurationSeconds, int allowedLateness, boolean approximateQuery){
+    public static DataStream<Tuple2<Point, Polygon>> PointJoinQuery(DataStream<Point> ordinaryPointStream, DataStream<Polygon> queryPolygonStream, UniformGrid uGrid, UniformGrid qGrid, double queryRadius, int omegaJoinDurationSeconds, int allowedLateness, boolean approximateQuery){
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: allowedLateness
@@ -249,7 +248,7 @@ public class JoinQuery implements Serializable {
                     }
                 }).startNewChain();
 
-        DataStream<Polygon> replicatedQueryStream = JoinQuery.getReplicatedPolygonQueryStream(queryPolygonStream, queryRadius, uGrid);
+        DataStream<Polygon> replicatedQueryStream = JoinQuery.getReplicatedPolygonQueryStream(queryPolygonStream, queryRadius, qGrid);
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: allowedLateness
@@ -300,7 +299,7 @@ public class JoinQuery implements Serializable {
     }
 
     //--------------- JOIN QUERY - POLYGON STREAM - POINT QUERY STREAM -----------------//
-    public static DataStream<Tuple2<Polygon, Polygon>> PolygonJoinQuery(DataStream<Polygon> polygonStream, DataStream<Polygon> queryPolygonStream, UniformGrid uGrid, double queryRadius, int omegaJoinDurationSeconds, int allowedLateness, boolean approximateQuery){
+    public static DataStream<Tuple2<Polygon, Polygon>> PolygonJoinQuery(DataStream<Polygon> polygonStream, DataStream<Polygon> queryPolygonStream, UniformGrid uGrid, UniformGrid qGrid, double queryRadius, int omegaJoinDurationSeconds, int allowedLateness, boolean approximateQuery){
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: allowedLateness
@@ -320,7 +319,7 @@ public class JoinQuery implements Serializable {
                     }
                 }).startNewChain();
 
-        DataStream<Polygon> replicatedQueryStream = JoinQuery.getReplicatedPolygonQueryStream(queryStreamWithTsAndWm, queryRadius, uGrid);
+        DataStream<Polygon> replicatedQueryStream = JoinQuery.getReplicatedPolygonQueryStream(queryStreamWithTsAndWm, queryRadius, qGrid);
         DataStream<Polygon> replicatedOrdinaryStream = ordinaryStreamWithTsAndWm.flatMap(new HelperClass.ReplicatePolygonStreamUsingObjID());
 
         DataStream<Tuple2<Polygon, Polygon>> joinOutput = replicatedOrdinaryStream.join(replicatedQueryStream)
@@ -365,7 +364,7 @@ public class JoinQuery implements Serializable {
 
 
     //--------------- JOIN QUERY - POLYGON STREAM - POINT QUERY STREAM -----------------//
-    public static DataStream<Tuple2<LineString, Polygon>> LineStringJoinQuery(DataStream<LineString> lineStringStream, DataStream<Polygon> queryStream, UniformGrid uGrid, double queryRadius, int omegaJoinDurationSeconds, int allowedLateness, boolean approximateQuery){
+    public static DataStream<Tuple2<LineString, Polygon>> LineStringJoinQuery(DataStream<LineString> lineStringStream, DataStream<Polygon> queryStream, UniformGrid uGrid, UniformGrid qGrid, double queryRadius, int omegaJoinDurationSeconds, int allowedLateness, boolean approximateQuery){
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: allowedLateness
@@ -385,7 +384,7 @@ public class JoinQuery implements Serializable {
                     }
                 }).startNewChain();
 
-        DataStream<Polygon> replicatedQueryStream = JoinQuery.getReplicatedPolygonQueryStream(queryStreamWithTsAndWm, queryRadius, uGrid);
+        DataStream<Polygon> replicatedQueryStream = JoinQuery.getReplicatedPolygonQueryStream(queryStreamWithTsAndWm, queryRadius, qGrid);
         DataStream<LineString> replicatedLineStringStream = ordinaryStreamWithTsAndWm.flatMap(new HelperClass.ReplicateLineStringStreamUsingObjID());
 
         DataStream<Tuple2<LineString, Polygon>> joinOutput = replicatedLineStringStream.join(replicatedQueryStream)
@@ -429,7 +428,7 @@ public class JoinQuery implements Serializable {
 
 
     //--------------- JOIN QUERY - POINT-POINT -----------------//
-    public static DataStream<Tuple2<Point, LineString>> PointJoinQuery(DataStream<Point> ordinaryPointStream, DataStream<LineString> queryStream, double queryRadius, UniformGrid uGrid, int omegaJoinDurationSeconds, int allowedLateness, boolean approximateQuery){
+    public static DataStream<Tuple2<Point, LineString>> PointJoinQuery(DataStream<Point> ordinaryPointStream, DataStream<LineString> queryStream, double queryRadius, UniformGrid uGrid, UniformGrid qGrid, int omegaJoinDurationSeconds, int allowedLateness, boolean approximateQuery){
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: allowedLateness
@@ -441,7 +440,7 @@ public class JoinQuery implements Serializable {
                     }
                 }).startNewChain();
 
-        DataStream<LineString> replicatedQueryStream = JoinQuery.getReplicatedLineStringQueryStream(queryStream, queryRadius, uGrid);
+        DataStream<LineString> replicatedQueryStream = JoinQuery.getReplicatedLineStringQueryStream(queryStream, queryRadius, qGrid);
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: allowedLateness
@@ -492,7 +491,7 @@ public class JoinQuery implements Serializable {
     }
 
     //--------------- JOIN QUERY - POLYGON STREAM - POINT QUERY STREAM -----------------//
-    public static DataStream<Tuple2<Polygon, LineString>> PolygonJoinQuery(DataStream<Polygon> polygonStream, DataStream<LineString> queryStream, double queryRadius, UniformGrid uGrid, int omegaJoinDurationSeconds, int allowedLateness, boolean approximateQuery){
+    public static DataStream<Tuple2<Polygon, LineString>> PolygonJoinQuery(DataStream<Polygon> polygonStream, DataStream<LineString> queryStream, double queryRadius, UniformGrid uGrid, UniformGrid qGrid, int omegaJoinDurationSeconds, int allowedLateness, boolean approximateQuery){
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: allowedLateness
@@ -512,7 +511,7 @@ public class JoinQuery implements Serializable {
                     }
                 }).startNewChain();
 
-        DataStream<LineString> replicatedQueryStream = JoinQuery.getReplicatedLineStringQueryStream(queryStreamWithTsAndWm, queryRadius, uGrid);
+        DataStream<LineString> replicatedQueryStream = JoinQuery.getReplicatedLineStringQueryStream(queryStreamWithTsAndWm, queryRadius, qGrid);
         DataStream<Polygon> replicatedOrdinaryStream = ordinaryStreamWithTsAndWm.flatMap(new HelperClass.ReplicatePolygonStreamUsingObjID());
 
         DataStream<Tuple2<Polygon, LineString>> joinOutput = replicatedOrdinaryStream.join(replicatedQueryStream)
@@ -557,7 +556,7 @@ public class JoinQuery implements Serializable {
 
 
     //--------------- JOIN QUERY - POLYGON STREAM - POINT QUERY STREAM -----------------//
-    public static DataStream<Tuple2<LineString, LineString>> LineStringJoinQuery(DataStream<LineString> lineStringStream, DataStream<LineString> queryStream, double queryRadius, UniformGrid uGrid, int omegaJoinDurationSeconds, int allowedLateness, boolean approximateQuery){
+    public static DataStream<Tuple2<LineString, LineString>> LineStringJoinQuery(DataStream<LineString> lineStringStream, DataStream<LineString> queryStream, double queryRadius, UniformGrid uGrid, UniformGrid qGrid, int omegaJoinDurationSeconds, int allowedLateness, boolean approximateQuery){
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: allowedLateness
@@ -577,7 +576,7 @@ public class JoinQuery implements Serializable {
                     }
                 }).startNewChain();
 
-        DataStream<LineString> replicatedQueryStream = JoinQuery.getReplicatedLineStringQueryStream(queryStreamWithTsAndWm, queryRadius, uGrid);
+        DataStream<LineString> replicatedQueryStream = JoinQuery.getReplicatedLineStringQueryStream(queryStreamWithTsAndWm, queryRadius, qGrid);
         DataStream<LineString> replicatedLineStringStream = ordinaryStreamWithTsAndWm.flatMap(new HelperClass.ReplicateLineStringStreamUsingObjID());
 
         DataStream<Tuple2<LineString, LineString>> joinOutput = replicatedLineStringStream.join(replicatedQueryStream)
@@ -622,7 +621,7 @@ public class JoinQuery implements Serializable {
 
     // WINDOW BASED
     //--------------- JOIN QUERY - POINT-POINT -----------------//
-    public static DataStream<Tuple2<Point, Point>> PointJoinQuery(DataStream<Point> ordinaryPointStream, DataStream<Point> queryPointStream, double queryRadius, int windowSize, int slideStep, UniformGrid uGrid, int allowedLateness, boolean approximateQuery){
+    public static DataStream<Tuple2<Point, Point>> PointJoinQuery(DataStream<Point> ordinaryPointStream, DataStream<Point> queryPointStream, double queryRadius, int windowSize, int slideStep, UniformGrid uGrid, UniformGrid qGrid, int allowedLateness, boolean approximateQuery){
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: allowedLateness
@@ -634,7 +633,7 @@ public class JoinQuery implements Serializable {
                     }
                 }).startNewChain();
 
-        DataStream<Point> replicatedQueryStream = JoinQuery.getReplicatedPointQueryStream(queryPointStream, queryRadius, uGrid);
+        DataStream<Point> replicatedQueryStream = JoinQuery.getReplicatedPointQueryStream(queryPointStream, queryRadius, qGrid);
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: allowedLateness
@@ -685,7 +684,7 @@ public class JoinQuery implements Serializable {
     }
 
     //--------------- JOIN QUERY - POLYGON STREAM - POINT QUERY STREAM -----------------//
-    public static DataStream<Tuple2<Polygon, Point>> PolygonJoinQuery(DataStream<Polygon> polygonStream, DataStream<Point> queryPointStream, double queryRadius, int windowSize, int slideStep, UniformGrid uGrid, int allowedLateness, boolean approximateQuery){
+    public static DataStream<Tuple2<Polygon, Point>> PolygonJoinQuery(DataStream<Polygon> polygonStream, DataStream<Point> queryPointStream, double queryRadius, int windowSize, int slideStep, UniformGrid uGrid, UniformGrid qGrid, int allowedLateness, boolean approximateQuery){
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: allowedLateness
@@ -705,7 +704,7 @@ public class JoinQuery implements Serializable {
                     }
                 }).startNewChain();
 
-        DataStream<Point> replicatedQueryStream = JoinQuery.getReplicatedPointQueryStream(queryPointStreamWithTsAndWm, queryRadius, uGrid);
+        DataStream<Point> replicatedQueryStream = JoinQuery.getReplicatedPointQueryStream(queryPointStreamWithTsAndWm, queryRadius, qGrid);
         DataStream<Polygon> replicatedPolygonStream = polygonStreamWithTsAndWm.flatMap(new HelperClass.ReplicatePolygonStreamUsingObjID());
 
         DataStream<Tuple2<Polygon, Point>> joinOutput = replicatedPolygonStream.join(replicatedQueryStream)
@@ -750,7 +749,7 @@ public class JoinQuery implements Serializable {
 
 
     //--------------- JOIN QUERY - POLYGON STREAM - POINT QUERY STREAM -----------------//
-    public static DataStream<Tuple2<LineString, Point>> LineStringJoinQuery(DataStream<LineString> lineStringStream, DataStream<Point> queryPointStream, double queryRadius, int windowSize, int slideStep, UniformGrid uGrid, int allowedLateness, boolean approximateQuery){
+    public static DataStream<Tuple2<LineString, Point>> LineStringJoinQuery(DataStream<LineString> lineStringStream, DataStream<Point> queryPointStream, double queryRadius, int windowSize, int slideStep, UniformGrid uGrid, UniformGrid qGrid, int allowedLateness, boolean approximateQuery){
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: allowedLateness
@@ -770,7 +769,7 @@ public class JoinQuery implements Serializable {
                     }
                 }).startNewChain();
 
-        DataStream<Point> replicatedQueryStream = JoinQuery.getReplicatedPointQueryStream(queryPointStreamWithTsAndWm, queryRadius, uGrid);
+        DataStream<Point> replicatedQueryStream = JoinQuery.getReplicatedPointQueryStream(queryPointStreamWithTsAndWm, queryRadius, qGrid);
         DataStream<LineString> replicatedLineStringStream = lineStringStreamWithTsAndWm.flatMap(new HelperClass.ReplicateLineStringStreamUsingObjID());
 
         DataStream<Tuple2<LineString, Point>> joinOutput = replicatedLineStringStream.join(replicatedQueryStream)
@@ -814,7 +813,7 @@ public class JoinQuery implements Serializable {
 
 
     //--------------- JOIN QUERY - POINT-POINT -----------------//
-    public static DataStream<Tuple2<Point, Polygon>> PointJoinQuery(DataStream<Point> ordinaryPointStream, DataStream<Polygon> queryPolygonStream, UniformGrid uGrid, double queryRadius, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery){
+    public static DataStream<Tuple2<Point, Polygon>> PointJoinQuery(DataStream<Point> ordinaryPointStream, DataStream<Polygon> queryPolygonStream, UniformGrid uGrid, UniformGrid qGrid, double queryRadius, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery){
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: allowedLateness
@@ -826,7 +825,7 @@ public class JoinQuery implements Serializable {
                     }
                 }).startNewChain();
 
-        DataStream<Polygon> replicatedQueryStream = JoinQuery.getReplicatedPolygonQueryStream(queryPolygonStream, queryRadius, uGrid);
+        DataStream<Polygon> replicatedQueryStream = JoinQuery.getReplicatedPolygonQueryStream(queryPolygonStream, queryRadius, qGrid);
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: allowedLateness
@@ -876,8 +875,73 @@ public class JoinQuery implements Serializable {
         });
     }
 
+    //--------------- JOIN QUERY - POINT-POINT -----------------//
+    public static DataStream<Long> PointJoinQueryLatency(DataStream<Point> ordinaryPointStream, DataStream<Polygon> queryPolygonStream, UniformGrid uGrid, UniformGrid qGrid, double queryRadius, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery){
+
+        // Spatial stream with Timestamps and Watermarks
+        // Max Allowed Lateness: allowedLateness
+        DataStream<Point> pointStreamWithTsAndWm =
+                ordinaryPointStream.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Point>(Time.seconds(allowedLateness)) {
+                    @Override
+                    public long extractTimestamp(Point p) {
+                        return p.timeStampMillisec;
+                    }
+                }).startNewChain();
+
+        DataStream<Polygon> replicatedQueryStream = JoinQuery.getReplicatedPolygonQueryStream(queryPolygonStream, queryRadius, qGrid);
+
+        // Spatial stream with Timestamps and Watermarks
+        // Max Allowed Lateness: allowedLateness
+        DataStream<Polygon> replicatedQueryStreamWithTsAndWm =
+                replicatedQueryStream.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Polygon>(Time.seconds(allowedLateness)) {
+                    @Override
+                    public long extractTimestamp(Polygon p) {
+                        return p.timeStampMillisec;
+                    }
+                }).startNewChain();
+
+        DataStream<Long> joinOutput = pointStreamWithTsAndWm.join(replicatedQueryStreamWithTsAndWm)
+                .where(new KeySelector<Point, String>() {
+                    @Override
+                    public String getKey(Point p) throws Exception {
+                        return p.gridID;
+                    }
+                }).equalTo(new KeySelector<Polygon, String>() {
+                    @Override
+                    public String getKey(Polygon q) throws Exception {
+                        return q.gridID;
+                    }
+                }).window(SlidingProcessingTimeWindows.of(Time.seconds(windowSize), Time.seconds(slideStep)))
+                .apply(new JoinFunction<Point, Polygon, Long>() {
+                    @Override
+                    public Long join(Point p, Polygon q) {
+
+                        if (approximateQuery) { // all the candidate neighbors are sent to output
+                            Date date = new Date();
+                            Long latency = date.getTime() -  p.timeStampMillisec;
+                            return latency;
+                        } else {
+
+                            if (DistanceFunctions.getDistance(p, q) <= queryRadius) {
+                                Date date = new Date();
+                                Long latency = date.getTime() -  p.timeStampMillisec;
+                                return latency;
+                            }
+                            else{
+                                Date date = new Date();
+                                Long latency = date.getTime() -  p.timeStampMillisec;
+                                return latency;
+                            }
+                        }
+                    }
+                });
+
+        return joinOutput;
+    }
+
+
     //--------------- JOIN QUERY - POLYGON STREAM - POINT QUERY STREAM -----------------//
-    public static DataStream<Tuple2<Polygon, Polygon>> PolygonJoinQuery(DataStream<Polygon> polygonStream, DataStream<Polygon> queryPolygonStream, UniformGrid uGrid, double queryRadius, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery){
+    public static DataStream<Tuple2<Polygon, Polygon>> PolygonJoinQuery(DataStream<Polygon> polygonStream, DataStream<Polygon> queryPolygonStream, UniformGrid uGrid, UniformGrid qGrid, double queryRadius, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery){
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: allowedLateness
@@ -897,7 +961,7 @@ public class JoinQuery implements Serializable {
                     }
                 }).startNewChain();
 
-        DataStream<Polygon> replicatedQueryStream = JoinQuery.getReplicatedPolygonQueryStream(queryStreamWithTsAndWm, queryRadius, uGrid);
+        DataStream<Polygon> replicatedQueryStream = JoinQuery.getReplicatedPolygonQueryStream(queryStreamWithTsAndWm, queryRadius, qGrid);
         DataStream<Polygon> replicatedOrdinaryStream = ordinaryStreamWithTsAndWm.flatMap(new HelperClass.ReplicatePolygonStreamUsingObjID());
 
         DataStream<Tuple2<Polygon, Polygon>> joinOutput = replicatedOrdinaryStream.join(replicatedQueryStream)
@@ -942,7 +1006,7 @@ public class JoinQuery implements Serializable {
 
 
     //--------------- JOIN QUERY - POLYGON STREAM - POINT QUERY STREAM -----------------//
-    public static DataStream<Tuple2<LineString, Polygon>> LineStringJoinQuery(DataStream<LineString> lineStringStream, DataStream<Polygon> queryStream, UniformGrid uGrid, double queryRadius, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery){
+    public static DataStream<Tuple2<LineString, Polygon>> LineStringJoinQuery(DataStream<LineString> lineStringStream, DataStream<Polygon> queryStream, UniformGrid uGrid, UniformGrid qGrid, double queryRadius, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery){
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: allowedLateness
@@ -962,7 +1026,7 @@ public class JoinQuery implements Serializable {
                     }
                 }).startNewChain();
 
-        DataStream<Polygon> replicatedQueryStream = JoinQuery.getReplicatedPolygonQueryStream(queryStreamWithTsAndWm, queryRadius, uGrid);
+        DataStream<Polygon> replicatedQueryStream = JoinQuery.getReplicatedPolygonQueryStream(queryStreamWithTsAndWm, queryRadius, qGrid);
         DataStream<LineString> replicatedLineStringStream = ordinaryStreamWithTsAndWm.flatMap(new HelperClass.ReplicateLineStringStreamUsingObjID());
 
         DataStream<Tuple2<LineString, Polygon>> joinOutput = replicatedLineStringStream.join(replicatedQueryStream)
@@ -1006,7 +1070,7 @@ public class JoinQuery implements Serializable {
 
 
     //--------------- JOIN QUERY - POINT-POINT -----------------//
-    public static DataStream<Tuple2<Point, LineString>> PointJoinQuery(DataStream<Point> ordinaryPointStream, DataStream<LineString> queryStream, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery){
+    public static DataStream<Tuple2<Point, LineString>> PointJoinQuery(DataStream<Point> ordinaryPointStream, DataStream<LineString> queryStream, double queryRadius, UniformGrid uGrid, UniformGrid qGrid, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery){
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: allowedLateness
@@ -1018,7 +1082,7 @@ public class JoinQuery implements Serializable {
                     }
                 }).startNewChain();
 
-        DataStream<LineString> replicatedQueryStream = JoinQuery.getReplicatedLineStringQueryStream(queryStream, queryRadius, uGrid);
+        DataStream<LineString> replicatedQueryStream = JoinQuery.getReplicatedLineStringQueryStream(queryStream, queryRadius, qGrid);
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: allowedLateness
@@ -1069,7 +1133,7 @@ public class JoinQuery implements Serializable {
     }
 
     //--------------- JOIN QUERY - POLYGON STREAM - POINT QUERY STREAM -----------------//
-    public static DataStream<Tuple2<Polygon, LineString>> PolygonJoinQuery(DataStream<Polygon> polygonStream, DataStream<LineString> queryStream, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery){
+    public static DataStream<Tuple2<Polygon, LineString>> PolygonJoinQuery(DataStream<Polygon> polygonStream, DataStream<LineString> queryStream, double queryRadius, UniformGrid uGrid, UniformGrid qGrid, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery){
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: allowedLateness
@@ -1089,7 +1153,7 @@ public class JoinQuery implements Serializable {
                     }
                 }).startNewChain();
 
-        DataStream<LineString> replicatedQueryStream = JoinQuery.getReplicatedLineStringQueryStream(queryStreamWithTsAndWm, queryRadius, uGrid);
+        DataStream<LineString> replicatedQueryStream = JoinQuery.getReplicatedLineStringQueryStream(queryStreamWithTsAndWm, queryRadius, qGrid);
         DataStream<Polygon> replicatedOrdinaryStream = ordinaryStreamWithTsAndWm.flatMap(new HelperClass.ReplicatePolygonStreamUsingObjID());
 
         DataStream<Tuple2<Polygon, LineString>> joinOutput = replicatedOrdinaryStream.join(replicatedQueryStream)
@@ -1134,7 +1198,7 @@ public class JoinQuery implements Serializable {
 
 
     //--------------- JOIN QUERY - POLYGON STREAM - POINT QUERY STREAM -----------------//
-    public static DataStream<Tuple2<LineString, LineString>> LineStringJoinQuery(DataStream<LineString> lineStringStream, DataStream<LineString> queryStream, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery){
+    public static DataStream<Tuple2<LineString, LineString>> LineStringJoinQuery(DataStream<LineString> lineStringStream, DataStream<LineString> queryStream, double queryRadius, UniformGrid uGrid, UniformGrid qGrid, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery){
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: allowedLateness
@@ -1154,7 +1218,7 @@ public class JoinQuery implements Serializable {
                     }
                 }).startNewChain();
 
-        DataStream<LineString> replicatedQueryStream = JoinQuery.getReplicatedLineStringQueryStream(queryStreamWithTsAndWm, queryRadius, uGrid);
+        DataStream<LineString> replicatedQueryStream = JoinQuery.getReplicatedLineStringQueryStream(queryStreamWithTsAndWm, queryRadius, qGrid);
         DataStream<LineString> replicatedLineStringStream = ordinaryStreamWithTsAndWm.flatMap(new HelperClass.ReplicateLineStringStreamUsingObjID());
 
         DataStream<Tuple2<LineString, LineString>> joinOutput = replicatedLineStringStream.join(replicatedQueryStream)

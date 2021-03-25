@@ -377,7 +377,7 @@ public class UniformGrid implements Serializable {
         double cellDiagonal = cellLength*Math.sqrt(2);
 
         int numberOfLayers = (int)Math.floor((queryRadius/cellDiagonal) - 1); // Subtract 1 because we do not consider the cell with the query object as a layer i
-        System.out.println("Guaranteed Number of Layers: "+ numberOfLayers );
+        //System.out.println("Guaranteed Number of Layers: "+ numberOfLayers );
         return numberOfLayers;
         // If return value = -1 then not even the cell containing the query is guaranteed to contain r-neighbors
         // If return value = 0 then only the cell containing the query is guaranteed to contain r-neighbors

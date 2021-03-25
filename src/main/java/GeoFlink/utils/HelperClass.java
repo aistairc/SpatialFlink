@@ -712,6 +712,22 @@ public class HelperClass {
         }
     }
 
+    public static class LatencySinkLong implements Serializable, KafkaSerializationSchema<Long> {
+
+        String outputTopic;
+
+        public LatencySinkLong(String outputTopicName)
+        {
+            this.outputTopic = outputTopicName;
+        }
+
+        @Override
+        public ProducerRecord<byte[], byte[]> serialize(Long latency, @Nullable Long timestamp) {
+            String outputStr = latency.toString();
+            return new ProducerRecord<byte[], byte[]>(outputTopic, outputStr.getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
     public static class LatencySinkTuple5 implements Serializable, KafkaSerializationSchema<Tuple5<String, Double, Long, Double, Long>> {
 
         String outputTopic;

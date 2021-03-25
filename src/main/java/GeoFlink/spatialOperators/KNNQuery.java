@@ -349,6 +349,83 @@ public class KNNQuery implements Serializable {
     }
 
 
+    //--------------- GRID-BASED kNN QUERY - POLYGON-POINT -----------------//
+    public static DataStream<Long> PointKNNQueryLatency(DataStream<Point> pointStream, Polygon queryPolygon, double queryRadius, Integer k, int omegaJoinDurationSeconds, UniformGrid uGrid, int allowedLateness, boolean approximateQuery) throws IOException {
+
+        Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPolygon);
+        Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryPolygon, guaranteedNeighboringCells);
+
+        DataStream<Point> pointStreamWithTsAndWm =
+                pointStream.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Point>(Time.seconds(allowedLateness)) {
+                    @Override
+                    public long extractTimestamp(Point p) {
+                        return p.timeStampMillisec;
+                    }
+                }).startNewChain();
+
+        DataStream<Point> filteredPoints = pointStreamWithTsAndWm.filter(new FilterFunction<Point>() {
+            @Override
+            public boolean filter(Point point) throws Exception {
+                return ((candidateNeighboringCells.contains(point.gridID)) || (guaranteedNeighboringCells.contains(point.gridID)));
+            }
+        });
+
+        DataStream<Long> windowedKNN = filteredPoints.keyBy(new KeySelector<Point, String>() {
+            @Override
+            public String getKey(Point point) throws Exception {
+                return point.gridID;
+            }
+        }).window(TumblingEventTimeWindows.of(Time.seconds(omegaJoinDurationSeconds)))
+                .apply(new WindowFunction<Point, Long, String, TimeWindow>() {
+
+                    PriorityQueue<Tuple2<Point, Double>> kNNPQ = new PriorityQueue<Tuple2<Point, Double>>(k, new Comparators.inTuplePointDistanceComparator());
+
+                    @Override
+                    public void apply(String gridID, TimeWindow timeWindow, Iterable<Point> inputTuples, Collector<Long> outputStream) throws Exception {
+                        kNNPQ.clear();
+
+                        for (Point point : inputTuples) {
+                            double distance;
+                            if (kNNPQ.size() < k) {
+                                if(approximateQuery) {
+                                    distance = HelperClass.getPointPolygonBBoxMinEuclideanDistance(point, queryPolygon);
+                                }else{
+                                    distance = DistanceFunctions.getDistance(point, queryPolygon);
+                                }
+                                kNNPQ.offer(new Tuple2<Point, Double>(point, distance));
+
+                                Date date = new Date();
+                                Long latency = date.getTime() -  point.timeStampMillisec;
+                                outputStream.collect(latency);
+
+                            } else {
+                                if(approximateQuery) {
+                                    distance = HelperClass.getPointPolygonBBoxMinEuclideanDistance(point, queryPolygon);
+                                }else{
+                                    distance = DistanceFunctions.getDistance(point, queryPolygon);
+                                }
+                                // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
+                                double largestDistInPQ = kNNPQ.peek().f1;
+
+                                if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
+                                    kNNPQ.poll();
+                                    kNNPQ.offer(new Tuple2<Point, Double>(point, distance));
+
+                                    Date date = new Date();
+                                    Long latency = date.getTime() -  point.timeStampMillisec;
+                                    outputStream.collect(latency);
+                                }
+                            }
+                        }
+                    }
+                }).name("Windowed (Apply) Grid Based");
+
+
+        //Output kNN Stream
+        return windowedKNN;
+    }
+
+
 
 
     //--------------- GRID-BASED kNN QUERY - POLYGON-POLYGON -----------------//
@@ -1048,6 +1125,84 @@ public class KNNQuery implements Serializable {
 
         //Output kNN Stream
         return windowAllKNN;
+    }
+
+
+    //--------------- GRID-BASED kNN QUERY - POLYGON-POINT -----------------//
+    public static DataStream<Long> PointKNNQueryLatency(DataStream<Point> pointStream, Polygon queryPolygon, double queryRadius, Integer k, int windowSize, int windowSlideStep, UniformGrid uGrid, int allowedLateness, boolean approximateQuery) throws IOException {
+
+        Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPolygon);
+        Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryPolygon, guaranteedNeighboringCells);
+
+
+        DataStream<Point> pointStreamWithTsAndWm =
+                pointStream.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Point>(Time.seconds(allowedLateness)) {
+                    @Override
+                    public long extractTimestamp(Point p) {
+                        return p.timeStampMillisec;
+                    }
+                }).startNewChain();
+
+        DataStream<Point> filteredPoints = pointStreamWithTsAndWm.filter(new FilterFunction<Point>() {
+            @Override
+            public boolean filter(Point point) throws Exception {
+                return ((candidateNeighboringCells.contains(point.gridID)) || (guaranteedNeighboringCells.contains(point.gridID)));
+            }
+        });
+
+        DataStream<Long> windowedKNN = filteredPoints.keyBy(new KeySelector<Point, String>() {
+            @Override
+            public String getKey(Point point) throws Exception {
+                return point.gridID;
+            }
+        }).window(SlidingEventTimeWindows.of(Time.seconds(windowSize), Time.seconds(windowSlideStep)))
+                .apply(new WindowFunction<Point, Long, String, TimeWindow>() {
+
+                    PriorityQueue<Tuple2<Point, Double>> kNNPQ = new PriorityQueue<Tuple2<Point, Double>>(k, new Comparators.inTuplePointDistanceComparator());
+
+                    @Override
+                    public void apply(String gridID, TimeWindow timeWindow, Iterable<Point> inputTuples, Collector<Long> outputStream) throws Exception {
+                        kNNPQ.clear();
+
+                        for (Point point : inputTuples) {
+                            double distance;
+                            if (kNNPQ.size() < k) {
+                                if(approximateQuery) {
+                                    distance = HelperClass.getPointPolygonBBoxMinEuclideanDistance(point, queryPolygon);
+                                }else{
+                                    distance = DistanceFunctions.getDistance(point, queryPolygon);
+                                }
+
+                                kNNPQ.offer(new Tuple2<Point, Double>(point, distance));
+
+                                Date date = new Date();
+                                Long latency = date.getTime() -  point.timeStampMillisec;
+                                outputStream.collect(latency);
+
+                            } else {
+                                if(approximateQuery) {
+                                    distance = HelperClass.getPointPolygonBBoxMinEuclideanDistance(point, queryPolygon);
+                                }else{
+                                    distance = DistanceFunctions.getDistance(point, queryPolygon);
+                                }
+                                // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
+                                double largestDistInPQ = kNNPQ.peek().f1;
+
+                                if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
+                                    kNNPQ.poll();
+                                    kNNPQ.offer(new Tuple2<Point, Double>(point, distance));
+
+                                    Date date = new Date();
+                                    Long latency = date.getTime() -  point.timeStampMillisec;
+                                    outputStream.collect(latency);
+                                }
+                            }
+                        }
+                    }
+                }).name("Windowed (Apply) Grid Based");
+
+        //Output kNN Stream
+        return windowedKNN;
     }
 
 
