@@ -188,8 +188,8 @@ public class Deserialization implements Serializable {
             }
             Point spatialPoint;
             if (time != 0) {
-                //spatialPoint = new Point(strOId, geometry.getCoordinate().x, geometry.getCoordinate().y, time, uGrid);
-                spatialPoint = new Point(strOId, geometry.getCoordinate().x, geometry.getCoordinate().y, System.currentTimeMillis(), uGrid);
+                spatialPoint = new Point(strOId, geometry.getCoordinate().x, geometry.getCoordinate().y, time, uGrid);
+                //spatialPoint = new Point(strOId, geometry.getCoordinate().x, geometry.getCoordinate().y, System.currentTimeMillis(), uGrid);
             }
             else {
                 spatialPoint = new Point(strOId, geometry.getCoordinate().x, geometry.getCoordinate().y, 0, uGrid);
@@ -435,9 +435,8 @@ public class Deserialization implements Serializable {
                 List<List<List<Coordinate>>> listCoodinate = convertMultiCoordinates(
                         json, '[', ']', "],", ",", 4);
                 if (time != 0) {
-                    //TODO: Fix timestamp to original timestamp
-                    //spatialPolygon = new MultiPolygon(listCoodinate, oId, time, uGrid);
-                    spatialPolygon = new MultiPolygon(listCoodinate, oId, System.currentTimeMillis(), uGrid);
+                    spatialPolygon = new MultiPolygon(listCoodinate, oId, time, uGrid);
+                    //spatialPolygon = new MultiPolygon(listCoodinate, oId, System.currentTimeMillis(), uGrid);
                     //System.out.println("time " + time + spatialPolygon);
                 }
                 else {
@@ -785,9 +784,8 @@ public class Deserialization implements Serializable {
                         json, '[', ']', "],", ",", 2);
                 if (time != 0) {
                     //spatialLineString = new LineString(strOId, parent.get(0), time, uGrid);
-                    //TODO: Fix timestamp to original timestamp
-                    //spatialPolygon = new MultiPolygon(listCoodinate, oId, time, uGrid);
-                    spatialLineString = new LineString(strOId, parent.get(0), System.currentTimeMillis(), uGrid);
+                    spatialLineString = new LineString(strOId, parent.get(0), time, uGrid);
+                    //spatialLineString = new LineString(strOId, parent.get(0), System.currentTimeMillis(), uGrid);
 
                 }
                 else {
