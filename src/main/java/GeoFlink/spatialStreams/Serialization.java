@@ -6,9 +6,10 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.json.JSONObject;
 import org.locationtech.jts.geom.Coordinate;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
+import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -19,9 +20,11 @@ public class Serialization {
     public static class PointToGeoJSONOutputSchema implements Serializable, KafkaSerializationSchema<Point> {
 
         private String outputTopic;
+        private DateFormat dateFormat;
 
-        public PointToGeoJSONOutputSchema(String outputTopicName) {
+        public PointToGeoJSONOutputSchema(String outputTopicName, DateFormat dateFormat) {
             this.outputTopic = outputTopicName;
+            this.dateFormat = dateFormat;
         }
 
         @Override
@@ -38,8 +41,7 @@ public class Serialization {
             JSONObject jsonpProperties = new JSONObject();
             jsonpProperties.put("oID", point.objID);
             if (point.timeStampMillisec != 0) {
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                jsonpProperties.put("timestamp", sdf.format(new Date(point.timeStampMillisec)));
+                jsonpProperties.put("timestamp", this.dateFormat.format(new Date(point.timeStampMillisec)));
             }
             if (jsonpProperties.length() > 0) {
                 jsonObj.put("properties", jsonpProperties);
@@ -54,10 +56,12 @@ public class Serialization {
     public static class PointToCSVOutputSchema implements Serializable, KafkaSerializationSchema<Point> {
 
         private String outputTopic;
+        private DateFormat dateFormat;
 
-        public PointToCSVOutputSchema(String outputTopicName)
+        public PointToCSVOutputSchema(String outputTopicName, DateFormat dateFormat)
         {
             this.outputTopic = outputTopicName;
+            this.dateFormat = dateFormat;
         }
 
         @Override
@@ -78,8 +82,7 @@ public class Serialization {
             buf.append(")");
             if (point.timeStampMillisec != 0) {
                 buf.append(SEPARATION + " ");
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                buf.append(sdf.format(new Date(point.timeStampMillisec)));
+                buf.append(this.dateFormat.format(new Date(point.timeStampMillisec)));
             }
             buf.append("\"");
             buf.append(SEPARATION);
@@ -91,10 +94,12 @@ public class Serialization {
     public static class PointToTSVOutputSchema implements Serializable, KafkaSerializationSchema<Point> {
 
         private String outputTopic;
+        private DateFormat dateFormat;
 
-        public PointToTSVOutputSchema(String outputTopicName)
+        public PointToTSVOutputSchema(String outputTopicName, DateFormat dateFormat)
         {
             this.outputTopic = outputTopicName;
+            this.dateFormat = dateFormat;
         }
 
         @Override
@@ -115,8 +120,7 @@ public class Serialization {
             buf.append(")");
             if (point.timeStampMillisec != 0) {
                 buf.append(SEPARATION + " ");
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                buf.append(sdf.format(new Date(point.timeStampMillisec)));
+                buf.append(this.dateFormat.format(new Date(point.timeStampMillisec)));
             }
             buf.append("\"");
             buf.append(SEPARATION);
@@ -128,10 +132,12 @@ public class Serialization {
     public static class PolygonToGeoJSONOutputSchema implements Serializable, KafkaSerializationSchema<Polygon> {
 
         private String outputTopic;
+        private DateFormat dateFormat;
 
-        public PolygonToGeoJSONOutputSchema(String outputTopicName)
+        public PolygonToGeoJSONOutputSchema(String outputTopicName, DateFormat dateFormat)
         {
             this.outputTopic = outputTopicName;
+            this.dateFormat = dateFormat;
         }
 
         @Override
@@ -178,8 +184,7 @@ public class Serialization {
                 jsonpProperties.put("oID", polygon.objID);
             }
             if (polygon.timeStampMillisec != 0) {
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                jsonpProperties.put("timestamp", sdf.format(new Date(polygon.timeStampMillisec)));
+                jsonpProperties.put("timestamp", this.dateFormat.format(new Date(polygon.timeStampMillisec)));
             }
             if (jsonpProperties.length() > 0) {
                 jsonObj.put("properties", jsonpProperties);
@@ -194,10 +199,12 @@ public class Serialization {
     public static class PolygonToCSVOutputSchema implements Serializable, KafkaSerializationSchema<Polygon> {
 
         private String outputTopic;
+        private DateFormat dateFormat;
 
-        public PolygonToCSVOutputSchema(String outputTopicName)
+        public PolygonToCSVOutputSchema(String outputTopicName, DateFormat dateFormat)
         {
             this.outputTopic = outputTopicName;
+            this.dateFormat = dateFormat;
         }
 
         @Override
@@ -250,8 +257,7 @@ public class Serialization {
             }
             if (polygon.timeStampMillisec != 0) {
                 buf.append(SEPARATION + " ");
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                buf.append(sdf.format(new Date(polygon.timeStampMillisec)));
+                buf.append(this.dateFormat.format(new Date(polygon.timeStampMillisec)));
             }
             buf.append("\"");
             buf.append(SEPARATION);
@@ -263,10 +269,12 @@ public class Serialization {
     public static class PolygonToTSVOutputSchema implements Serializable, KafkaSerializationSchema<Polygon> {
 
         private String outputTopic;
+        private DateFormat dateFormat;
 
-        public PolygonToTSVOutputSchema(String outputTopicName)
+        public PolygonToTSVOutputSchema(String outputTopicName, DateFormat dateFormat)
         {
             this.outputTopic = outputTopicName;
+            this.dateFormat = dateFormat;
         }
 
         @Override
@@ -319,8 +327,7 @@ public class Serialization {
             }
             if (polygon.timeStampMillisec != 0) {
                 buf.append(SEPARATION + " ");
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                buf.append(sdf.format(new Date(polygon.timeStampMillisec)));
+                buf.append(this.dateFormat.format(new Date(polygon.timeStampMillisec)));
             }
             buf.append("\"");
             buf.append(SEPARATION);
@@ -332,10 +339,12 @@ public class Serialization {
     public static class LineStringToGeoJSONOutputSchema  implements Serializable, KafkaSerializationSchema<LineString> {
 
         private String outputTopic;
+        private DateFormat dateFormat;
 
-        public LineStringToGeoJSONOutputSchema(String outputTopicName)
+        public LineStringToGeoJSONOutputSchema(String outputTopicName, DateFormat dateFormat)
         {
             this.outputTopic = outputTopicName;
+            this.dateFormat = dateFormat;
         }
 
         @Override
@@ -375,8 +384,7 @@ public class Serialization {
                 jsonpProperties.put("oID", lineString.objID);
             }
             if (lineString.timeStampMillisec != 0) {
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                jsonpProperties.put("timestamp", sdf.format(new Date(lineString.timeStampMillisec)));
+                jsonpProperties.put("timestamp", this.dateFormat.format(new Date(lineString.timeStampMillisec)));
             }
             if (jsonpProperties.length() > 0) {
                 jsonObj.put("properties", jsonpProperties);
@@ -391,10 +399,12 @@ public class Serialization {
     public static class LineStringToCSVOutputSchema implements Serializable, KafkaSerializationSchema<LineString> {
 
         private String outputTopic;
+        private DateFormat dateFormat;
 
-        public LineStringToCSVOutputSchema(String outputTopicName)
+        public LineStringToCSVOutputSchema(String outputTopicName, DateFormat dateFormat)
         {
             this.outputTopic = outputTopicName;
+            this.dateFormat = dateFormat;
         }
 
         @Override
@@ -437,8 +447,7 @@ public class Serialization {
             }
             if (lineString.timeStampMillisec != 0) {
                 buf.append(SEPARATION + " ");
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                buf.append(sdf.format(new Date(lineString.timeStampMillisec)));
+                buf.append(this.dateFormat.format(new Date(lineString.timeStampMillisec)));
             }
             buf.append("\"");
             buf.append(SEPARATION);
@@ -450,10 +459,12 @@ public class Serialization {
     public static class LineStringToTSVOutputSchema implements Serializable, KafkaSerializationSchema<LineString> {
 
         private String outputTopic;
+        private DateFormat dateFormat;
 
-        public LineStringToTSVOutputSchema(String outputTopicName)
+        public LineStringToTSVOutputSchema(String outputTopicName, DateFormat dateFormat)
         {
             this.outputTopic = outputTopicName;
+            this.dateFormat = dateFormat;
         }
 
         @Override
@@ -496,8 +507,7 @@ public class Serialization {
             }
             if (lineString.timeStampMillisec != 0) {
                 buf.append(SEPARATION + " ");
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                buf.append(sdf.format(new Date(lineString.timeStampMillisec)));
+                buf.append(this.dateFormat.format(new Date(lineString.timeStampMillisec)));
             }
             buf.append("\"");
             buf.append(SEPARATION);
