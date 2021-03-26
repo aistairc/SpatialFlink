@@ -1212,6 +1212,13 @@ public class StreamingJob implements Serializable {
 				spatialLineStringStream.print();
 				break;
 			}
+			case 404:{ // GeometryCollection (GeoJSON GeometryCollection no Timestamp)
+				DataStream geoJSONStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				DataStream<GeometryCollection> spatialStream = Deserialization.GeometryCollectionStream(geoJSONStream, "GeoJSON", uGrid);
+				spatialStream.print();
+//				spatialStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.PointToGeoJSONOutputSchema("kafka", inputDateFormat), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				break;
+			}
 			case 405:{ // Range Query (Point-LineString)
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to linestring spatial data stream
@@ -1292,6 +1299,13 @@ public class StreamingJob implements Serializable {
 				DataStream<LineString> spatialTrajectoryStream = Deserialization.TrajectoryStreamLineString(geoJSONStream, "GeoJSON", inputDateFormat, uGrid);
 				spatialTrajectoryStream.print();
 				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.LineStringToGeoJSONOutputSchema("kafka", inputDateFormat), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				break;
+			}
+			case 704:{ // GeometryCollection (GeoJSON GeometryCollection Timestamp)
+				DataStream geoJSONStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				DataStream<GeometryCollection> spatialTrajectoryStream = Deserialization.TrajectoryStreamGeometryCollection(geoJSONStream, "GeoJSON", inputDateFormat, uGrid);
+				spatialTrajectoryStream.print();
+//				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.PointToGeoJSONOutputSchema("kafka", inputDateFormat), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
 			case 801:{ // TFilterQuery (CSV Point Timestamp)

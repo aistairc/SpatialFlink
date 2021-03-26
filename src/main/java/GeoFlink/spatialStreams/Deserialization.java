@@ -974,6 +974,183 @@ public class Deserialization implements Serializable {
         }
     }
 
+    public static DataStream<GeometryCollection> GeometryCollectionStream(DataStream inputStream, String inputType, UniformGrid uGrid){
+
+        DataStream<GeometryCollection> geometryCollectionStream = null;
+
+        if(inputType.equals("GeoJSON")) {
+            geometryCollectionStream = inputStream.map(new GeoJSONToSpatialGeometryCollection(uGrid));
+        }
+//        else if (inputType.equals("CSV")){
+//            geometryCollectionStream = inputStream.map(new CSVToSpatialGeometryCollection(uGrid));
+//        }
+//        else if (inputType.equals("TSV")){
+//            geometryCollectionStream = inputStream.map(new TSVToSpatialGeometryCollection(uGrid));
+//        }
+
+        return geometryCollectionStream;
+    }
+
+    public static DataStream<GeometryCollection> TrajectoryStreamGeometryCollection(DataStream inputStream, String inputType, DateFormat dateFormat, UniformGrid uGrid){
+
+        DataStream<GeometryCollection> trajectoryStream = null;
+
+        if(inputType.equals("GeoJSON")) {
+            trajectoryStream = inputStream.map(new GeoJSONToTSpatialGeometryCollection(uGrid, dateFormat));
+        }
+//        else if (inputType.equals("CSV")){
+//            trajectoryStream = inputStream.map(new CSVToTSpatialGeometryCollection(uGrid, dateFormat));
+//        }
+//        else if (inputType.equals("TSV")){
+//            trajectoryStream = inputStream.map(new TSVToTSpatialGeometryCollection(uGrid, dateFormat));
+//        }
+
+        return trajectoryStream;
+    }
+
+    public static class GeoJSONToSpatialGeometryCollection extends RichMapFunction<ObjectNode, GeometryCollection> {
+
+        UniformGrid uGrid;
+
+        //ctor
+        public  GeoJSONToSpatialGeometryCollection() {};
+        public  GeoJSONToSpatialGeometryCollection(UniformGrid uGrid)
+        {
+            this.uGrid = uGrid;
+        };
+
+        @Override
+        public GeometryCollection map(ObjectNode jsonObj) throws Exception {
+            //{"geometry": {"coordinates": [[[[-73.980455, 40.661994], [-73.980542, 40.661889], [-73.980559, 40.661897], [-73.98057, 40.661885], [-73.980611, 40.661904], [-73.9806, 40.661917], [-73.980513, 40.662022], [-73.980455, 40.661994]]]], "type": "LineString"}, "properties": {"base_bbl": "3011030028", "bin": "3026604", "cnstrct_yr": "1892", "doitt_id": "33583", "feat_code": "2100", "geomsource": "Photogramm", "groundelev": "153", "heightroof": "31.65", "lstmoddate": "2020-01-28T00:00:00.000Z", "lststatype": "Constructed", "mpluto_bbl": "3011030028", "name": null, "shape_area": "926.10935740605", "shape_len": "139.11922551796"}, "type": "Feature"}
+
+            String json = jsonObj.get("value").toString();
+            Geometry geometry;
+            try {
+                geometry = readGeoJSON(json);
+            }
+            catch (Exception e) {
+                // "type" が無いStringの場合はGeometryを抽出する
+                String jsonGeometry = jsonObj.get("value").get("geometry").toString();
+                geometry = readGeoJSON(jsonGeometry);
+            }
+            List<SpatialObject> listObj = new ArrayList<SpatialObject>();
+            int num = geometry.getNumGeometries();
+            for (int i = 0; i < num; i++) {
+                Geometry geometryN = geometry.getGeometryN(i);
+                json = json.substring(json.indexOf(geometryN.getGeometryType()));
+                if (geometryN.getGeometryType().equalsIgnoreCase("Point")) {
+                    listObj.add(new Point(geometryN.getCoordinate().x, geometryN.getCoordinate().y, uGrid));
+                }
+                else if (geometryN.getGeometryType().equalsIgnoreCase("MultiPolygon")) {
+                        List<List<List<Coordinate>>> listCoordinate = convertMultiCoordinates(
+                                json, '[', ']', "],", ",", 4);
+                        listObj.add(new MultiPolygon(listCoordinate, uGrid));
+                }
+                else if (geometryN.getGeometryType().equalsIgnoreCase("Polygon")) {
+                    List<List<Coordinate>> listCoordinate = convertCoordinates(
+                            json, '[', ']', "],", ",", 3);
+                    listObj.add(new Polygon(listCoordinate, uGrid));
+                }
+                else if (geometryN.getGeometryType().equalsIgnoreCase("MultiLineString")) {
+                    List<List<Coordinate>> listCoordinate = convertCoordinates(
+                            json, '[', ']', "],", ",", 3);
+                    listObj.add(new MultiLineString(null, listCoordinate, uGrid));
+                }
+                else if (geometryN.getGeometryType().equalsIgnoreCase("LineString")) {
+                    List<List<Coordinate>> parent = convertCoordinates(
+                            json, '[', ']', "],", ",", 2);
+                    listObj.add(new LineString(null, parent.get(0), uGrid));
+                }
+            }
+            GeometryCollection spatialGeometryCollection = new GeometryCollection(listObj, null);
+            return spatialGeometryCollection;
+        }
+    }
+
+    public static class GeoJSONToTSpatialGeometryCollection extends RichMapFunction<ObjectNode, GeometryCollection> {
+
+        UniformGrid uGrid;
+        DateFormat dateFormat;
+
+        //ctor
+        public GeoJSONToTSpatialGeometryCollection() {
+        }
+
+        public GeoJSONToTSpatialGeometryCollection(UniformGrid uGrid, DateFormat dateFormat) {
+
+            this.uGrid = uGrid;
+            this.dateFormat = dateFormat;
+        }
+
+        @Override
+        public GeometryCollection map(ObjectNode jsonObj) throws Exception {
+
+            Geometry geometry;
+            String json = jsonObj.get("value").toString();
+            try {
+                geometry = readGeoJSON(json);
+            } catch (Exception e) {
+                // "type" が無いStringの場合はGeometryを抽出する
+                String jsonGeometry = jsonObj.get("value").get("geometry").toString();
+                geometry = readGeoJSON(jsonGeometry);
+            }
+            JsonNode nodeProperties = jsonObj.get("value").get("properties");
+            String strOId = null;
+            long time = 0;
+            if (nodeProperties != null) {
+                JsonNode nodeTime = jsonObj.get("value").get("properties").get("timestamp");
+                try {
+                    if (nodeTime != null && dateFormat != null) {
+                        time = dateFormat.parse(nodeTime.textValue()).getTime();
+                    }
+                } catch (ParseException e) {
+                }
+                JsonNode nodeOId = jsonObj.get("value").get("properties").get("oID");
+                if (nodeOId != null) {
+                    strOId = nodeOId.textValue();
+                }
+            }
+            List<SpatialObject> listObj = new ArrayList<SpatialObject>();
+            int num = geometry.getNumGeometries();
+            for (int i = 0; i < num; i++) {
+                Geometry geometryN = geometry.getGeometryN(i);
+                json = json.substring(json.indexOf(geometryN.getGeometryType()));
+                if (geometryN.getGeometryType().equalsIgnoreCase("Point")) {
+                    listObj.add(new Point(geometryN.getCoordinate().x, geometryN.getCoordinate().y, uGrid));
+                } else if (geometryN.getGeometryType().equalsIgnoreCase("MultiPolygon")) {
+                    List<List<List<Coordinate>>> listCoordinate = convertMultiCoordinates(
+                            json, '[', ']', "],", ",", 4);
+                    listObj.add(new MultiPolygon(listCoordinate, uGrid));
+                } else if (geometryN.getGeometryType().equalsIgnoreCase("Polygon")) {
+                    List<List<Coordinate>> listCoordinate = convertCoordinates(
+                            json, '[', ']', "],", ",", 3);
+                    listObj.add(new Polygon(listCoordinate, uGrid));
+                } else if (geometryN.getGeometryType().equalsIgnoreCase("MultiLineString")) {
+                    List<List<Coordinate>> listCoordinate = convertCoordinates(
+                            json, '[', ']', "],", ",", 3);
+                    listObj.add(new MultiLineString(null, listCoordinate, uGrid));
+                } else if (geometryN.getGeometryType().equalsIgnoreCase("LineString")) {
+                    List<List<Coordinate>> parent = convertCoordinates(
+                            json, '[', ']', "],", ",", 2);
+                    listObj.add(new LineString(null, parent.get(0), uGrid));
+                }
+            }
+            GeometryCollection spatialGeometryCollection = new GeometryCollection(listObj, strOId, time);
+            return spatialGeometryCollection;
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
     private static List<List<Coordinate>> convertCoordinates(String str, char start, char end, String separator1, String separator2, int layer) {
         // value = "MULTIPOLYGON (((-74.15010482037168 40.62183511874645, -74.15016701565006 40.62177739783489, -74.1502116609276 40.62180593197037, -74.15015270982748 40.62185788893257, -74.15014748371995 40.62186259918266, -74.1501238625006 40.6218473986088, -74.150107093191 40.62186251414858, -74.15008804280825 40.621850243299434, -74.15010482037168 40.62183511874645)))"
         final int LAYER_NUM = layer;
@@ -983,7 +1160,7 @@ public class Deserialization implements Serializable {
             startPos++;
         }
         int endPos = 0;
-        int count = findCount(str, start);
+        int count = findCountN(str, start, end);
         for (int i = 0; i < count; i++) {
             endPos = str.indexOf(end, endPos + 1);
         }
@@ -1098,5 +1275,23 @@ public class Deserialization implements Serializable {
 
     private static int findCount(String target, char c) {
         return (int)target.chars().filter(ch -> ch == c).count();
+    }
+
+    private static int findCountN(String target, char start, char end) {
+        int count = 0;
+        target = target.substring(target.indexOf(start));
+        for (int i = 0, layer = 0; i < target.length(); i++) {
+            if (target.charAt(i) == start) {
+                layer++;
+                count++;
+            }
+            else if (target.charAt(i) == end) {
+                layer--;
+            }
+            if (layer <= 0) {
+                break;
+            }
+        }
+        return count;
     }
 }
