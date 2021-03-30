@@ -1,13 +1,11 @@
 package GeoFlink.spatialObjects;
 
-import GeoFlink.spatialIndices.UniformGrid;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 
 public class GeometryCollection extends SpatialObject implements Serializable {
@@ -17,19 +15,15 @@ public class GeometryCollection extends SpatialObject implements Serializable {
     public GeometryCollection() {}; // required for POJO
 
     public GeometryCollection(List<SpatialObject> listSpatialObject, String objID) {
-        if (listSpatialObject.size() > 0) {
-            this.geometryCollection = parseSpatialObject(listSpatialObject);
-            this.objID = objID;
-        }
+        this.geometryCollection = parseSpatialObject(listSpatialObject);
+        this.objID = objID;
         this.listSpatialObject = listSpatialObject;
     }
 
     public GeometryCollection(List<SpatialObject> listSpatialObject, String objID, long timeStampMillisec) {
-        if (listSpatialObject.size() > 0) {
-            this.geometryCollection = parseSpatialObject(listSpatialObject);
-            this.objID = objID;
-            this.timeStampMillisec = timeStampMillisec;
-        }
+        this.geometryCollection = parseSpatialObject(listSpatialObject);
+        this.objID = objID;
+        this.timeStampMillisec = timeStampMillisec;
         this.listSpatialObject = listSpatialObject;
     }
 
@@ -44,17 +38,17 @@ public class GeometryCollection extends SpatialObject implements Serializable {
                 if (obj instanceof Point) {
                     listGeometry.add(((Point) obj).point);
                 }
-                else if (obj instanceof Polygon) {
-                    listGeometry.add(((Polygon) obj).polygon);
-                }
                 else if (obj instanceof MultiPolygon) {
                     listGeometry.add(((MultiPolygon) obj).getMultiPolygon());
                 }
-                else if (obj instanceof LineString) {
-                    listGeometry.add(((LineString) obj).lineString);
+                else if (obj instanceof Polygon) {
+                    listGeometry.add(((Polygon) obj).polygon);
                 }
                 else if (obj instanceof MultiLineString) {
                     listGeometry.add(((MultiLineString) obj).getMultiPolygon());
+                }
+                else if (obj instanceof LineString) {
+                    listGeometry.add(((LineString) obj).lineString);
                 }
             }
         }
@@ -136,7 +130,9 @@ public class GeometryCollection extends SpatialObject implements Serializable {
                 }
                 str = str + "}, ";
             }
-            str = str.substring(0, str.length() - 2);
+            if (str.endsWith(", ")) {
+                str = str.substring(0, str.length() - 2);
+            }
             str = str + "]}}";
             str = str + ", " + "ObjID: " + this.objID;
             str = str + ", " + "TimeStamp(ms): " + this.timeStampMillisec;

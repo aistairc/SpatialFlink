@@ -981,12 +981,12 @@ public class Deserialization implements Serializable {
         if(inputType.equals("GeoJSON")) {
             geometryCollectionStream = inputStream.map(new GeoJSONToSpatialGeometryCollection(uGrid));
         }
-//        else if (inputType.equals("CSV")){
-//            geometryCollectionStream = inputStream.map(new CSVToSpatialGeometryCollection(uGrid));
-//        }
-//        else if (inputType.equals("TSV")){
-//            geometryCollectionStream = inputStream.map(new TSVToSpatialGeometryCollection(uGrid));
-//        }
+        else if (inputType.equals("CSV")){
+            geometryCollectionStream = inputStream.map(new CSVToSpatialGeometryCollection(uGrid));
+        }
+        else if (inputType.equals("TSV")){
+            geometryCollectionStream = inputStream.map(new TSVToSpatialGeometryCollection(uGrid));
+        }
 
         return geometryCollectionStream;
     }
@@ -998,12 +998,12 @@ public class Deserialization implements Serializable {
         if(inputType.equals("GeoJSON")) {
             trajectoryStream = inputStream.map(new GeoJSONToTSpatialGeometryCollection(uGrid, dateFormat));
         }
-//        else if (inputType.equals("CSV")){
-//            trajectoryStream = inputStream.map(new CSVToTSpatialGeometryCollection(uGrid, dateFormat));
-//        }
-//        else if (inputType.equals("TSV")){
-//            trajectoryStream = inputStream.map(new TSVToTSpatialGeometryCollection(uGrid, dateFormat));
-//        }
+        else if (inputType.equals("CSV")){
+            trajectoryStream = inputStream.map(new CSVToTSpatialGeometryCollection(uGrid, dateFormat));
+        }
+        else if (inputType.equals("TSV")){
+            trajectoryStream = inputStream.map(new TSVToTSpatialGeometryCollection(uGrid, dateFormat));
+        }
 
         return trajectoryStream;
     }
@@ -1114,22 +1114,27 @@ public class Deserialization implements Serializable {
             int num = geometry.getNumGeometries();
             for (int i = 0; i < num; i++) {
                 Geometry geometryN = geometry.getGeometryN(i);
-                json = json.substring(json.indexOf(geometryN.getGeometryType()));
+                json = json.substring(1);
+                json = json.substring(json.indexOf("coordinates"));
                 if (geometryN.getGeometryType().equalsIgnoreCase("Point")) {
                     listObj.add(new Point(geometryN.getCoordinate().x, geometryN.getCoordinate().y, uGrid));
-                } else if (geometryN.getGeometryType().equalsIgnoreCase("MultiPolygon")) {
+                }
+                else if (geometryN.getGeometryType().equalsIgnoreCase("MultiPolygon")) {
                     List<List<List<Coordinate>>> listCoordinate = convertMultiCoordinates(
                             json, '[', ']', "],", ",", 4);
                     listObj.add(new MultiPolygon(listCoordinate, uGrid));
-                } else if (geometryN.getGeometryType().equalsIgnoreCase("Polygon")) {
+                }
+                else if (geometryN.getGeometryType().equalsIgnoreCase("Polygon")) {
                     List<List<Coordinate>> listCoordinate = convertCoordinates(
                             json, '[', ']', "],", ",", 3);
                     listObj.add(new Polygon(listCoordinate, uGrid));
-                } else if (geometryN.getGeometryType().equalsIgnoreCase("MultiLineString")) {
+                }
+                else if (geometryN.getGeometryType().equalsIgnoreCase("MultiLineString")) {
                     List<List<Coordinate>> listCoordinate = convertCoordinates(
                             json, '[', ']', "],", ",", 3);
                     listObj.add(new MultiLineString(null, listCoordinate, uGrid));
-                } else if (geometryN.getGeometryType().equalsIgnoreCase("LineString")) {
+                }
+                else if (geometryN.getGeometryType().equalsIgnoreCase("LineString")) {
                     List<List<Coordinate>> parent = convertCoordinates(
                             json, '[', ']', "],", ",", 2);
                     listObj.add(new LineString(null, parent.get(0), uGrid));
@@ -1140,16 +1145,351 @@ public class Deserialization implements Serializable {
         }
     }
 
+    public static class CSVToSpatialGeometryCollection extends RichMapFunction<ObjectNode, GeometryCollection> {
 
+        UniformGrid uGrid;
 
+        //ctor
+        public  CSVToSpatialGeometryCollection() {};
+        public  CSVToSpatialGeometryCollection(UniformGrid uGrid)
+        {
+            this.uGrid = uGrid;
+        };
 
+        @Override
+        public GeometryCollection map(ObjectNode strTuple) throws Exception {
+            List<SpatialObject> listObj = new ArrayList<SpatialObject>();
+            String str = strTuple.get("value").toString();
+            String objStr, cmpStr;
+            while (0 < str.length()) {
+                cmpStr = "Point";
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                if (objStr.equalsIgnoreCase(cmpStr)) {
+                    Coordinate coordinate = getCoordinateFromPoint(str);
+                    Point point = new Point(coordinate.x,  coordinate.y, uGrid);
+                    listObj.add(point);
+                    str = str.substring(cmpStr.length());
+                    continue;
+                }
+                cmpStr = "MultiPolygon";
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                if (objStr.equalsIgnoreCase(cmpStr)) {
+                    List<List<List<Coordinate>>> listCoordinate = convertMultiCoordinates(
+                            str, '(', ')', ",", " ", 3);
+                    MultiPolygon multiPolygon = new MultiPolygon(listCoordinate, uGrid);
+                    listObj.add(multiPolygon);
+                    str = str.substring(cmpStr.length());
+                    continue;
+                }
+                cmpStr = "Polygon";
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                if (objStr.equalsIgnoreCase(cmpStr)) {
+                    List<List<Coordinate>> listCoordinate = convertCoordinates(
+                            str, '(', ')', ",", " ", 2);
+                    Polygon polygon = new Polygon(listCoordinate, uGrid);
+                    listObj.add(polygon);
+                    str = str.substring(cmpStr.length());
+                    continue;
+                }
+                cmpStr = "MultiLineString";
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                if (objStr.equalsIgnoreCase(cmpStr)) {
+                    List<List<Coordinate>> list = convertCoordinates(
+                            str, '(', ')', ",", " ", 2);
+                    MultiLineString multiLineString = new MultiLineString(null, list, uGrid);
+                    listObj.add(multiLineString);
+                    str = str.substring(cmpStr.length());
+                    continue;
+                }
+                cmpStr = "LineString";
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                if (objStr.equalsIgnoreCase(cmpStr)) {
+                    List<List<Coordinate>> parent = convertCoordinates(
+                            str, '(', ')', ",", " ", 1);
+                    LineString lineString = new LineString(null, parent.get(0), uGrid);
+                    listObj.add(lineString);
+                    str = str.substring(cmpStr.length());
+                    continue;
+                }
+                str = str.substring(1);
+            }
 
+            GeometryCollection spatialGeometryCollection = new GeometryCollection(listObj, null);
+            return spatialGeometryCollection;
+        }
+    }
 
+    public static class CSVToTSpatialGeometryCollection extends RichMapFunction<ObjectNode, GeometryCollection> {
 
+        UniformGrid uGrid;
+        DateFormat dateFormat;
 
+        //ctor
+        public  CSVToTSpatialGeometryCollection() {};
+        public  CSVToTSpatialGeometryCollection(UniformGrid uGrid, DateFormat dateFormat)
+        {
+            this.uGrid = uGrid;
+            this.dateFormat = dateFormat;
+        };
 
+        @Override
+        public GeometryCollection map(ObjectNode strTuple) throws Exception {
 
+            List<String> strArrayList = Arrays.asList(strTuple.get("value").toString().replace("\"", "").split("\\s*,\\s*")); // For parsing CSV with , followed by space
+            long time = 0;
+            String oId = null;
+            if (!strArrayList.get(0).trim().startsWith("GEOMETRYCOLLECTION") && !strArrayList.get(0).trim().startsWith("POINT") &&
+                    !strArrayList.get(0).trim().startsWith("POLYGON") && !strArrayList.get(0).trim().startsWith("MULTIPOLYGON") &&
+                    !strArrayList.get(0).trim().startsWith("LINESTRING") && !strArrayList.get(0).trim().startsWith("MULTILINESTRING")) {
+                try {
+                    oId = strArrayList.get(0).trim();
+                }
+                catch (NumberFormatException e) {}
+            }
+            if (dateFormat != null) {
+                Collections.reverse(strArrayList);
+                for (String str : strArrayList){
+                    try {
+                        time = dateFormat.parse(str.trim()).getTime();
+                        break;
+                    }
+                    catch(ParseException e) {}
+                }
+            }
 
+            List<SpatialObject> listObj = new ArrayList<SpatialObject>();
+            String str = strTuple.get("value").toString();
+            String objStr, cmpStr;
+            while (0 < str.length()) {
+                cmpStr = "Point";
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                if (objStr.equalsIgnoreCase(cmpStr)) {
+                    Coordinate coordinate = getCoordinateFromPoint(str);
+                    Point point = new Point(coordinate.x,  coordinate.y, uGrid);
+                    listObj.add(point);
+                    str = str.substring(cmpStr.length());
+                    continue;
+                }
+                cmpStr = "MultiPolygon";
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                if (objStr.equalsIgnoreCase(cmpStr)) {
+                    List<List<List<Coordinate>>> listCoordinate = convertMultiCoordinates(
+                            str, '(', ')', ",", " ", 3);
+                    MultiPolygon multiPolygon = new MultiPolygon(listCoordinate, uGrid);
+                    listObj.add(multiPolygon);
+                    str = str.substring(cmpStr.length());
+                    continue;
+                }
+                cmpStr = "Polygon";
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                if (objStr.equalsIgnoreCase(cmpStr)) {
+                    List<List<Coordinate>> listCoordinate = convertCoordinates(
+                            str, '(', ')', ",", " ", 2);
+                    Polygon polygon = new Polygon(listCoordinate, uGrid);
+                    listObj.add(polygon);
+                    str = str.substring(cmpStr.length());
+                    continue;
+                }
+                cmpStr = "MultiLineString";
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                if (objStr.equalsIgnoreCase(cmpStr)) {
+                    List<List<Coordinate>> list = convertCoordinates(
+                            str, '(', ')', ",", " ", 2);
+                    MultiLineString multiLineString = new MultiLineString(null, list, uGrid);
+                    listObj.add(multiLineString);
+                    str = str.substring(cmpStr.length());
+                    continue;
+                }
+                cmpStr = "LineString";
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                if (objStr.equalsIgnoreCase(cmpStr)) {
+                    List<List<Coordinate>> parent = convertCoordinates(
+                            str, '(', ')', ",", " ", 1);
+                    LineString lineString = new LineString(null, parent.get(0), uGrid);
+                    listObj.add(lineString);
+                    str = str.substring(cmpStr.length());
+                    continue;
+                }
+                str = str.substring(1);
+            }
+
+            GeometryCollection spatialGeometryCollection = new GeometryCollection(listObj, oId, time);
+            return spatialGeometryCollection;
+        }
+    }
+
+    public static class TSVToSpatialGeometryCollection extends RichMapFunction<ObjectNode, GeometryCollection> {
+
+        UniformGrid uGrid;
+
+        //ctor
+        public  TSVToSpatialGeometryCollection() {};
+        public  TSVToSpatialGeometryCollection(UniformGrid uGrid)
+        {
+            this.uGrid = uGrid;
+        };
+
+        @Override
+        public GeometryCollection map(ObjectNode strTuple) throws Exception {
+            List<SpatialObject> listObj = new ArrayList<SpatialObject>();
+            String str = strTuple.get("value").toString();
+            String objStr, cmpStr;
+            while (0 < str.length()) {
+                cmpStr = "Point";
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                if (objStr.equalsIgnoreCase(cmpStr)) {
+                    Coordinate coordinate = getCoordinateFromPoint(str);
+                    Point point = new Point(coordinate.x,  coordinate.y, uGrid);
+                    listObj.add(point);
+                    str = str.substring(cmpStr.length());
+                    continue;
+                }
+                cmpStr = "MultiPolygon";
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                if (objStr.equalsIgnoreCase(cmpStr)) {
+                    List<List<List<Coordinate>>> listCoordinate = convertMultiCoordinates(
+                            str, '(', ')', ",", " ", 3);
+                    MultiPolygon multiPolygon = new MultiPolygon(listCoordinate, uGrid);
+                    listObj.add(multiPolygon);
+                    str = str.substring(cmpStr.length());
+                    continue;
+                }
+                cmpStr = "Polygon";
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                if (objStr.equalsIgnoreCase(cmpStr)) {
+                    List<List<Coordinate>> listCoordinate = convertCoordinates(
+                            str, '(', ')', ",", " ", 2);
+                    Polygon polygon = new Polygon(listCoordinate, uGrid);
+                    listObj.add(polygon);
+                    str = str.substring(cmpStr.length());
+                    continue;
+                }
+                cmpStr = "MultiLineString";
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                if (objStr.equalsIgnoreCase(cmpStr)) {
+                    List<List<Coordinate>> list = convertCoordinates(
+                            str, '(', ')', ",", " ", 2);
+                    MultiLineString multiLineString = new MultiLineString(null, list, uGrid);
+                    listObj.add(multiLineString);
+                    str = str.substring(cmpStr.length());
+                    continue;
+                }
+                cmpStr = "LineString";
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                if (objStr.equalsIgnoreCase(cmpStr)) {
+                    List<List<Coordinate>> parent = convertCoordinates(
+                            str, '(', ')', ",", " ", 1);
+                    LineString lineString = new LineString(null, parent.get(0), uGrid);
+                    listObj.add(lineString);
+                    str = str.substring(cmpStr.length());
+                    continue;
+                }
+                str = str.substring(1);
+            }
+
+            GeometryCollection spatialGeometryCollection = new GeometryCollection(listObj, null);
+            return spatialGeometryCollection;
+        }
+    }
+
+    public static class TSVToTSpatialGeometryCollection extends RichMapFunction<ObjectNode, GeometryCollection> {
+
+        UniformGrid uGrid;
+        DateFormat dateFormat;
+
+        //ctor
+        public  TSVToTSpatialGeometryCollection() {};
+        public  TSVToTSpatialGeometryCollection(UniformGrid uGrid, DateFormat dateFormat)
+        {
+            this.uGrid = uGrid;
+            this.dateFormat = dateFormat;
+        };
+
+        @Override
+        public GeometryCollection map(ObjectNode strTuple) throws Exception {
+
+            List<String> strArrayList = Arrays.asList(strTuple.get("value").toString().replace("\"", "").split("\\\\t")); // For parsing TSV with \t followed by space
+            long time = 0;
+            String oId = null;
+            if (!strArrayList.get(0).trim().startsWith("GEOMETRYCOLLECTION") && !strArrayList.get(0).trim().startsWith("POINT") &&
+                    !strArrayList.get(0).trim().startsWith("POLYGON") && !strArrayList.get(0).trim().startsWith("MULTIPOLYGON") &&
+                    !strArrayList.get(0).trim().startsWith("LINESTRING") && !strArrayList.get(0).trim().startsWith("MULTILINESTRING")) {
+                try {
+                    oId = strArrayList.get(0).trim();
+                }
+                catch (NumberFormatException e) {}
+            }
+            if (dateFormat != null) {
+                Collections.reverse(strArrayList);
+                for (String str : strArrayList){
+                    try {
+                        time = dateFormat.parse(str.trim()).getTime();
+                        break;
+                    }
+                    catch(ParseException e) {}
+                }
+            }
+
+            List<SpatialObject> listObj = new ArrayList<SpatialObject>();
+            String str = strTuple.get("value").toString();
+            String objStr, cmpStr;
+            while (0 < str.length()) {
+                cmpStr = "Point";
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                if (objStr.equalsIgnoreCase(cmpStr)) {
+                    Coordinate coordinate = getCoordinateFromPoint(str);
+                    Point point = new Point(coordinate.x,  coordinate.y, uGrid);
+                    listObj.add(point);
+                    str = str.substring(cmpStr.length());
+                    continue;
+                }
+                cmpStr = "MultiPolygon";
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                if (objStr.equalsIgnoreCase(cmpStr)) {
+                    List<List<List<Coordinate>>> listCoordinate = convertMultiCoordinates(
+                            str, '(', ')', ",", " ", 3);
+                    MultiPolygon multiPolygon = new MultiPolygon(listCoordinate, uGrid);
+                    listObj.add(multiPolygon);
+                    str = str.substring(cmpStr.length());
+                    continue;
+                }
+                cmpStr = "Polygon";
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                if (objStr.equalsIgnoreCase(cmpStr)) {
+                    List<List<Coordinate>> listCoordinate = convertCoordinates(
+                            str, '(', ')', ",", " ", 2);
+                    Polygon polygon = new Polygon(listCoordinate, uGrid);
+                    listObj.add(polygon);
+                    str = str.substring(cmpStr.length());
+                    continue;
+                }
+                cmpStr = "MultiLineString";
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                if (objStr.equalsIgnoreCase(cmpStr)) {
+                    List<List<Coordinate>> list = convertCoordinates(
+                            str, '(', ')', ",", " ", 2);
+                    MultiLineString multiLineString = new MultiLineString(null, list, uGrid);
+                    listObj.add(multiLineString);
+                    str = str.substring(cmpStr.length());
+                    continue;
+                }
+                cmpStr = "LineString";
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                if (objStr.equalsIgnoreCase(cmpStr)) {
+                    List<List<Coordinate>> parent = convertCoordinates(
+                            str, '(', ')', ",", " ", 1);
+                    LineString lineString = new LineString(null, parent.get(0), uGrid);
+                    listObj.add(lineString);
+                    str = str.substring(cmpStr.length());
+                    continue;
+                }
+                str = str.substring(1);
+            }
+
+            GeometryCollection spatialGeometryCollection = new GeometryCollection(listObj, oId, time);
+            return spatialGeometryCollection;
+        }
+    }
 
     private static List<List<Coordinate>> convertCoordinates(String str, char start, char end, String separator1, String separator2, int layer) {
         // value = "MULTIPOLYGON (((-74.15010482037168 40.62183511874645, -74.15016701565006 40.62177739783489, -74.1502116609276 40.62180593197037, -74.15015270982748 40.62185788893257, -74.15014748371995 40.62186259918266, -74.1501238625006 40.6218473986088, -74.150107093191 40.62186251414858, -74.15008804280825 40.621850243299434, -74.15010482037168 40.62183511874645)))"
@@ -1211,7 +1551,7 @@ public class Deserialization implements Serializable {
         List<String> list = new ArrayList<String>();
         int startPos = str.indexOf(start);
         int endPos = 0;
-        int count = findCount(str, start);
+        int count = findCountN(str, start, end);
         for (int i = 0; i < count; i++) {
             endPos = str.indexOf(end, endPos + 1);
         }
