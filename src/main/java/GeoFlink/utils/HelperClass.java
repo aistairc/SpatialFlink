@@ -80,6 +80,13 @@ public class HelperClass {
         return Tuple2.of(new Coordinate(lineString.getEnvelopeInternal().getMinX(), lineString.getEnvelopeInternal().getMinY(), 0), new Coordinate(lineString.getEnvelopeInternal().getMaxX(), lineString.getEnvelopeInternal().getMaxY(), 0));
     }
 
+    // Compute the Bounding Box of a geometryCollection
+    public static Tuple2<Coordinate, Coordinate> getBoundingBox(org.locationtech.jts.geom.GeometryCollection geometryCollection)
+    {
+        // return 2 coordinates, smaller first and larger second
+        return Tuple2.of(new Coordinate(geometryCollection.getEnvelopeInternal().getMinX(), geometryCollection.getEnvelopeInternal().getMinY(), 0), new Coordinate(geometryCollection.getEnvelopeInternal().getMaxX(), geometryCollection.getEnvelopeInternal().getMaxY(), 0));
+    }
+
     // assigning grid cell ID
     public static String assignGridCellID(Coordinate coordinate, UniformGrid uGrid) {
 

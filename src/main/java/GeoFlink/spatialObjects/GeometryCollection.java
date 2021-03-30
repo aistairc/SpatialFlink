@@ -1,5 +1,7 @@
 package GeoFlink.spatialObjects;
 
+import GeoFlink.utils.HelperClass;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -11,6 +13,7 @@ import java.util.List;
 public class GeometryCollection extends SpatialObject implements Serializable {
     public org.locationtech.jts.geom.GeometryCollection geometryCollection;
     private List<SpatialObject> listSpatialObject = new ArrayList<SpatialObject>();
+    public Tuple2<Coordinate, Coordinate> boundingBox;
 
     public GeometryCollection() {}; // required for POJO
 
@@ -18,6 +21,7 @@ public class GeometryCollection extends SpatialObject implements Serializable {
         this.geometryCollection = parseSpatialObject(listSpatialObject);
         this.objID = objID;
         this.listSpatialObject = listSpatialObject;
+        this.boundingBox = HelperClass.getBoundingBox(geometryCollection);
     }
 
     public GeometryCollection(List<SpatialObject> listSpatialObject, String objID, long timeStampMillisec) {
@@ -25,6 +29,7 @@ public class GeometryCollection extends SpatialObject implements Serializable {
         this.objID = objID;
         this.timeStampMillisec = timeStampMillisec;
         this.listSpatialObject = listSpatialObject;
+        this.boundingBox = HelperClass.getBoundingBox(geometryCollection);
     }
 
     public List<SpatialObject> getSpatialObjects() {
@@ -136,6 +141,7 @@ public class GeometryCollection extends SpatialObject implements Serializable {
             str = str + "]}}";
             str = str + ", " + "ObjID: " + this.objID;
             str = str + ", " + "TimeStamp(ms): " + this.timeStampMillisec;
+//            str = str + ", Bounding Box: " + this.boundingBox;
             return str;
         }
         catch(NullPointerException e)
