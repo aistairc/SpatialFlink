@@ -43,6 +43,9 @@ public class GeometryCollection extends SpatialObject implements Serializable {
                 if (obj instanceof Point) {
                     listGeometry.add(((Point) obj).point);
                 }
+                else if (obj instanceof MultiPoint) {
+                    listGeometry.add(((MultiPoint) obj).multiPoint);
+                }
                 else if (obj instanceof MultiPolygon) {
                     listGeometry.add(((MultiPolygon) obj).getMultiPolygon());
                 }
@@ -74,6 +77,14 @@ public class GeometryCollection extends SpatialObject implements Serializable {
                 if (obj instanceof Point) {
                     Point point = (Point)obj;
                     str = str + point.point.getX() + ", " + point.point.getY() + "]";
+                }
+                else if (obj instanceof MultiPoint) {
+                    MultiPoint multiPoint = (MultiPoint)obj;
+                    Coordinate[] coordinates = multiPoint.multiPoint.getCoordinates();
+                    for(Coordinate coordinate: coordinates)
+                        str = str + "[" + coordinate.getX()  + ", " + coordinate.getY() + "],";
+                    str = str.substring(0, str.length() - 1);
+                    str += "]";
                 }
                 else if (obj instanceof MultiPolygon) {
                     MultiPolygon multiPolygon = (MultiPolygon)obj;

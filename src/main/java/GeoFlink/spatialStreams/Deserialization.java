@@ -1041,6 +1041,11 @@ public class Deserialization implements Serializable {
                 if (geometryN.getGeometryType().equalsIgnoreCase("Point")) {
                     listObj.add(new Point(geometryN.getCoordinate().x, geometryN.getCoordinate().y, uGrid));
                 }
+                else if (geometryN.getGeometryType().equalsIgnoreCase("MultiPoint")) {
+                    List<List<Coordinate>> parent = convertCoordinates(
+                            json, '[', ']', "],", ",", 2);
+                    listObj.add(new MultiPoint(null, parent.get(0), uGrid));
+                }
                 else if (geometryN.getGeometryType().equalsIgnoreCase("MultiPolygon")) {
                         List<List<List<Coordinate>>> listCoordinate = convertMultiCoordinates(
                                 json, '[', ']', "],", ",", 4);
@@ -1119,6 +1124,11 @@ public class Deserialization implements Serializable {
                 if (geometryN.getGeometryType().equalsIgnoreCase("Point")) {
                     listObj.add(new Point(geometryN.getCoordinate().x, geometryN.getCoordinate().y, uGrid));
                 }
+                else if (geometryN.getGeometryType().equalsIgnoreCase("MultiPoint")) {
+                    List<List<Coordinate>> parent = convertCoordinates(
+                            json, '[', ']', "],", ",", 2);
+                    listObj.add(new MultiPoint(null, parent.get(0), uGrid));
+                }
                 else if (geometryN.getGeometryType().equalsIgnoreCase("MultiPolygon")) {
                     List<List<List<Coordinate>>> listCoordinate = convertMultiCoordinates(
                             json, '[', ']', "],", ",", 4);
@@ -1163,7 +1173,7 @@ public class Deserialization implements Serializable {
             String objStr, cmpStr;
             while (0 < str.length()) {
                 cmpStr = "Point";
-                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
                 if (objStr.equalsIgnoreCase(cmpStr)) {
                     Coordinate coordinate = getCoordinateFromPoint(str);
                     Point point = new Point(coordinate.x,  coordinate.y, uGrid);
@@ -1171,8 +1181,22 @@ public class Deserialization implements Serializable {
                     str = str.substring(cmpStr.length());
                     continue;
                 }
+                cmpStr = "MultiPoint";
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
+                if (objStr.equalsIgnoreCase(cmpStr)) {
+                    List<List<Coordinate>> parent = convertCoordinates(
+                            str, '(', ')', ",", " ", 2);
+                    List<Coordinate> listMultiPoint = new ArrayList<Coordinate>();
+                    for (List<Coordinate> list : parent) {
+                        listMultiPoint.addAll(list);
+                    }
+                    MultiPoint multiPoint = new MultiPoint(null, listMultiPoint, uGrid);
+                    listObj.add(multiPoint);
+                    str = str.substring(cmpStr.length());
+                    continue;
+                }
                 cmpStr = "MultiPolygon";
-                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
                 if (objStr.equalsIgnoreCase(cmpStr)) {
                     List<List<List<Coordinate>>> listCoordinate = convertMultiCoordinates(
                             str, '(', ')', ",", " ", 3);
@@ -1182,7 +1206,7 @@ public class Deserialization implements Serializable {
                     continue;
                 }
                 cmpStr = "Polygon";
-                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
                 if (objStr.equalsIgnoreCase(cmpStr)) {
                     List<List<Coordinate>> listCoordinate = convertCoordinates(
                             str, '(', ')', ",", " ", 2);
@@ -1192,7 +1216,7 @@ public class Deserialization implements Serializable {
                     continue;
                 }
                 cmpStr = "MultiLineString";
-                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
                 if (objStr.equalsIgnoreCase(cmpStr)) {
                     List<List<Coordinate>> list = convertCoordinates(
                             str, '(', ')', ",", " ", 2);
@@ -1202,7 +1226,7 @@ public class Deserialization implements Serializable {
                     continue;
                 }
                 cmpStr = "LineString";
-                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
                 if (objStr.equalsIgnoreCase(cmpStr)) {
                     List<List<Coordinate>> parent = convertCoordinates(
                             str, '(', ')', ",", " ", 1);
@@ -1238,9 +1262,7 @@ public class Deserialization implements Serializable {
             List<String> strArrayList = Arrays.asList(strTuple.get("value").toString().replace("\"", "").split("\\s*,\\s*")); // For parsing CSV with , followed by space
             long time = 0;
             String oId = null;
-            if (!strArrayList.get(0).trim().startsWith("GEOMETRYCOLLECTION") && !strArrayList.get(0).trim().startsWith("POINT") &&
-                    !strArrayList.get(0).trim().startsWith("POLYGON") && !strArrayList.get(0).trim().startsWith("MULTIPOLYGON") &&
-                    !strArrayList.get(0).trim().startsWith("LINESTRING") && !strArrayList.get(0).trim().startsWith("MULTILINESTRING")) {
+            if (!strArrayList.get(0).trim().startsWith("GEOMETRYCOLLECTION")) {
                 try {
                     oId = strArrayList.get(0).trim();
                 }
@@ -1262,7 +1284,7 @@ public class Deserialization implements Serializable {
             String objStr, cmpStr;
             while (0 < str.length()) {
                 cmpStr = "Point";
-                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
                 if (objStr.equalsIgnoreCase(cmpStr)) {
                     Coordinate coordinate = getCoordinateFromPoint(str);
                     Point point = new Point(coordinate.x,  coordinate.y, uGrid);
@@ -1270,8 +1292,22 @@ public class Deserialization implements Serializable {
                     str = str.substring(cmpStr.length());
                     continue;
                 }
+                cmpStr = "MultiPoint";
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
+                if (objStr.equalsIgnoreCase(cmpStr)) {
+                    List<List<Coordinate>> parent = convertCoordinates(
+                            str, '(', ')', ",", " ", 2);
+                    List<Coordinate> listMultiPoint = new ArrayList<Coordinate>();
+                    for (List<Coordinate> list : parent) {
+                        listMultiPoint.addAll(list);
+                    }
+                    MultiPoint multiPoint = new MultiPoint(null, listMultiPoint, uGrid);
+                    listObj.add(multiPoint);
+                    str = str.substring(cmpStr.length());
+                    continue;
+                }
                 cmpStr = "MultiPolygon";
-                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
                 if (objStr.equalsIgnoreCase(cmpStr)) {
                     List<List<List<Coordinate>>> listCoordinate = convertMultiCoordinates(
                             str, '(', ')', ",", " ", 3);
@@ -1281,7 +1317,7 @@ public class Deserialization implements Serializable {
                     continue;
                 }
                 cmpStr = "Polygon";
-                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
                 if (objStr.equalsIgnoreCase(cmpStr)) {
                     List<List<Coordinate>> listCoordinate = convertCoordinates(
                             str, '(', ')', ",", " ", 2);
@@ -1291,7 +1327,7 @@ public class Deserialization implements Serializable {
                     continue;
                 }
                 cmpStr = "MultiLineString";
-                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
                 if (objStr.equalsIgnoreCase(cmpStr)) {
                     List<List<Coordinate>> list = convertCoordinates(
                             str, '(', ')', ",", " ", 2);
@@ -1301,7 +1337,7 @@ public class Deserialization implements Serializable {
                     continue;
                 }
                 cmpStr = "LineString";
-                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
                 if (objStr.equalsIgnoreCase(cmpStr)) {
                     List<List<Coordinate>> parent = convertCoordinates(
                             str, '(', ')', ",", " ", 1);
@@ -1336,7 +1372,7 @@ public class Deserialization implements Serializable {
             String objStr, cmpStr;
             while (0 < str.length()) {
                 cmpStr = "Point";
-                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
                 if (objStr.equalsIgnoreCase(cmpStr)) {
                     Coordinate coordinate = getCoordinateFromPoint(str);
                     Point point = new Point(coordinate.x,  coordinate.y, uGrid);
@@ -1344,8 +1380,22 @@ public class Deserialization implements Serializable {
                     str = str.substring(cmpStr.length());
                     continue;
                 }
+                cmpStr = "MultiPoint";
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
+                if (objStr.equalsIgnoreCase(cmpStr)) {
+                    List<List<Coordinate>> parent = convertCoordinates(
+                            str, '(', ')', ",", " ", 2);
+                    List<Coordinate> listMultiPoint = new ArrayList<Coordinate>();
+                    for (List<Coordinate> list : parent) {
+                        listMultiPoint.addAll(list);
+                    }
+                    MultiPoint multiPoint = new MultiPoint(null, listMultiPoint, uGrid);
+                    listObj.add(multiPoint);
+                    str = str.substring(cmpStr.length());
+                    continue;
+                }
                 cmpStr = "MultiPolygon";
-                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
                 if (objStr.equalsIgnoreCase(cmpStr)) {
                     List<List<List<Coordinate>>> listCoordinate = convertMultiCoordinates(
                             str, '(', ')', ",", " ", 3);
@@ -1355,7 +1405,7 @@ public class Deserialization implements Serializable {
                     continue;
                 }
                 cmpStr = "Polygon";
-                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
                 if (objStr.equalsIgnoreCase(cmpStr)) {
                     List<List<Coordinate>> listCoordinate = convertCoordinates(
                             str, '(', ')', ",", " ", 2);
@@ -1365,7 +1415,7 @@ public class Deserialization implements Serializable {
                     continue;
                 }
                 cmpStr = "MultiLineString";
-                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
                 if (objStr.equalsIgnoreCase(cmpStr)) {
                     List<List<Coordinate>> list = convertCoordinates(
                             str, '(', ')', ",", " ", 2);
@@ -1375,7 +1425,7 @@ public class Deserialization implements Serializable {
                     continue;
                 }
                 cmpStr = "LineString";
-                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
                 if (objStr.equalsIgnoreCase(cmpStr)) {
                     List<List<Coordinate>> parent = convertCoordinates(
                             str, '(', ')', ",", " ", 1);
@@ -1411,9 +1461,7 @@ public class Deserialization implements Serializable {
             List<String> strArrayList = Arrays.asList(strTuple.get("value").toString().replace("\"", "").split("\\\\t")); // For parsing TSV with \t followed by space
             long time = 0;
             String oId = null;
-            if (!strArrayList.get(0).trim().startsWith("GEOMETRYCOLLECTION") && !strArrayList.get(0).trim().startsWith("POINT") &&
-                    !strArrayList.get(0).trim().startsWith("POLYGON") && !strArrayList.get(0).trim().startsWith("MULTIPOLYGON") &&
-                    !strArrayList.get(0).trim().startsWith("LINESTRING") && !strArrayList.get(0).trim().startsWith("MULTILINESTRING")) {
+            if (!strArrayList.get(0).trim().startsWith("GEOMETRYCOLLECTION")) {
                 try {
                     oId = strArrayList.get(0).trim();
                 }
@@ -1435,7 +1483,7 @@ public class Deserialization implements Serializable {
             String objStr, cmpStr;
             while (0 < str.length()) {
                 cmpStr = "Point";
-                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
                 if (objStr.equalsIgnoreCase(cmpStr)) {
                     Coordinate coordinate = getCoordinateFromPoint(str);
                     Point point = new Point(coordinate.x,  coordinate.y, uGrid);
@@ -1443,8 +1491,22 @@ public class Deserialization implements Serializable {
                     str = str.substring(cmpStr.length());
                     continue;
                 }
+                cmpStr = "MultiPoint";
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
+                if (objStr.equalsIgnoreCase(cmpStr)) {
+                    List<List<Coordinate>> parent = convertCoordinates(
+                            str, '(', ')', ",", " ", 2);
+                    List<Coordinate> listMultiPoint = new ArrayList<Coordinate>();
+                    for (List<Coordinate> list : parent) {
+                        listMultiPoint.addAll(list);
+                    }
+                    MultiPoint multiPoint = new MultiPoint(null, listMultiPoint, uGrid);
+                    listObj.add(multiPoint);
+                    str = str.substring(cmpStr.length());
+                    continue;
+                }
                 cmpStr = "MultiPolygon";
-                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
                 if (objStr.equalsIgnoreCase(cmpStr)) {
                     List<List<List<Coordinate>>> listCoordinate = convertMultiCoordinates(
                             str, '(', ')', ",", " ", 3);
@@ -1454,7 +1516,7 @@ public class Deserialization implements Serializable {
                     continue;
                 }
                 cmpStr = "Polygon";
-                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
                 if (objStr.equalsIgnoreCase(cmpStr)) {
                     List<List<Coordinate>> listCoordinate = convertCoordinates(
                             str, '(', ')', ",", " ", 2);
@@ -1464,7 +1526,7 @@ public class Deserialization implements Serializable {
                     continue;
                 }
                 cmpStr = "MultiLineString";
-                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
                 if (objStr.equalsIgnoreCase(cmpStr)) {
                     List<List<Coordinate>> list = convertCoordinates(
                             str, '(', ')', ",", " ", 2);
@@ -1474,7 +1536,7 @@ public class Deserialization implements Serializable {
                     continue;
                 }
                 cmpStr = "LineString";
-                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str.substring(0);
+                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
                 if (objStr.equalsIgnoreCase(cmpStr)) {
                     List<List<Coordinate>> parent = convertCoordinates(
                             str, '(', ')', ",", " ", 1);
@@ -1488,6 +1550,251 @@ public class Deserialization implements Serializable {
 
             GeometryCollection spatialGeometryCollection = new GeometryCollection(listObj, oId, time);
             return spatialGeometryCollection;
+        }
+    }
+
+    public static DataStream<MultiPoint> MultiPointStream(DataStream inputStream, String inputType, UniformGrid uGrid){
+
+        DataStream<MultiPoint> multiPointStream = null;
+
+        if(inputType.equals("GeoJSON")) {
+            multiPointStream = inputStream.map(new GeoJSONToSpatialMultiPoint(uGrid));
+        }
+        else if (inputType.equals("CSV")){
+            multiPointStream = inputStream.map(new CSVToSpatialMultiPoint(uGrid));
+        }
+        else if (inputType.equals("TSV")){
+            multiPointStream = inputStream.map(new TSVToSpatialMultiPoint(uGrid));
+        }
+
+        return multiPointStream;
+    }
+
+    public static DataStream<MultiPoint> TrajectoryStreamMultiPoint(DataStream inputStream, String inputType, DateFormat dateFormat, UniformGrid uGrid){
+
+        DataStream<MultiPoint> trajectoryStream = null;
+
+        if(inputType.equals("GeoJSON")) {
+            trajectoryStream = inputStream.map(new GeoJSONToTSpatialMultiPoint(uGrid, dateFormat));
+        }
+        else if (inputType.equals("CSV")){
+            trajectoryStream = inputStream.map(new CSVToTSpatialMultiPoint(uGrid, dateFormat));
+        }
+        else if (inputType.equals("TSV")){
+            trajectoryStream = inputStream.map(new TSVToTSpatialMultiPoint(uGrid, dateFormat));
+        }
+
+        return trajectoryStream;
+    }
+
+    public static class GeoJSONToSpatialMultiPoint extends RichMapFunction<ObjectNode, MultiPoint> {
+
+        UniformGrid uGrid;
+
+        //ctor
+        public  GeoJSONToSpatialMultiPoint() {};
+        public  GeoJSONToSpatialMultiPoint(UniformGrid uGrid)
+        {
+            this.uGrid = uGrid;
+        };
+
+        @Override
+        public MultiPoint map(ObjectNode jsonObj) throws Exception {
+
+            String json = jsonObj.get("value").toString();
+            MultiPoint spatialMultiPoint;
+                List<List<Coordinate>> parent = convertCoordinates(
+                        json, '[', ']', "],", ",", 2);
+            spatialMultiPoint = new MultiPoint(null, parent.get(0), uGrid);
+            return spatialMultiPoint;
+        }
+    }
+
+    public static class GeoJSONToTSpatialMultiPoint extends RichMapFunction<ObjectNode, MultiPoint> {
+
+        UniformGrid uGrid;
+        DateFormat dateFormat;
+
+        public  GeoJSONToTSpatialMultiPoint() {};
+        public  GeoJSONToTSpatialMultiPoint(UniformGrid uGrid, DateFormat dateFormat)
+        {
+            this.uGrid = uGrid;
+            this.dateFormat = dateFormat;
+        }
+
+        @Override
+        public MultiPoint map(ObjectNode jsonObj) throws Exception {
+
+            String json = jsonObj.get("value").toString();
+            JsonNode nodeProperties = jsonObj.get("value").get("properties");
+            String strOId = null;
+            long time = 0;
+            if (nodeProperties != null) {
+                JsonNode nodeTime = jsonObj.get("value").get("properties").get("timestamp");
+                try {
+                    if (nodeTime != null && dateFormat != null) {
+                        time = dateFormat.parse(nodeTime.textValue()).getTime();
+                    }
+                }
+                catch (ParseException e) {}
+                JsonNode nodeOId = jsonObj.get("value").get("properties").get("oID");
+                if (nodeOId != null) {
+                    strOId = nodeOId.textValue();
+                }
+            }
+            MultiPoint spatialMultiPoint;
+            List<List<Coordinate>> parent = convertCoordinates(
+                    json, '[', ']', "],", ",", 2);
+            spatialMultiPoint = new MultiPoint(strOId, parent.get(0), time, uGrid);
+            return spatialMultiPoint;
+        }
+    }
+
+    public static class CSVToSpatialMultiPoint extends RichMapFunction<ObjectNode, MultiPoint> {
+
+        UniformGrid uGrid;
+
+        //ctor
+        public  CSVToSpatialMultiPoint() {};
+        public  CSVToSpatialMultiPoint(UniformGrid uGrid)
+        {
+            this.uGrid = uGrid;
+        };
+
+        @Override
+        public MultiPoint map(ObjectNode strTuple) throws Exception {
+
+            List<List<Coordinate>> parent = convertCoordinates(
+                    strTuple.get("value").toString(), '(', ')', ",", " ", 2);
+            List<Coordinate> listMultiPoint = new ArrayList<Coordinate>();
+            for (List<Coordinate> list : parent) {
+                listMultiPoint.addAll(list);
+            }
+            MultiPoint spatialMultiPoint = new MultiPoint(null, listMultiPoint, uGrid);
+            return spatialMultiPoint;
+        }
+    }
+
+    public static class CSVToTSpatialMultiPoint extends RichMapFunction<ObjectNode, MultiPoint> {
+
+        UniformGrid uGrid;
+        DateFormat dateFormat;
+
+        //ctor
+        public  CSVToTSpatialMultiPoint() {};
+        public  CSVToTSpatialMultiPoint(UniformGrid uGrid, DateFormat dateFormat)
+        {
+            this.uGrid = uGrid;
+            this.dateFormat = dateFormat;
+        };
+
+        @Override
+        public MultiPoint map(ObjectNode strTuple) throws Exception {
+
+            MultiPoint spatialMultiPoint;
+            List<String> strArrayList = Arrays.asList(strTuple.get("value").toString().replace("\"", "").split("\\s*,\\s*")); // For parsing CSV with , followed by space
+            long time = 0;
+            String strOId = null;
+            if (!strArrayList.get(0).trim().startsWith("MULTIPOINT")) {
+                strOId = strArrayList.get(0).trim();
+            }
+            if (dateFormat != null) {
+                Collections.reverse(strArrayList);
+                for (String str : strArrayList){
+                    try {
+                        time = dateFormat.parse(str.trim()).getTime();
+                        break;
+                    }
+                    catch(ParseException e) {}
+                }
+            }
+            List<List<Coordinate>> parent = convertCoordinates(
+                    strTuple.get("value").toString(), '(', ')', ",", " ", 2);
+            List<Coordinate> listMultiPoint = new ArrayList<Coordinate>();
+            for (List<Coordinate> list : parent) {
+                listMultiPoint.addAll(list);
+            }
+            if (time != 0) {
+                spatialMultiPoint = new MultiPoint(strOId, listMultiPoint, time, uGrid);
+            }
+            else {
+                spatialMultiPoint = new MultiPoint(strOId, listMultiPoint, uGrid);
+            }
+            return spatialMultiPoint;
+        }
+    }
+
+    public static class TSVToSpatialMultiPoint extends RichMapFunction<ObjectNode, MultiPoint> {
+
+        UniformGrid uGrid;
+
+        //ctor
+        public  TSVToSpatialMultiPoint() {};
+        public  TSVToSpatialMultiPoint(UniformGrid uGrid)
+        {
+            this.uGrid = uGrid;
+        };
+
+        @Override
+        public MultiPoint map(ObjectNode strTuple) throws Exception {
+
+            List<List<Coordinate>> parent = convertCoordinates(
+                    strTuple.get("value").toString(), '(', ')', ",", " ", 2);
+            List<Coordinate> listMultiPoint = new ArrayList<Coordinate>();
+            for (List<Coordinate> list : parent) {
+                listMultiPoint.addAll(list);
+            }
+            MultiPoint spatialMultiPoint = new MultiPoint(null, listMultiPoint, uGrid);
+            return spatialMultiPoint;
+        }
+    }
+
+    public static class TSVToTSpatialMultiPoint extends RichMapFunction<ObjectNode, MultiPoint> {
+
+        UniformGrid uGrid;
+        DateFormat dateFormat;
+
+        //ctor
+        public  TSVToTSpatialMultiPoint() {};
+        public  TSVToTSpatialMultiPoint(UniformGrid uGrid, DateFormat dateFormat)
+        {
+            this.uGrid = uGrid;
+            this.dateFormat = dateFormat;
+        };
+
+        @Override
+        public MultiPoint map(ObjectNode strTuple) throws Exception {
+
+            MultiPoint spatialMultiPoint;
+            List<String> strArrayList = Arrays.asList(strTuple.get("value").toString().replace("\"", "").split("\\\\t")); // For parsing TSV with \t followed by space
+            long time = 0;
+            String strOId = null;
+            if (!strArrayList.get(0).trim().startsWith("MULTIPOINT")) {
+                strOId = strArrayList.get(0).trim();
+            }
+            if (dateFormat != null) {
+                Collections.reverse(strArrayList);
+                for (String str : strArrayList){
+                    try {
+                        time = dateFormat.parse(str.trim()).getTime();
+                        break;
+                    }
+                    catch(ParseException e) {}
+                }
+            }
+            List<List<Coordinate>> parent = convertCoordinates(
+                    strTuple.get("value").toString(), '(', ')', ",", " ", 2);
+            List<Coordinate> listMultiPoint = new ArrayList<Coordinate>();
+            for (List<Coordinate> list : parent) {
+                listMultiPoint.addAll(list);
+            }
+            if (time != 0) {
+                spatialMultiPoint = new MultiPoint(strOId, listMultiPoint, time, uGrid);
+            }
+            else {
+                spatialMultiPoint = new MultiPoint(strOId, listMultiPoint, uGrid);
+            }
+            return spatialMultiPoint;
         }
     }
 

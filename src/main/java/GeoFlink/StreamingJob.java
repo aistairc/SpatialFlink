@@ -1218,7 +1218,13 @@ public class StreamingJob implements Serializable {
 				spatialStream.print();
 				break;
 			}
-			case 405:{ // Range Query (Point-LineString)
+			case 405:{ // MultiPoint (GeoJSON MultiPoint no Timestamp)
+				DataStream geoJSONStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				DataStream<MultiPoint> spatialStream = Deserialization.MultiPointStream(geoJSONStream, "GeoJSON", uGrid);
+				spatialStream.print();
+				break;
+			}
+			case 406:{ // Range Query (Point-LineString)
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to linestring spatial data stream
 				DataStream<LineString> spatialLineStringStream = Deserialization.LineStringStream(geoJSONStream, "GeoJSON", uGrid);
@@ -1260,6 +1266,13 @@ public class StreamingJob implements Serializable {
 				spatialLineStringStream.print();
 				break;
 			}
+			case 505:{ // MultiPoint (CSV MultiPoint no Timestamp)
+				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				// Converting GeoJSON,CSV stream to polygon spatial data stream
+				DataStream<MultiPoint> spatialMultiPointStream = Deserialization.MultiPointStream(geoJSONStream, "CSV", uGrid);
+				spatialMultiPointStream.print();
+				break;
+			}
 			case 601: { // Range Query (TSV Point)
 				DataStream geoJSONStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to point spatial data stream
@@ -1292,7 +1305,13 @@ public class StreamingJob implements Serializable {
 				spatialLineStringStream.print();
 				break;
 			}
-
+			case 605:{ // MultiPoint (CSV GeometryCollection no Timestamp)
+				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				// Converting GeoJSON,CSV stream to polygon spatial data stream
+				DataStream<MultiPoint> spatialMultiPointStream = Deserialization.MultiPointStream(geoJSONStream, "TSV", uGrid);
+				spatialMultiPointStream.print();
+				break;
+			}
 			case 701:{ // TFilterQuery (GeoJSON Point Timestamp)
 				DataStream geoJSONStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(geoJSONStream, "GeoJSON", inputDateFormat, uGrid);
@@ -1319,6 +1338,13 @@ public class StreamingJob implements Serializable {
 				DataStream<GeometryCollection> spatialTrajectoryStream = Deserialization.TrajectoryStreamGeometryCollection(geoJSONStream, "GeoJSON", inputDateFormat, uGrid);
 				spatialTrajectoryStream.print();
 				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.GeometryCollectionToGeoJSONOutputSchema("kafka", inputDateFormat), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				break;
+			}
+			case 705:{ // MultiPoint (GeoJSON MultiPoint Timestamp)
+				DataStream geoJSONStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				DataStream<MultiPoint> spatialTrajectoryStream = Deserialization.TrajectoryStreamMultiPoint(geoJSONStream, "GeoJSON", inputDateFormat, uGrid);
+				spatialTrajectoryStream.print();
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.MultiPointToGeoJSONOutputSchema("kafka", inputDateFormat), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
 			case 801:{ // TFilterQuery (CSV Point Timestamp)
@@ -1349,6 +1375,13 @@ public class StreamingJob implements Serializable {
 				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.GeometryCollectionToCSVOutputSchema("kafka", inputDateFormat), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
+			case 805:{ // MultiPoint (CSV GeometryCollection Timestamp)
+				DataStream geoJSONStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				DataStream<MultiPoint> spatialTrajectoryStream = Deserialization.TrajectoryStreamMultiPoint(geoJSONStream, "CSV", inputDateFormat, uGrid);
+				spatialTrajectoryStream.print();
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.MultiPointToCSVOutputSchema("kafka", inputDateFormat), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				break;
+			}
 			case 901:{ // TFilterQuery (TSV Point Timestamp)
 				DataStream geoJSONStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(geoJSONStream, "TSV", inputDateFormat, uGrid);
@@ -1375,6 +1408,13 @@ public class StreamingJob implements Serializable {
 				DataStream<GeometryCollection> spatialTrajectoryStream = Deserialization.TrajectoryStreamGeometryCollection(geoJSONStream, "TSV", inputDateFormat, uGrid);
 				spatialTrajectoryStream.print();
 				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.GeometryCollectionToTSVOutputSchema("kafka", inputDateFormat), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				break;
+			}
+			case 905:{ // MultiPoint (TSV MultiPoint Timestamp)
+				DataStream geoJSONStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				DataStream<MultiPoint> spatialTrajectoryStream = Deserialization.TrajectoryStreamMultiPoint(geoJSONStream, "TSV", inputDateFormat, uGrid);
+				spatialTrajectoryStream.print();
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.MultiPointToTSVOutputSchema("kafka", inputDateFormat), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
 			case 1001:{ // Shapefile (Point)

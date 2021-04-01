@@ -80,6 +80,13 @@ public class HelperClass {
         return Tuple2.of(new Coordinate(lineString.getEnvelopeInternal().getMinX(), lineString.getEnvelopeInternal().getMinY(), 0), new Coordinate(lineString.getEnvelopeInternal().getMaxX(), lineString.getEnvelopeInternal().getMaxY(), 0));
     }
 
+    // Compute the Bounding Box of a MultiPoint
+    public static Tuple2<Coordinate, Coordinate> getBoundingBox(org.locationtech.jts.geom.MultiPoint multiPoint)
+    {
+        // return 2 coordinates, smaller first and larger second
+        return Tuple2.of(new Coordinate(multiPoint.getEnvelopeInternal().getMinX(), multiPoint.getEnvelopeInternal().getMinY(), 0), new Coordinate(multiPoint.getEnvelopeInternal().getMaxX(), multiPoint.getEnvelopeInternal().getMaxY(), 0));
+    }
+
     // Compute the Bounding Box of a geometryCollection
     public static Tuple2<Coordinate, Coordinate> getBoundingBox(org.locationtech.jts.geom.GeometryCollection geometryCollection)
     {
