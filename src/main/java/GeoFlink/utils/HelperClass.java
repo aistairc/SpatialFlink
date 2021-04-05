@@ -29,6 +29,8 @@ import org.apache.flink.api.java.tuple.Tuple4;
 import org.apache.flink.api.java.tuple.Tuple5;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrdernessTimestampExtractor;
+import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.connectors.kafka.KafkaSerializationSchema;
 import org.apache.flink.util.Collector;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -43,6 +45,7 @@ import java.util.*;
 public class HelperClass {
 
     private static final double mEarthRadius = 6371008.7714;
+
 
     // return a string padded with zeroes to make the string equivalent to desiredStringLength
     public static String padLeadingZeroesToInt(int cellIndex, int desiredStringLength)
@@ -89,9 +92,14 @@ public class HelperClass {
         int xCellIndex = (int)(Math.floor((coordinate.getX() - uGrid.getMinX())/uGrid.getCellLength()));
         int yCellIndex = (int)(Math.floor((coordinate.getY() - uGrid.getMinY())/uGrid.getCellLength()));
 
-        String gridIDStr = HelperClass.padLeadingZeroesToInt(xCellIndex, uGrid.getCellIndexStrLength()) + HelperClass.padLeadingZeroesToInt(yCellIndex, uGrid.getCellIndexStrLength());
+        //String gridIDStr = HelperClass.padLeadingZeroesToInt(xCellIndex, uGrid.getCellIndexStrLength()) + HelperClass.padLeadingZeroesToInt(yCellIndex, uGrid.getCellIndexStrLength());
+        String gridIDStr = HelperClass.generateCellIDStr(xCellIndex, yCellIndex, uGrid);
 
         return gridIDStr;
+    }
+
+    public static String generateCellIDStr(int xCellIndex, int yCellIndex, UniformGrid uGrid){
+        return HelperClass.padLeadingZeroesToInt(xCellIndex, uGrid.getCellIndexStrLength()) + HelperClass.padLeadingZeroesToInt(yCellIndex, uGrid.getCellIndexStrLength());
     }
 
     // assigning grid cell ID - BoundingBox
@@ -106,16 +114,6 @@ public class HelperClass {
         // top-right coordinate (max values)
         int xCellIndex2 = (int) (Math.floor((bBox.f1.getX() - uGrid.getMinX()) / uGrid.getCellLength()));
         int yCellIndex2 = (int) (Math.floor((bBox.f1.getY() - uGrid.getMinY()) / uGrid.getCellLength()));
-
-        for(int x = xCellIndex1; x <= xCellIndex2; x++)
-            for(int y = yCellIndex1; y <= yCellIndex2; y++)
-            {
-                String gridIDStr = HelperClass.padLeadingZeroesToInt(x, uGrid.getCellIndexStrLength()) + HelperClass.padLeadingZeroesToInt(y, uGrid.getCellIndexStrLength());
-                gridCellIDs.add(gridIDStr);
-            }
-
-        double minX = bBox.f0.getX();
-        double minY = bBox.f0.getY();
 
         for(int x = xCellIndex1; x <= xCellIndex2; x++)
             for(int y = yCellIndex1; y <= yCellIndex2; y++)
@@ -819,4 +817,9 @@ public class HelperClass {
             }
         }
     }
+
+
+
+
+
 }

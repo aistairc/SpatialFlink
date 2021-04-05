@@ -20,13 +20,14 @@ import GeoFlink.spatialObjects.LineString;
 import GeoFlink.spatialObjects.Point;
 import GeoFlink.spatialObjects.Polygon;
 import GeoFlink.utils.HelperClass;
+import org.apache.commons.collections.map.HashedMap;
 import org.apache.flink.api.common.functions.RichFilterFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.CoordinateXY;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 public class UniformGrid implements Serializable {
 
@@ -40,6 +41,7 @@ public class UniformGrid implements Serializable {
     int numGridPartitions;
     double cellLengthMeters;
     HashSet<String> girdCellsSet = new HashSet<String>();
+    //Map<String, Coordinate[]> cellBoundaries = new HashMap<>();
 
     //TODO: Remove variable cellLengthMeters (Deprecated)
 
@@ -50,8 +52,8 @@ public class UniformGrid implements Serializable {
         this.minY = minY;     //Y - North-South latitude
         this.maxY = maxY;
 
-        double xAxisDiff = maxX - minX;
-        double yAxisDiff = maxY - minY;
+        double xAxisDiff = this.maxX - this.minX;
+        double yAxisDiff = this.maxY - this.minY;
 
         this.numGridPartitions = uniformGridRows;
 
@@ -59,33 +61,50 @@ public class UniformGrid implements Serializable {
         if(xAxisDiff > yAxisDiff)
         {
             double diff = xAxisDiff - yAxisDiff;
-            maxY += diff / 2;
-            minY -= diff / 2;
+            this.maxY += diff / 2;
+            this.minY -= diff / 2;
         }
         else if(yAxisDiff > xAxisDiff)
         {
             double diff = yAxisDiff - xAxisDiff;
-            maxX += diff / 2;
-            minX -= diff / 2;
+            this.maxX += diff / 2;
+            this.minX -= diff / 2;
         }
 
-        this.cellLength = (maxX - minX) / uniformGridRows;
-        System.out.println("cellLength: " + cellLength);
-        this.cellLengthMeters = HelperClass.computeHaverSine(minX, minY, minX + cellLength, minY);
+        this.cellLength = (this.maxX - this.minX) / uniformGridRows;
+        //System.out.println("cellLength: " + cellLength);
+        this.cellLengthMeters = HelperClass.computeHaverSine(this.minX, this.minY, this.minX + cellLength, this.minY);
+
+        //Coordinate minCoordinate = new CoordinateXY();
+        //Coordinate maxCoordinate = new CoordinateXY();
 
         // Populating the girdCellset - contains all the cells in the grid
         for (int i = 0; i < uniformGridRows; i++) {
             for (int j = 0; j < uniformGridRows; j++) {
                 String cellKey = HelperClass.padLeadingZeroesToInt(i, CELLINDEXSTRLENGTH) + HelperClass.padLeadingZeroesToInt(j, CELLINDEXSTRLENGTH);
                 girdCellsSet.add(cellKey);
+
+                // Computing cell boundaries in terms of two extreme coordinates
+                //Coordinate minCoordinate = new Coordinate(this.minX + (i * cellLength), this.minY + (j * cellLength), 0);
+                //Coordinate maxCoordinate = new Coordinate(this.minX + ((i + 1) * cellLength), this.minY + ((j + 1) * cellLength), 0);
+
+                //Coordinate[] coordinates = {minCoordinate, maxCoordinate};
+                //System.out.println(cellKey + ", " + min + ", " + max);
+                //cellBoundaries.put(cellKey, coordinates);
             }
         }
+
+        /* Testing the cellBoundaries
+        for (Map.Entry<String,Coordinate[]> entry : cellBoundaries.entrySet())
+            System.out.println("Key = " + entry.getKey() +
+                    ", Value = " + entry.getValue()[0].getX() + ", " + entry.getValue()[0].getY() );
+         */
     }
 
-    public double getMinX() {return minX;}
-    public double getMinY() {return minY;}
-    public double getMaxX() {return maxX;}
-    public double getMaxY() {return maxY;}
+    public double getMinX() {return this.minX;}
+    public double getMinY() {return this.minY;}
+    public double getMaxX() {return this.maxX;}
+    public double getMaxY() {return this.maxY;}
     public int getCellIndexStrLength() {return CELLINDEXSTRLENGTH;}
 
     public int getNumGridPartitions()
@@ -95,6 +114,17 @@ public class UniformGrid implements Serializable {
     public double getCellLength() {return cellLength;}
     public double getCellLengthInMeters() {return cellLengthMeters;}
     public HashSet<String> getGirdCellsSet() {return girdCellsSet;}
+
+    public Coordinate[] getCellBoundary(String cellKey){
+
+        ArrayList<Integer> cellIndices = HelperClass.getIntCellIndices(cellKey);
+
+        Coordinate minCoordinate = new Coordinate(this.minX + (cellIndices.get(0) * cellLength), this.minY + (cellIndices.get(1) * this.cellLength), 0);
+        Coordinate maxCoordinate = new Coordinate(this.minX + ((cellIndices.get(0) + 1) * cellLength), this.minY + ((cellIndices.get(1) + 1) * this.cellLength), 0);
+        Coordinate[] coordinates = {minCoordinate, maxCoordinate};
+
+        return coordinates;
+    }
 
     /*
     getGuaranteedNeighboringCells: returns the cells containing the guaranteed r-neighbors

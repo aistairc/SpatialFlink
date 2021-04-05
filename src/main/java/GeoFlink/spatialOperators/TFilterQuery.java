@@ -25,7 +25,17 @@ public class TFilterQuery implements Serializable {
     //--------------- TrajIDFilter QUERY - Real Time -----------------//
     public static DataStream<Point> TIDSpatialFilterQuery(DataStream<Point> pointStream, Set<String> trajIDSet){
 
-        return pointStream.filter(new FilterFunction<Point>() {
+        // Spatial stream with Timestamps and Watermarks
+        // Max Allowed Lateness: windowSize
+        DataStream<Point> pointStreamWithTsAndWm =
+                pointStream.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Point>(Time.seconds(0)) {
+                    @Override
+                    public long extractTimestamp(Point p) {
+                        return p.timeStampMillisec;
+                    }
+                });
+
+        return pointStreamWithTsAndWm.filter(new FilterFunction<Point>() {
             @Override
             public boolean filter(Point point) throws Exception {
 
