@@ -2,6 +2,7 @@ package GeoFlink.spatialOperators;
 
 import GeoFlink.spatialObjects.Point;
 import GeoFlink.spatialObjects.Polygon;
+import GeoFlink.utils.DistanceFunctions;
 import GeoFlink.utils.HelperClass;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.RichFlatMapFunction;
@@ -173,7 +174,7 @@ public class TStatsQuery implements Serializable {
                 {
                     Date date = new Date();
                     //Double currSpatialDist = HelperClass.computeHaverSine(lastPointCoordinateX, lastPointCoordinateY, p.point.getX(), p.point.getY());
-                    Double currSpatialDist = HelperClass.getPointPointEuclideanDistance(lastPointCoordinateX, lastPointCoordinateY, p.point.getX(), p.point.getY());
+                    Double currSpatialDist = DistanceFunctions.getPointPointEuclideanDistance(lastPointCoordinateX, lastPointCoordinateY, p.point.getX(), p.point.getY());
                     Long currTemporalDist = p.timeStampMillisec - lastTimestamp;
 
                     spatialLength += currSpatialDist;
@@ -227,7 +228,7 @@ public class TStatsQuery implements Serializable {
                     if (p.timeStampMillisec > lastTimestamp) // Avoiding out-of-order arrival of tuples
                     {
                         //Double currSpatialDist = HelperClass.computeHaverSine(lastPointCoordinateX, lastPointCoordinateY, p.point.getX(), p.point.getY());
-                        Double currSpatialDist = HelperClass.getPointPointEuclideanDistance(lastPointCoordinateX, lastPointCoordinateY, p.point.getX(), p.point.getY());
+                        Double currSpatialDist = DistanceFunctions.getPointPointEuclideanDistance(lastPointCoordinateX, lastPointCoordinateY, p.point.getX(), p.point.getY());
                         Long currTemporalDist = p.timeStampMillisec - lastTimestamp;
 
                         spatialLength += currSpatialDist;

@@ -4,7 +4,7 @@ import GeoFlink.spatialIndices.UniformGrid;
 import GeoFlink.spatialObjects.LineString;
 import GeoFlink.spatialObjects.Point;
 import GeoFlink.spatialObjects.Polygon;
-import GeoFlink.utils.HelperClass;
+import GeoFlink.utils.DistanceFunctions;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.JoinFunction;
@@ -69,7 +69,7 @@ public class TJoinQuery implements Serializable {
                     @Override
                     public Tuple2<Point, Point> join(Point p, Point q) {
                         //System.out.println(HelperClass.getPointPointEuclideanDistance(p.point.getX(), p.point.getY(), q.point.getX(), q.point.getY()));
-                        if (HelperClass.getPointPointEuclideanDistance(p.point.getX(), p.point.getY(), q.point.getX(), q.point.getY()) <= joinDistance) {
+                        if (DistanceFunctions.getPointPointEuclideanDistance(p.point.getX(), p.point.getY(), q.point.getX(), q.point.getY()) <= joinDistance) {
                             return Tuple2.of(p, q);
                         } else {
                             return Tuple2.of(null, null);
@@ -163,7 +163,7 @@ public class TJoinQuery implements Serializable {
                     public Tuple2<Point, Point> join(Point p, Point q) {
                         if(p.objID != q.objID) {// No need to join a trajectory with itself
                             //System.out.println(HelperClass.getPointPointEuclideanDistance(p.point.getX(), p.point.getY(), q.point.getX(), q.point.getY()));
-                            if (HelperClass.getPointPointEuclideanDistance(p.point.getX(), p.point.getY(), q.point.getX(), q.point.getY()) <= joinDistance) {
+                            if (DistanceFunctions.getPointPointEuclideanDistance(p.point.getX(), p.point.getY(), q.point.getX(), q.point.getY()) <= joinDistance) {
                                 return Tuple2.of(p, q);
                             } else {
                                 return Tuple2.of(null, null);
@@ -275,7 +275,7 @@ public class TJoinQuery implements Serializable {
                     @Override
                     public Tuple2<Point, Point> join(Point p, Point q) {
                         //System.out.println(HelperClass.getPointPointEuclideanDistance(p.point.getX(), p.point.getY(), q.point.getX(), q.point.getY()));
-                        if (HelperClass.getPointPointEuclideanDistance(p.point.getX(), p.point.getY(), q.point.getX(), q.point.getY()) <= joinDistance) {
+                        if (DistanceFunctions.getPointPointEuclideanDistance(p.point.getX(), p.point.getY(), q.point.getX(), q.point.getY()) <= joinDistance) {
                             return Tuple2.of(p, q);
                         } else {
                             return Tuple2.of(null, null);
@@ -425,7 +425,7 @@ public class TJoinQuery implements Serializable {
                     @Override
                     public Tuple2<Point, Point> join(Point p, Point q) {
                         //System.out.println(HelperClass.getPointPointEuclideanDistance(p.point.getX(), p.point.getY(), q.point.getX(), q.point.getY()));
-                        if (HelperClass.getPointPointEuclideanDistance(p.point.getX(), p.point.getY(), q.point.getX(), q.point.getY()) <= joinDistance) {
+                        if (DistanceFunctions.getPointPointEuclideanDistance(p.point.getX(), p.point.getY(), q.point.getX(), q.point.getY()) <= joinDistance) {
                             return Tuple2.of(p, q);
                         } else {
                             return Tuple2.of(null, null);

@@ -5,6 +5,7 @@ import GeoFlink.spatialObjects.LineString;
 import GeoFlink.spatialObjects.Point;
 import GeoFlink.spatialObjects.Polygon;
 import GeoFlink.utils.Comparators;
+import GeoFlink.utils.DistanceFunctions;
 import GeoFlink.utils.HelperClass;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.JoinFunction;
@@ -362,7 +363,7 @@ public class TKNNQuery implements Serializable {
                         // compute the distance of all trajectory points w.r.t. query point and return the kNN (trajectory ID, distance) pairs
                         for (Point p : inputTuples) {
 
-                            Double newDistance = HelperClass.getPointPointEuclideanDistance(p.point.getX(), p.point.getY(), queryPoint.point.getX(), queryPoint.point.getY());
+                            Double newDistance = DistanceFunctions.getPointPointEuclideanDistance(p.point.getX(), p.point.getY(), queryPoint.point.getX(), queryPoint.point.getY());
                             Double existingDistance = objMap.get(p.objID);
 
                             if (existingDistance == null) { // if object with the given ObjID does not already exist
@@ -510,7 +511,7 @@ public class TKNNQuery implements Serializable {
             // compute the distance of all trajectory points w.r.t. query point and return the kNN (trajectory ID, distance) pairs
             for (Point p : inputTuples) {
 
-                Double newDistance = HelperClass.getPointPointEuclideanDistance(p.point.getX(), p.point.getY(), queryPoint.point.getX(), queryPoint.point.getY());
+                Double newDistance = DistanceFunctions.getPointPointEuclideanDistance(p.point.getX(), p.point.getY(), queryPoint.point.getX(), queryPoint.point.getY());
                 Double existingDistance = objMap.get(p.objID);
 
                 if (existingDistance == null) { // if object with the given ObjID does not already exist
@@ -565,7 +566,7 @@ public class TKNNQuery implements Serializable {
 
             // compute the distance of all trajectory points w.r.t. query point and return the kNN (trajectory ID, distance) pairs
             for (Point p : inputTuples) {
-                Double newDistance = HelperClass.getPointPointEuclideanDistance(p.point.getX(), p.point.getY(), queryPoint.point.getX(), queryPoint.point.getY());
+                Double newDistance = DistanceFunctions.getPointPointEuclideanDistance(p.point.getX(), p.point.getY(), queryPoint.point.getX(), queryPoint.point.getY());
                 Double existingDistance = objIDDistMap.get(p.objID);
 
                 if (existingDistance == null) { // if object with the given ObjID does not already exist
