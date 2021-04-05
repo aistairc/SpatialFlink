@@ -136,10 +136,14 @@ public class StreamingJob implements Serializable {
 		if (onCluster) {
 			env = StreamExecutionEnvironment.getExecutionEnvironment();
 			bootStrapServers = "172.16.0.64:9092, 172.16.0.81:9092";
+
 		}else{
 			env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(config);
-			bootStrapServers = "localhost:9092";
+			//env = StreamExecutionEnvironment.getExecutionEnvironment();
+			//bootStrapServers = "localhost:9092";
+			bootStrapServers = "150.82.97.204:9092";
 			// For testing spatial trajectory queries
+
 			/*
 			queryOption = 21;
 			radius =  0.004;
@@ -1489,19 +1493,27 @@ public class StreamingJob implements Serializable {
 				break;
 			}
 			case 1010:{
-				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromLatest());
+				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to point spatial data stream
-				//DataStream<Point> spatialPointStream = SpatialStream.PointStream(geoJSONStream, inputFormat, uGrid);
 				DataStream<Point> spatialPointStream = Deserialization.TrajectoryStream(geoJSONStream, inputFormat, inputDateFormat, uGrid);
+				//spatialPointStream.print();
 				//trajIDs = Stream.of("1001", "2059", "1741", "1415", "2565").collect(Collectors.toSet());
 				trajIDs = Stream.of("0").collect(Collectors.toSet());
 				//Set<String> trajIDSet = Stream.of("1001", "2059", "1741", "1415", "2565").collect(Collectors.toSet());
-				//DataStream<Point> filteredStream = TFilterQuery.TIDSpatialFilterQuery(spatialPointStream, trajIDs);
-				//filteredStream.print();
 				DataStream<Multimap<String, Tuple4<Long, Long, String, Double>>> CellStayTime = StayTime.CellStayTime(spatialPointStream, trajIDs, allowedLateness, windowSize, windowSlideStep, uGrid);
 				//CellStayTime.print();
 				//CellStayTime.addSink(new FlinkKafkaProducer<>(outputTopicName, new Serialization.PointToGeoJSONOutputSchema(outputTopicName, inputDateFormat), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
-
+			}
+			case 1011:{
+				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				// Converting GeoJSON,CSV stream to point spatial data stream
+				DataStream<Polygon> spatialStream = Deserialization.TrajectoryStreamPolygon(geoJSONStream, inputFormat, inputDateFormat, uGrid);
+				//spatialStream.print();
+				//trajIDs = Stream.of("1001", "2059", "1741", "1415", "2565").collect(Collectors.toSet());
+				//trajIDs = Stream.of("0").collect(Collectors.toSet());
+				//Set<String> trajIDSet = Stream.of("1001", "2059", "1741", "1415", "2565").collect(Collectors.toSet());
+				Set<String> trajectoryIDSet = new HashSet<String>();
+				DataStream<Tuple2<String, Multimap<Long, Polygon>>> CellStayTime = StayTime.CellSensorIntersection(spatialStream, trajectoryIDSet, allowedLateness, windowSize, windowSlideStep, uGrid);
 			}
 			default:
 				System.out.println("Input Unrecognized. Please select option from 1-10.");

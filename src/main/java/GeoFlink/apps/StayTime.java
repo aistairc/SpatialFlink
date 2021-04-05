@@ -2,12 +2,14 @@ package GeoFlink.apps;
 
 import GeoFlink.spatialIndices.UniformGrid;
 import GeoFlink.spatialObjects.Point;
+import GeoFlink.spatialObjects.Polygon;
 import GeoFlink.spatialOperators.TStatsQuery;
 import GeoFlink.utils.HelperClass;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.state.ValueState;
 import org.apache.flink.api.common.state.ValueStateDescriptor;
 import org.apache.flink.api.java.functions.KeySelector;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple4;
 import org.apache.flink.shaded.guava18.com.google.common.collect.*;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -29,7 +31,7 @@ import java.util.stream.Stream;
 
 public class StayTime implements Serializable {
 
-    //--------------- TStatsQuery QUERY - Window-based -----------------//
+    //--------------- CellStayTime - Point Stream - Window-based -----------------//
     public static DataStream<Multimap<String, Tuple4<Long, Long, String, Double>>> CellStayTime(DataStream<Point> pointStream, Set<String> trajIDSet, int allowedLateness, int windowSize, int windowSlideStep, UniformGrid uGrid){
 
         // Spatial stream with Timestamps and Watermarks
@@ -63,7 +65,80 @@ public class StayTime implements Serializable {
                 .apply(new CellStayTimeWinFunction(uGrid));
     }
 
-    //RichWindowFunction<IN, OUT, KEY, W>
+    //--------------- Cell SensorRange Intersection- Window-based -----------------//
+    public static DataStream<Tuple2<String, Multimap<Long, Polygon>>> CellSensorIntersection(DataStream<Polygon> inputStream, Set<String> trajIDSet, int allowedLateness, int windowSize, int windowSlideStep, UniformGrid uGrid){
+
+        // Spatial stream with Timestamps and Watermarks
+        // Max Allowed Lateness: windowSize
+        DataStream<Polygon> streamWithTsAndWm =
+                inputStream.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Polygon>(Time.seconds(allowedLateness)) {
+                    @Override
+                    public long extractTimestamp(Polygon p) {
+                        return p.timeStampMillisec;
+                    }
+                });
+
+        DataStream<Polygon> filteredStream = streamWithTsAndWm.filter(new FilterFunction<Polygon>() {
+            @Override
+            public boolean filter(Polygon p) throws Exception {
+                if (trajIDSet.size() > 0)
+                    return ((trajIDSet.contains(p.objID)));
+                else
+                    return true;
+            }
+        });
+
+        // Generating a replicated polygon stream with respect to Grid ID Set
+        DataStream<Polygon> replicatedStream = filteredStream.flatMap(new HelperClass.ReplicatePolygonStreamUsingObjID());
+
+        return replicatedStream.keyBy(new KeySelector<Polygon, String>() {
+            @Override
+            public String getKey(Polygon p) throws Exception {
+                return p.gridID;
+            }
+        }).window(SlidingProcessingTimeWindows.of(Time.seconds(windowSize), Time.seconds(windowSlideStep)))
+                .apply(new CellSensorIntersectionWinFunction(uGrid));
+
+
+    }
+
+    //CellSensorIntersection RichWindowFunction<IN, OUT, KEY, W>
+    public static class CellSensorIntersectionWinFunction extends RichWindowFunction<Polygon, Tuple2<String, Multimap<Long, Polygon>>, String, TimeWindow> {
+
+        UniformGrid uGrid;
+        //ctor
+        public  CellSensorIntersectionWinFunction() {};
+
+        public  CellSensorIntersectionWinFunction(UniformGrid uniformGrid) {
+            this.uGrid = uniformGrid;
+        };
+
+        @Override
+        public void apply(String cellID, TimeWindow window, Iterable<Polygon> input, Collector<Tuple2<String, Multimap<Long, Polygon>>> out) throws Exception {
+
+            //Map<Long, Polygon> timestampPolygonMap = new HashMap<>();
+            Multimap<Long, Polygon> timestampPolygonMap = TreeMultimap.create(Ordering.natural(), Ordering.arbitrary()); // Ordering is maintained for keys, avoid duplicates in values
+
+            // Generating polygon corresponding to cell boundary
+            Coordinate[] cellBoundary = uGrid.getCellMinMaxBoundary(cellID);
+            org.locationtech.jts.geom.Polygon cellPoly = HelperClass.generatePolygonUsingBBox(cellBoundary);
+
+            for (Polygon p : input) {
+
+                if(cellPoly != null) {
+                    if (cellPoly.intersects(p.polygon)) {
+                        timestampPolygonMap.put(p.timeStampMillisec, p);
+                    }
+                }
+            }
+            System.out.println(cellID + ", " + timestampPolygonMap);
+
+            // <Tuple2(gridID, MultiMap<timestamp, Polygon>)>
+            out.collect(Tuple2.of(cellID,timestampPolygonMap));
+        }
+    }
+
+    //CellStayTimeWinFunction RichWindowFunction<IN, OUT, KEY, W>
     public static class CellStayTimeWinFunction extends RichWindowFunction<Point, Multimap<String, Tuple4<Long, Long, String, Double>>, String, TimeWindow> {
 
         UniformGrid uGrid;
@@ -114,7 +189,7 @@ public class StayTime implements Serializable {
                     ArrayList<Integer> lastCellIndices = HelperClass.getIntCellIndices(lastCellIDStr);
                     ArrayList<Integer> currentCellIndices = HelperClass.getIntCellIndices(p.gridID);
 
-                    //Coordinate[] cellBoundary1 = uGrid.getCellBoundary(p.gridID);
+                    //Coordinate[] cellBoundary1 = uGrid.getCellMinMaxBoundary(p.gridID);
                     //System.out.println("val " + p.gridID + ", " + cellBoundary1[0].getX() + ", " + cellBoundary1[0].getY() + ", " + cellBoundary1[1].getX() + ", " + cellBoundary1[1].getY());
 
                     // case 0: if both the indices are same
@@ -201,11 +276,9 @@ public class StayTime implements Serializable {
                                 continue;
                             }
 
-                            // get the cell min,max-boundary
-                            Coordinate[] cellBoundary = uGrid.getCellBoundary(gridID);
-
+                            /*
                             // creating a cell polygon for the sake of computing the intersection between polygon and line segment
-                            if(cellBoundary.length > 0){
+                            if(cellBoundary.length > 0) {
 
                                 Coordinate c1 = new Coordinate(cellBoundary[0].getX(), cellBoundary[0].getY(), 0);
                                 Coordinate c2 = new Coordinate(cellBoundary[1].getX(), cellBoundary[0].getY(), 0);
@@ -214,8 +287,19 @@ public class StayTime implements Serializable {
 
                                 Coordinate[] polygonCoordinates;
                                 polygonCoordinates = new Coordinate[]{c1, c2, c3, c4, c1};
-                                Polygon cellPoly = geofact.createPolygon(polygonCoordinates);
+                                org.locationtech.jts.geom.Polygon cellPoly = geofact.createPolygon(polygonCoordinates);
 
+                                if (cellPoly.intersects(jtsLineString)) {
+                                    intersectingCells.add(gridID);
+                                }
+                            }
+                            */
+
+                            // get the cell min,max-boundary
+                            Coordinate[] cellBoundary = uGrid.getCellMinMaxBoundary(gridID);
+                            org.locationtech.jts.geom.Polygon cellPoly = HelperClass.generatePolygonUsingBBox(cellBoundary);
+
+                            if(cellPoly != null){
                                 if (cellPoly.intersects(jtsLineString)) {
                                     intersectingCells.add(gridID);
                                 }
@@ -244,12 +328,13 @@ public class StayTime implements Serializable {
             //System.out.println(cellStayTimeMap.toString());
             cellStayTimeMap.asMap().forEach((mapKey, collection) -> {
                 System.out.println("Object ID:" + mapKey);
+                // Tuple4<lastTimestamp, currentTimestamp, cellID, stayTime>
                 for(Tuple4<Long, Long, String, Double> x:collection){
                     System.out.println(x);
                 }
             });
+            // cellStayTimeMap: <ObjectID, Tuple4<lastTimestamp, currentTimestamp, cellID, stayTime>>
             output.collect(cellStayTimeMap);
         }
     }
-
 }

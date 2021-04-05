@@ -115,7 +115,7 @@ public class UniformGrid implements Serializable {
     public double getCellLengthInMeters() {return cellLengthMeters;}
     public HashSet<String> getGirdCellsSet() {return girdCellsSet;}
 
-    public Coordinate[] getCellBoundary(String cellKey){
+    public Coordinate[] getCellMinMaxBoundary(String cellKey){
 
         ArrayList<Integer> cellIndices = HelperClass.getIntCellIndices(cellKey);
 
