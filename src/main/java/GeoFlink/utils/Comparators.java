@@ -104,8 +104,8 @@ public class Comparators {
 
         public int compare(Tuple2<Point, Double> t1, Tuple2<Point, Double> t2) {
             // computeSpatialDistance(Double lon, Double lat, Double lon1, Double lat1)
-            double distance1 = HelperClass.getPointPointEuclideanDistance(t1.f0.point.getX(), t1.f0.point.getY(), queryPoint.point.getX(), queryPoint.point.getY());
-            double distance2 = HelperClass.getPointPointEuclideanDistance(t2.f0.point.getX(), t2.f0.point.getY(), queryPoint.point.getX(), queryPoint.point.getY());
+            double distance1 = DistanceFunctions.getPointPointEuclideanDistance(t1.f0.point.getX(), t1.f0.point.getY(), queryPoint.point.getX(), queryPoint.point.getY());
+            double distance2 = DistanceFunctions.getPointPointEuclideanDistance(t2.f0.point.getX(), t2.f0.point.getY(), queryPoint.point.getX(), queryPoint.point.getY());
 
             if (distance1 > distance2) {
                 return -1;

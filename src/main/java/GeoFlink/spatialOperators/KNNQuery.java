@@ -157,14 +157,14 @@ public class KNNQuery implements Serializable {
                             double distance;
                             if (kNNPQ.size() < k) {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getPointPolygonBBoxMinEuclideanDistance(queryPoint, poly);
+                                    distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(queryPoint, poly);
                                 }else{
                                     distance = DistanceFunctions.getDistance(queryPoint, poly);
                                 }
                                 kNNPQ.offer(new Tuple2<Polygon, Double>(poly, distance));
                             } else {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getPointPolygonBBoxMinEuclideanDistance(queryPoint, poly);
+                                    distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(queryPoint, poly);
                                 }else{
                                     distance = DistanceFunctions.getDistance(queryPoint, poly);
                                 }
@@ -233,14 +233,14 @@ public class KNNQuery implements Serializable {
                             double distance;
                             if (kNNPQ.size() < k) {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getPointLineStringBBoxMinEuclideanDistance(queryPoint, lineString);
+                                    distance = DistanceFunctions.getPointLineStringBBoxMinEuclideanDistance(queryPoint, lineString);
                                 }else{
                                     distance = DistanceFunctions.getDistance(queryPoint, lineString);
                                 }
                                 kNNPQ.offer(new Tuple2<LineString, Double>(lineString, distance));
                             } else {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getPointLineStringBBoxMinEuclideanDistance(queryPoint, lineString);
+                                    distance = DistanceFunctions.getPointLineStringBBoxMinEuclideanDistance(queryPoint, lineString);
                                 }else{
                                     distance = DistanceFunctions.getDistance(queryPoint, lineString);
                                 }
@@ -311,7 +311,7 @@ public class KNNQuery implements Serializable {
                             double distance;
                             if (kNNPQ.size() < k) {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getPointPolygonBBoxMinEuclideanDistance(point, queryPolygon);
+                                    distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(point, queryPolygon);
                                 }else{
                                     distance = DistanceFunctions.getDistance(point, queryPolygon);
                                 }
@@ -319,7 +319,7 @@ public class KNNQuery implements Serializable {
                                 kNNPQ.offer(new Tuple2<Point, Double>(point, distance));
                             } else {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getPointPolygonBBoxMinEuclideanDistance(point, queryPolygon);
+                                    distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(point, queryPolygon);
                                 }else{
                                     distance = DistanceFunctions.getDistance(point, queryPolygon);
                                 }
@@ -388,7 +388,7 @@ public class KNNQuery implements Serializable {
                             double distance;
                             if (kNNPQ.size() < k) {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getPointPolygonBBoxMinEuclideanDistance(point, queryPolygon);
+                                    distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(point, queryPolygon);
                                 }else{
                                     distance = DistanceFunctions.getDistance(point, queryPolygon);
                                 }
@@ -400,7 +400,7 @@ public class KNNQuery implements Serializable {
 
                             } else {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getPointPolygonBBoxMinEuclideanDistance(point, queryPolygon);
+                                    distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(point, queryPolygon);
                                 }else{
                                     distance = DistanceFunctions.getDistance(point, queryPolygon);
                                 }
@@ -465,7 +465,7 @@ public class KNNQuery implements Serializable {
                             double distance;
                             if (kNNPQ.size() < k) {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getPolygonPolygonBBoxMinEuclideanDistance(queryPolygon, poly);
+                                    distance = DistanceFunctions.getPolygonPolygonBBoxMinEuclideanDistance(queryPolygon, poly);
                                 }else{
                                     distance = DistanceFunctions.getDistance(queryPolygon, poly);
                                 }
@@ -473,7 +473,7 @@ public class KNNQuery implements Serializable {
                                 kNNPQ.offer(new Tuple2<Polygon, Double>(poly, distance));
                             } else {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getPolygonPolygonBBoxMinEuclideanDistance(queryPolygon, poly);
+                                    distance = DistanceFunctions.getPolygonPolygonBBoxMinEuclideanDistance(queryPolygon, poly);
                                 }else{
                                     distance = DistanceFunctions.getDistance(queryPolygon, poly);
                                 }
@@ -544,7 +544,7 @@ public class KNNQuery implements Serializable {
                             double distance;
                             if (kNNPQ.size() < k) {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getPolygonLineStringBBoxMinEuclideanDistance(queryPolygon, lineString);
+                                    distance = DistanceFunctions.getPolygonLineStringBBoxMinEuclideanDistance(queryPolygon, lineString);
                                 }else{
                                     distance = DistanceFunctions.getDistance(queryPolygon, lineString);
                                 }
@@ -552,7 +552,7 @@ public class KNNQuery implements Serializable {
                                 kNNPQ.offer(new Tuple2<LineString, Double>(lineString, distance));
                             } else {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getPolygonLineStringBBoxMinEuclideanDistance(queryPolygon, lineString);
+                                    distance = DistanceFunctions.getPolygonLineStringBBoxMinEuclideanDistance(queryPolygon, lineString);
                                 }else{
                                     distance = DistanceFunctions.getDistance(queryPolygon, lineString);
                                 }
@@ -626,7 +626,7 @@ public class KNNQuery implements Serializable {
                             double distance;
                             if (kNNPQ.size() < k) {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getPointLineStringMinEuclideanDistance(point, queryLineString);
+                                    distance = DistanceFunctions.getPointLineStringMinEuclideanDistance(point, queryLineString);
                                 }else{
                                     distance = DistanceFunctions.getDistance(point, queryLineString);
                                 }
@@ -634,7 +634,7 @@ public class KNNQuery implements Serializable {
                                 kNNPQ.offer(new Tuple2<Point, Double>(point, distance));
                             } else {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getPointLineStringMinEuclideanDistance(point, queryLineString);
+                                    distance = DistanceFunctions.getPointLineStringMinEuclideanDistance(point, queryLineString);
                                 }else{
                                     distance = DistanceFunctions.getDistance(point, queryLineString);
                                 }
@@ -703,7 +703,7 @@ public class KNNQuery implements Serializable {
                             double distance;
                             if (kNNPQ.size() < k) {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getBBoxBBoxMinEuclideanDistance(queryLineString.boundingBox, poly.boundingBox);
+                                    distance = DistanceFunctions.getBBoxBBoxMinEuclideanDistance(queryLineString.boundingBox, poly.boundingBox);
                                 }else{
                                     distance = DistanceFunctions.getDistance(poly, queryLineString);
                                 }
@@ -711,7 +711,7 @@ public class KNNQuery implements Serializable {
                                 kNNPQ.offer(new Tuple2<Polygon, Double>(poly, distance));
                             } else {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getBBoxBBoxMinEuclideanDistance(queryLineString.boundingBox, poly.boundingBox);
+                                    distance = DistanceFunctions.getBBoxBBoxMinEuclideanDistance(queryLineString.boundingBox, poly.boundingBox);
                                 }else{
                                     distance = DistanceFunctions.getDistance(poly, queryLineString);
                                 }
@@ -782,7 +782,7 @@ public class KNNQuery implements Serializable {
                             double distance;
                             if (kNNPQ.size() < k) {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getBBoxBBoxMinEuclideanDistance(queryLineString.boundingBox, lineString.boundingBox);
+                                    distance = DistanceFunctions.getBBoxBBoxMinEuclideanDistance(queryLineString.boundingBox, lineString.boundingBox);
                                 }else{
                                     distance = DistanceFunctions.getDistance(queryLineString, lineString);
                                 }
@@ -790,7 +790,7 @@ public class KNNQuery implements Serializable {
                                 kNNPQ.offer(new Tuple2<LineString, Double>(lineString, distance));
                             } else {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getBBoxBBoxMinEuclideanDistance(queryLineString.boundingBox, lineString.boundingBox);
+                                    distance = DistanceFunctions.getBBoxBBoxMinEuclideanDistance(queryLineString.boundingBox, lineString.boundingBox);
                                 }else{
                                     distance = DistanceFunctions.getDistance(queryLineString, lineString);
                                 }
@@ -935,14 +935,14 @@ public class KNNQuery implements Serializable {
                             double distance;
                             if (kNNPQ.size() < k) {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getPointPolygonBBoxMinEuclideanDistance(queryPoint, poly);
+                                    distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(queryPoint, poly);
                                 }else{
                                     distance = DistanceFunctions.getDistance(queryPoint, poly);
                                 }
                                 kNNPQ.offer(new Tuple2<Polygon, Double>(poly, distance));
                             } else {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getPointPolygonBBoxMinEuclideanDistance(queryPoint, poly);
+                                    distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(queryPoint, poly);
                                 }else{
                                     distance = DistanceFunctions.getDistance(queryPoint, poly);
                                 }
@@ -1011,14 +1011,14 @@ public class KNNQuery implements Serializable {
                             double distance;
                             if (kNNPQ.size() < k) {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getPointLineStringBBoxMinEuclideanDistance(queryPoint, lineString);
+                                    distance = DistanceFunctions.getPointLineStringBBoxMinEuclideanDistance(queryPoint, lineString);
                                 }else{
                                     distance = DistanceFunctions.getDistance(queryPoint, lineString);
                                 }
                                 kNNPQ.offer(new Tuple2<LineString, Double>(lineString, distance));
                             } else {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getPointLineStringBBoxMinEuclideanDistance(queryPoint, lineString);
+                                    distance = DistanceFunctions.getPointLineStringBBoxMinEuclideanDistance(queryPoint, lineString);
                                 }else{
                                     distance = DistanceFunctions.getDistance(queryPoint, lineString);
                                 }
@@ -1090,7 +1090,7 @@ public class KNNQuery implements Serializable {
                             double distance;
                             if (kNNPQ.size() < k) {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getPointPolygonBBoxMinEuclideanDistance(point, queryPolygon);
+                                    distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(point, queryPolygon);
                                 }else{
                                     distance = DistanceFunctions.getDistance(point, queryPolygon);
                                 }
@@ -1098,7 +1098,7 @@ public class KNNQuery implements Serializable {
                                 kNNPQ.offer(new Tuple2<Point, Double>(point, distance));
                             } else {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getPointPolygonBBoxMinEuclideanDistance(point, queryPolygon);
+                                    distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(point, queryPolygon);
                                 }else{
                                     distance = DistanceFunctions.getDistance(point, queryPolygon);
                                 }
@@ -1168,7 +1168,7 @@ public class KNNQuery implements Serializable {
                             double distance;
                             if (kNNPQ.size() < k) {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getPointPolygonBBoxMinEuclideanDistance(point, queryPolygon);
+                                    distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(point, queryPolygon);
                                 }else{
                                     distance = DistanceFunctions.getDistance(point, queryPolygon);
                                 }
@@ -1181,7 +1181,7 @@ public class KNNQuery implements Serializable {
 
                             } else {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getPointPolygonBBoxMinEuclideanDistance(point, queryPolygon);
+                                    distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(point, queryPolygon);
                                 }else{
                                     distance = DistanceFunctions.getDistance(point, queryPolygon);
                                 }
@@ -1245,7 +1245,7 @@ public class KNNQuery implements Serializable {
                             double distance;
                             if (kNNPQ.size() < k) {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getPolygonPolygonBBoxMinEuclideanDistance(queryPolygon, poly);
+                                    distance = DistanceFunctions.getPolygonPolygonBBoxMinEuclideanDistance(queryPolygon, poly);
                                 }else{
                                     distance = DistanceFunctions.getDistance(queryPolygon, poly);
                                 }
@@ -1253,7 +1253,7 @@ public class KNNQuery implements Serializable {
                                 kNNPQ.offer(new Tuple2<Polygon, Double>(poly, distance));
                             } else {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getPolygonPolygonBBoxMinEuclideanDistance(queryPolygon, poly);
+                                    distance = DistanceFunctions.getPolygonPolygonBBoxMinEuclideanDistance(queryPolygon, poly);
                                 }else{
                                     distance = DistanceFunctions.getDistance(queryPolygon, poly);
                                 }
@@ -1324,7 +1324,7 @@ public class KNNQuery implements Serializable {
                             double distance;
                             if (kNNPQ.size() < k) {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getPolygonLineStringBBoxMinEuclideanDistance(queryPolygon, lineString);
+                                    distance = DistanceFunctions.getPolygonLineStringBBoxMinEuclideanDistance(queryPolygon, lineString);
                                 }else{
                                     distance = DistanceFunctions.getDistance(queryPolygon, lineString);
                                 }
@@ -1332,7 +1332,7 @@ public class KNNQuery implements Serializable {
                                 kNNPQ.offer(new Tuple2<LineString, Double>(lineString, distance));
                             } else {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getPolygonLineStringBBoxMinEuclideanDistance(queryPolygon, lineString);
+                                    distance = DistanceFunctions.getPolygonLineStringBBoxMinEuclideanDistance(queryPolygon, lineString);
                                 }else{
                                     distance = DistanceFunctions.getDistance(queryPolygon, lineString);
                                 }
@@ -1406,7 +1406,7 @@ public class KNNQuery implements Serializable {
                             double distance;
                             if (kNNPQ.size() < k) {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getPointLineStringMinEuclideanDistance(point, queryLineString);
+                                    distance = DistanceFunctions.getPointLineStringMinEuclideanDistance(point, queryLineString);
                                 }else{
                                     distance = DistanceFunctions.getDistance(point, queryLineString);
                                 }
@@ -1414,7 +1414,7 @@ public class KNNQuery implements Serializable {
                                 kNNPQ.offer(new Tuple2<Point, Double>(point, distance));
                             } else {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getPointLineStringMinEuclideanDistance(point, queryLineString);
+                                    distance = DistanceFunctions.getPointLineStringMinEuclideanDistance(point, queryLineString);
                                 }else{
                                     distance = DistanceFunctions.getDistance(point, queryLineString);
                                 }
@@ -1483,7 +1483,7 @@ public class KNNQuery implements Serializable {
                             double distance;
                             if (kNNPQ.size() < k) {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getBBoxBBoxMinEuclideanDistance(queryLineString.boundingBox, poly.boundingBox);
+                                    distance = DistanceFunctions.getBBoxBBoxMinEuclideanDistance(queryLineString.boundingBox, poly.boundingBox);
                                 }else{
                                     distance = DistanceFunctions.getDistance(poly, queryLineString);
                                 }
@@ -1491,7 +1491,7 @@ public class KNNQuery implements Serializable {
                                 kNNPQ.offer(new Tuple2<Polygon, Double>(poly, distance));
                             } else {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getBBoxBBoxMinEuclideanDistance(queryLineString.boundingBox, poly.boundingBox);
+                                    distance = DistanceFunctions.getBBoxBBoxMinEuclideanDistance(queryLineString.boundingBox, poly.boundingBox);
                                 }else{
                                     distance = DistanceFunctions.getDistance(poly, queryLineString);
                                 }
@@ -1562,7 +1562,7 @@ public class KNNQuery implements Serializable {
                             double distance;
                             if (kNNPQ.size() < k) {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getBBoxBBoxMinEuclideanDistance(queryLineString.boundingBox, lineString.boundingBox);
+                                    distance = DistanceFunctions.getBBoxBBoxMinEuclideanDistance(queryLineString.boundingBox, lineString.boundingBox);
                                 }else{
                                     distance = DistanceFunctions.getDistance(queryLineString, lineString);
                                 }
@@ -1570,7 +1570,7 @@ public class KNNQuery implements Serializable {
                                 kNNPQ.offer(new Tuple2<LineString, Double>(lineString, distance));
                             } else {
                                 if(approximateQuery) {
-                                    distance = HelperClass.getBBoxBBoxMinEuclideanDistance(queryLineString.boundingBox, lineString.boundingBox);
+                                    distance = DistanceFunctions.getBBoxBBoxMinEuclideanDistance(queryLineString.boundingBox, lineString.boundingBox);
                                 }else{
                                     distance = DistanceFunctions.getDistance(queryLineString, lineString);
                                 }

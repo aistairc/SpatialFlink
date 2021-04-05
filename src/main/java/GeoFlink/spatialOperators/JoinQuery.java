@@ -148,7 +148,7 @@ public class JoinQuery implements Serializable {
 
                         Double distance;
                         if(approximateQuery) {
-                            distance = HelperClass.getPointPolygonBBoxMinEuclideanDistance(q, poly);
+                            distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(q, poly);
                         }else{
                             distance = DistanceFunctions.getDistance(q, poly);
                         }
@@ -213,7 +213,7 @@ public class JoinQuery implements Serializable {
 
                         Double distance;
                         if(approximateQuery) {
-                            distance = HelperClass.getPointLineStringBBoxMinEuclideanDistance(q, ls);
+                            distance = DistanceFunctions.getPointLineStringBBoxMinEuclideanDistance(q, ls);
                         }else{
                             distance = DistanceFunctions.getDistance(q, ls);
                         }
@@ -340,7 +340,7 @@ public class JoinQuery implements Serializable {
 
                         Double distance;
                         if(approximateQuery) {
-                            distance = HelperClass.getPolygonPolygonBBoxMinEuclideanDistance(q, poly);
+                            distance = DistanceFunctions.getPolygonPolygonBBoxMinEuclideanDistance(q, poly);
                         }else{
                             distance = DistanceFunctions.getDistance(q, poly);
                         }
@@ -405,7 +405,7 @@ public class JoinQuery implements Serializable {
 
                         Double distance;
                         if(approximateQuery) {
-                            distance = HelperClass.getPolygonLineStringBBoxMinEuclideanDistance(q, ls);
+                            distance = DistanceFunctions.getPolygonLineStringBBoxMinEuclideanDistance(q, ls);
                         }else{
                             distance = DistanceFunctions.getDistance(q, ls);
                         }
@@ -532,7 +532,7 @@ public class JoinQuery implements Serializable {
 
                         Double distance;
                         if(approximateQuery) {
-                            distance = HelperClass.getPolygonLineStringBBoxMinEuclideanDistance(poly, q);
+                            distance = DistanceFunctions.getPolygonLineStringBBoxMinEuclideanDistance(poly, q);
                         }else{
                             distance = DistanceFunctions.getDistance(poly, q);
                         }
@@ -597,7 +597,7 @@ public class JoinQuery implements Serializable {
 
                         Double distance;
                         if(approximateQuery) {
-                            distance = HelperClass.getBBoxBBoxMinEuclideanDistance(q.boundingBox, ls.boundingBox);
+                            distance = DistanceFunctions.getBBoxBBoxMinEuclideanDistance(q.boundingBox, ls.boundingBox);
                         }else{
                             distance = DistanceFunctions.getDistance(q, ls);
                         }
@@ -725,7 +725,7 @@ public class JoinQuery implements Serializable {
 
                         Double distance;
                         if(approximateQuery) {
-                            distance = HelperClass.getPointPolygonBBoxMinEuclideanDistance(q, poly);
+                            distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(q, poly);
                         }else{
                             distance = DistanceFunctions.getDistance(q, poly);
                         }
@@ -790,7 +790,7 @@ public class JoinQuery implements Serializable {
 
                         Double distance;
                         if(approximateQuery) {
-                            distance = HelperClass.getPointLineStringBBoxMinEuclideanDistance(q, ls);
+                            distance = DistanceFunctions.getPointLineStringBBoxMinEuclideanDistance(q, ls);
                         }else{
                             distance = DistanceFunctions.getDistance(q, ls);
                         }
@@ -982,7 +982,7 @@ public class JoinQuery implements Serializable {
 
                         Double distance;
                         if(approximateQuery) {
-                            distance = HelperClass.getPolygonPolygonBBoxMinEuclideanDistance(q, poly);
+                            distance = DistanceFunctions.getPolygonPolygonBBoxMinEuclideanDistance(q, poly);
                         }else{
                             distance = DistanceFunctions.getDistance(q, poly);
                         }
@@ -1047,7 +1047,7 @@ public class JoinQuery implements Serializable {
 
                         Double distance;
                         if(approximateQuery) {
-                            distance = HelperClass.getPolygonLineStringBBoxMinEuclideanDistance(q, ls);
+                            distance = DistanceFunctions.getPolygonLineStringBBoxMinEuclideanDistance(q, ls);
                         }else{
                             distance = DistanceFunctions.getDistance(q, ls);
                         }
@@ -1174,7 +1174,7 @@ public class JoinQuery implements Serializable {
 
                         Double distance;
                         if(approximateQuery) {
-                            distance = HelperClass.getPolygonLineStringBBoxMinEuclideanDistance(poly, q);
+                            distance = DistanceFunctions.getPolygonLineStringBBoxMinEuclideanDistance(poly, q);
                         }else{
                             distance = DistanceFunctions.getDistance(poly, q);
                         }
@@ -1239,7 +1239,7 @@ public class JoinQuery implements Serializable {
 
                         Double distance;
                         if(approximateQuery) {
-                            distance = HelperClass.getBBoxBBoxMinEuclideanDistance(q.boundingBox, ls.boundingBox);
+                            distance = DistanceFunctions.getBBoxBBoxMinEuclideanDistance(q.boundingBox, ls.boundingBox);
                         }else{
                             distance = DistanceFunctions.getDistance(q, ls);
                         }
