@@ -514,4 +514,511 @@ public class Serialization {
             return new ProducerRecord<byte[], byte[]>(outputTopic, buf.toString().getBytes(StandardCharsets.UTF_8));
         }
     }
+
+    public static class GeometryCollectionToGeoJSONOutputSchema implements Serializable, KafkaSerializationSchema<GeometryCollection> {
+
+        private String outputTopic;
+        private DateFormat dateFormat;
+
+        public GeometryCollectionToGeoJSONOutputSchema(String outputTopicName, DateFormat dateFormat)
+        {
+            this.outputTopic = outputTopicName;
+            this.dateFormat = dateFormat;
+        }
+
+        @Override
+        public ProducerRecord<byte[], byte[]> serialize(GeometryCollection geometryCollection, @Nullable Long timestamp) {
+
+            JSONObject jsonObj = new JSONObject();
+
+            List<SpatialObject> listSpatialObject = geometryCollection.getSpatialObjects();
+            jsonObj.put("type", "Feature");
+            List<JSONObject> geometries = new ArrayList<JSONObject>();
+            for (SpatialObject obj : listSpatialObject) {
+                JSONObject jsonGeometry = new JSONObject();
+                if (obj instanceof Point) {
+                    Point point = (Point)obj;
+                    double[] coordinate = {point.point.getX(), point.point.getY()};
+                    jsonGeometry.put("type", "Point");
+                    jsonGeometry.put("coordinates", coordinate);
+                }
+                else if (obj instanceof MultiPoint) {
+                    MultiPoint multiPoint = (MultiPoint)obj;
+                    Coordinate[] multiPointCoordinates = multiPoint.multiPoint.getCoordinates();
+                    List<double[]> jsonCoordinate = new ArrayList<double[]>();
+                    for (Coordinate c : multiPointCoordinates) {
+                        double[] coordinate = {c.x, c.y};
+                        jsonCoordinate.add(coordinate);
+                    }
+                    jsonGeometry.put("type", "MultiPoint");
+                    jsonGeometry.put("coordinates", jsonCoordinate);
+                }
+                else if (obj instanceof MultiPolygon) {
+                    MultiPolygon polygon = (MultiPolygon)obj;
+                    List<List<List<double[]>>> jsonCoordinate = new ArrayList<List<List<double[]>>>();
+                    List<List<List<Coordinate>>> listListCoordinate = ((MultiPolygon)polygon).getListCoordinate();
+                    for (List<List<Coordinate>> listCoordinate : listListCoordinate) {
+                        List<List<double[]>> coordinates = new ArrayList<List<double[]>>();
+                        for (List<Coordinate> l : listCoordinate) {
+                            List<double[]> arrCoordinate = new ArrayList<double[]>();
+                            for (Coordinate c : l) {
+                                double[] coordinate = {c.x, c.y};
+                                arrCoordinate.add(coordinate);
+                            }
+                            coordinates.add(arrCoordinate);
+                        }
+                        jsonCoordinate.add(coordinates);
+                    }
+                    jsonGeometry.put("type", "MultiPolygon");
+                    jsonGeometry.put("coordinates", jsonCoordinate);
+                }
+                else if (obj instanceof Polygon) {
+                    Polygon polygon = (Polygon)obj;
+                    List<List<double[]>> jsonCoordinate = new ArrayList<List<double[]>>();
+                    for (List<Coordinate> polygonCoordinates : polygon.getCoordinates()) {
+                        List<double[]> coordinates = new ArrayList<double[]>();
+                        for (Coordinate c : polygonCoordinates) {
+                            double[] coordinate = {c.x, c.y};
+                            coordinates.add(coordinate);
+                        }
+                        jsonCoordinate.add(coordinates);
+                    }
+                    jsonGeometry.put("type", "Polygon");
+                    jsonGeometry.put("coordinates", jsonCoordinate);
+                }
+                else if (obj instanceof MultiLineString) {
+                    MultiLineString lineString = (MultiLineString)obj;
+                    List<List<Coordinate>> listCoordinate = ((MultiLineString)lineString).getListCoordinate();
+                    List<List<double[]>> jsonCoordinate = new ArrayList<List<double[]>>();
+                    for (List<Coordinate> l : listCoordinate) {
+                        List<double[]> arrCoordinate = new ArrayList<double[]>();
+                        for (Coordinate c : l) {
+                            double[] coordinate = {c.x, c.y};
+                            arrCoordinate.add(coordinate);
+                        }
+                        jsonCoordinate.add(arrCoordinate);
+                    }
+                    jsonGeometry.put("type", "MultiLineString");
+                    jsonGeometry.put("coordinates", jsonCoordinate);
+                }
+                else if (obj instanceof LineString) {
+                    LineString lineString = (LineString)obj;
+                    Coordinate[] lineStringCoordinates = lineString.lineString.getCoordinates();
+                    List<double[]> jsonCoordinate = new ArrayList<double[]>();
+                    for (Coordinate c : lineStringCoordinates) {
+                        double[] coordinate = {c.x, c.y};
+                        jsonCoordinate.add(coordinate);
+                    }
+                    jsonGeometry.put("type", "LineString");
+                    jsonGeometry.put("coordinates", jsonCoordinate);
+                }
+                geometries.add(jsonGeometry);
+            }
+            JSONObject jsonpGeometry = new JSONObject();
+            jsonpGeometry.put("type", "GeometryCollection");
+            jsonpGeometry.put("geometries", geometries);
+            jsonObj.put("geometry", jsonpGeometry);
+
+            JSONObject jsonpProperties = new JSONObject();
+            if (geometryCollection.objID != null) {
+                jsonpProperties.put("oID", geometryCollection.objID);
+            }
+            if (geometryCollection.timeStampMillisec != 0) {
+                jsonpProperties.put("timestamp", this.dateFormat.format(new Date(geometryCollection.timeStampMillisec)));
+            }
+            if (jsonpProperties.length() > 0) {
+                jsonObj.put("properties", jsonpProperties);
+            }
+
+            return new ProducerRecord<byte[], byte[]>(outputTopic, jsonObj.toString().getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    public static class GeometryCollectionToCSVOutputSchema implements Serializable, KafkaSerializationSchema<GeometryCollection> {
+
+        private String outputTopic;
+        private DateFormat dateFormat;
+
+        public GeometryCollectionToCSVOutputSchema(String outputTopicName, DateFormat dateFormat)
+        {
+            this.outputTopic = outputTopicName;
+            this.dateFormat = dateFormat;
+        }
+
+        @Override
+        public ProducerRecord<byte[], byte[]> serialize(GeometryCollection geometryCollection, @Nullable Long timestamp) {
+
+            final String SEPARATION = ",";
+            StringBuffer buf = new StringBuffer();
+
+            buf.append("\"");
+            if (geometryCollection.objID != null) {
+                buf.append(geometryCollection.objID);
+                buf.append(SEPARATION + " ");
+            }
+            buf.append("GEOMETRYCOLLECTION(");
+            List<SpatialObject> listSpatialObject = geometryCollection.getSpatialObjects();
+            for (SpatialObject obj : listSpatialObject) {
+                if (obj instanceof Point) {
+                    Point point = (Point)obj;
+                    buf.append("POINT(");
+                    buf.append(point.point.getX());
+                    buf.append(" ");
+                    buf.append(point.point.getY());
+                    buf.append("), ");
+                }
+                else if (obj instanceof MultiPoint) {
+                    MultiPoint multiPoint = (MultiPoint)obj;
+                    buf.append("MULTIPOINT");
+                    buf.append("(");
+                    Coordinate[] coordinates = multiPoint.multiPoint.getCoordinates();
+                    for (Coordinate c : coordinates) {
+                        buf.append("(" + c.x + " " + c.y + "), ");
+                    }
+                    buf.deleteCharAt(buf.length() - 1);
+                    buf.deleteCharAt(buf.length() - 1);
+                    buf.append("), ");
+                }
+                else if (obj instanceof MultiPolygon) {
+                    MultiPolygon multiPolygon = (MultiPolygon)obj;
+                    buf.append("MULTIPOLYGON");
+                    buf.append("(");
+                    List<List<List<Coordinate>>> listListCoordinate = multiPolygon.getListCoordinate();
+                    for (List<List<Coordinate>> listCoordinate : listListCoordinate) {
+                        buf.append("(");
+                        for (List<Coordinate> l : listCoordinate) {
+                            buf.append("(");
+                            for (Coordinate c : l) {
+                                buf.append(c.x + " " + c.y + ", ");
+                            }
+                            buf.deleteCharAt(buf.length() - 1);
+                            buf.deleteCharAt(buf.length() - 1);
+                            buf.append("),");
+                        }
+                        buf.deleteCharAt(buf.length() - 1);
+                        buf.append("),");
+                    }
+                    buf.deleteCharAt(buf.length() - 1);
+                    buf.append("), ");
+                }
+                else if (obj instanceof Polygon) {
+                    Polygon polygon = (Polygon)obj;
+                    buf.append("POLYGON");
+                    buf.append("(");
+                    for (List<Coordinate> coordinates : polygon.getCoordinates()) {
+                        buf.append("(");
+                        for (Coordinate c : coordinates) {
+                            buf.append(c.x + " " + c.y + ", ");
+                        }
+                        buf.deleteCharAt(buf.length() - 1);
+                        buf.deleteCharAt(buf.length() - 1);
+                        buf.append("), ");
+                    }
+                    buf.deleteCharAt(buf.length() - 1);
+                    buf.deleteCharAt(buf.length() - 1);
+                    buf.append("), ");
+                }
+                else if (obj instanceof MultiLineString) {
+                    MultiLineString multiLineString = (MultiLineString)obj;
+                    buf.append("MULTILINESTRING");
+                    buf.append("(");
+                    List<List<Coordinate>> listCoordinate = multiLineString.getListCoordinate();
+                    for (List<Coordinate> l : listCoordinate) {
+                        buf.append("(");
+                        for (Coordinate c : l) {
+                            buf.append(c.x + " " + c.y + ", ");
+                        }
+                        buf.deleteCharAt(buf.length() - 1);
+                        buf.deleteCharAt(buf.length() - 1);
+                        buf.append("),");
+                    }
+                    buf.deleteCharAt(buf.length() - 1);
+                    buf.append("), ");
+                }
+                else if (obj instanceof LineString) {
+                    LineString lineString = (LineString)obj;
+                    buf.append("LINESTRING");
+                    buf.append("(");
+                    Coordinate[] coordinates = lineString.lineString.getCoordinates();
+                    for (Coordinate c : coordinates) {
+                        buf.append(c.x + " " + c.y + ", ");
+                    }
+                    buf.deleteCharAt(buf.length() - 1);
+                    buf.deleteCharAt(buf.length() - 1);
+                    buf.append("), ");
+                }
+            }
+            if (buf.substring(buf.length() - 2).equals(", ")) {
+                buf.deleteCharAt(buf.length() - 1);
+                buf.deleteCharAt(buf.length() - 1);
+            }
+            buf.append(")");
+            if (geometryCollection.timeStampMillisec != 0) {
+                buf.append(SEPARATION + " ");
+                buf.append(this.dateFormat.format(new Date(geometryCollection.timeStampMillisec)));
+            }
+            buf.append("\"");
+            buf.append(SEPARATION);
+
+            return new ProducerRecord<byte[], byte[]>(outputTopic, buf.toString().getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    public static class GeometryCollectionToTSVOutputSchema implements Serializable, KafkaSerializationSchema<GeometryCollection> {
+
+        private String outputTopic;
+        private DateFormat dateFormat;
+
+        public GeometryCollectionToTSVOutputSchema(String outputTopicName, DateFormat dateFormat)
+        {
+            this.outputTopic = outputTopicName;
+            this.dateFormat = dateFormat;
+        }
+
+        @Override
+        public ProducerRecord<byte[], byte[]> serialize(GeometryCollection geometryCollection, @Nullable Long timestamp) {
+
+            final String SEPARATION = "\\t";
+            StringBuffer buf = new StringBuffer();
+
+            buf.append("\"");
+            if (geometryCollection.objID != null) {
+                buf.append(geometryCollection.objID);
+                buf.append(SEPARATION + " ");
+            }
+            buf.append("GEOMETRYCOLLECTION(");
+            List<SpatialObject> listSpatialObject = geometryCollection.getSpatialObjects();
+            for (SpatialObject obj : listSpatialObject) {
+                if (obj instanceof Point) {
+                    Point point = (Point)obj;
+                    buf.append("POINT(");
+                    buf.append(point.point.getX());
+                    buf.append(" ");
+                    buf.append(point.point.getY());
+                    buf.append("), ");
+                }
+                else if (obj instanceof MultiPoint) {
+                    MultiPoint multiPoint = (MultiPoint)obj;
+                    buf.append("MULTIPOINT");
+                    buf.append("(");
+                    Coordinate[] coordinates = multiPoint.multiPoint.getCoordinates();
+                    for (Coordinate c : coordinates) {
+                        buf.append("(" + c.x + " " + c.y + "), ");
+                    }
+                    buf.deleteCharAt(buf.length() - 1);
+                    buf.deleteCharAt(buf.length() - 1);
+                    buf.append("), ");
+                }
+                else if (obj instanceof MultiPolygon) {
+                    MultiPolygon multiPolygon = (MultiPolygon)obj;
+                    buf.append("MULTIPOLYGON");
+                    buf.append("(");
+                    List<List<List<Coordinate>>> listListCoordinate = multiPolygon.getListCoordinate();
+                    for (List<List<Coordinate>> listCoordinate : listListCoordinate) {
+                        buf.append("(");
+                        for (List<Coordinate> l : listCoordinate) {
+                            buf.append("(");
+                            for (Coordinate c : l) {
+                                buf.append(c.x + " " + c.y + ", ");
+                            }
+                            buf.deleteCharAt(buf.length() - 1);
+                            buf.deleteCharAt(buf.length() - 1);
+                            buf.append("),");
+                        }
+                        buf.deleteCharAt(buf.length() - 1);
+                        buf.append("),");
+                    }
+                    buf.deleteCharAt(buf.length() - 1);
+                    buf.append("), ");
+                }
+                else if (obj instanceof Polygon) {
+                    Polygon polygon = (Polygon)obj;
+                    buf.append("POLYGON");
+                    buf.append("(");
+                    for (List<Coordinate> coordinates : polygon.getCoordinates()) {
+                        buf.append("(");
+                        for (Coordinate c : coordinates) {
+                            buf.append(c.x + " " + c.y + ", ");
+                        }
+                        buf.deleteCharAt(buf.length() - 1);
+                        buf.deleteCharAt(buf.length() - 1);
+                        buf.append("), ");
+                    }
+                    buf.deleteCharAt(buf.length() - 1);
+                    buf.deleteCharAt(buf.length() - 1);
+                    buf.append("), ");
+                }
+                else if (obj instanceof MultiLineString) {
+                    MultiLineString multiLineString = (MultiLineString)obj;
+                    buf.append("MULTILINESTRING");
+                    buf.append("(");
+                    List<List<Coordinate>> listCoordinate = multiLineString.getListCoordinate();
+                    for (List<Coordinate> l : listCoordinate) {
+                        buf.append("(");
+                        for (Coordinate c : l) {
+                            buf.append(c.x + " " + c.y + ", ");
+                        }
+                        buf.deleteCharAt(buf.length() - 1);
+                        buf.deleteCharAt(buf.length() - 1);
+                        buf.append("),");
+                    }
+                    buf.deleteCharAt(buf.length() - 1);
+                    buf.append("), ");
+                }
+                else if (obj instanceof LineString) {
+                    LineString lineString = (LineString)obj;
+                    buf.append("LINESTRING");
+                    buf.append("(");
+                    Coordinate[] coordinates = lineString.lineString.getCoordinates();
+                    for (Coordinate c : coordinates) {
+                        buf.append(c.x + " " + c.y + ", ");
+                    }
+                    buf.deleteCharAt(buf.length() - 1);
+                    buf.deleteCharAt(buf.length() - 1);
+                    buf.append("), ");
+                }
+            }
+            if (buf.substring(buf.length() - 2).equals(", ")) {
+                buf.deleteCharAt(buf.length() - 1);
+                buf.deleteCharAt(buf.length() - 1);
+            }
+            buf.append(")");
+            if (geometryCollection.timeStampMillisec != 0) {
+                buf.append(SEPARATION + " ");
+                buf.append(this.dateFormat.format(new Date(geometryCollection.timeStampMillisec)));
+            }
+            buf.append("\"");
+            buf.append(SEPARATION);
+
+            return new ProducerRecord<byte[], byte[]>(outputTopic, buf.toString().getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    public static class MultiPointToGeoJSONOutputSchema  implements Serializable, KafkaSerializationSchema<MultiPoint> {
+
+        private String outputTopic;
+        private DateFormat dateFormat;
+
+        public MultiPointToGeoJSONOutputSchema(String outputTopicName, DateFormat dateFormat)
+        {
+            this.outputTopic = outputTopicName;
+            this.dateFormat = dateFormat;
+        }
+
+        @Override
+        public ProducerRecord<byte[], byte[]> serialize(MultiPoint multiPoint, @Nullable Long timestamp) {
+
+            JSONObject jsonObj = new JSONObject();
+
+            JSONObject jsonGeometry = new JSONObject();
+            Coordinate[] multiPointCoordinates = multiPoint.multiPoint.getCoordinates();
+            List<double[]> jsonCoordinate = new ArrayList<double[]>();
+            for (Coordinate c : multiPointCoordinates) {
+                double[] coordinate = {c.x, c.y};
+                jsonCoordinate.add(coordinate);
+            }
+            jsonGeometry.put("type", "MultiPoint");
+            jsonGeometry.put("coordinates", jsonCoordinate);
+            jsonObj.put("geometry", jsonGeometry);
+
+            JSONObject jsonpProperties = new JSONObject();
+            if (multiPoint.objID != null) {
+                jsonpProperties.put("oID", multiPoint.objID);
+            }
+            if (multiPoint.timeStampMillisec != 0) {
+                jsonpProperties.put("timestamp", this.dateFormat.format(new Date(multiPoint.timeStampMillisec)));
+            }
+            if (jsonpProperties.length() > 0) {
+                jsonObj.put("properties", jsonpProperties);
+            }
+
+            jsonObj.put("type", "Feature");
+
+            return new ProducerRecord<byte[], byte[]>(outputTopic, jsonObj.toString().getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    public static class MultiPointToCSVOutputSchema implements Serializable, KafkaSerializationSchema<MultiPoint> {
+
+        private String outputTopic;
+        private DateFormat dateFormat;
+
+        public MultiPointToCSVOutputSchema(String outputTopicName, DateFormat dateFormat)
+        {
+            this.outputTopic = outputTopicName;
+            this.dateFormat = dateFormat;
+        }
+
+        @Override
+        public ProducerRecord<byte[], byte[]> serialize(MultiPoint multiPoint, @Nullable Long timestamp) {
+
+            final String SEPARATION = ",";
+            StringBuffer buf = new StringBuffer();
+
+            buf.append("\"");
+            if (multiPoint.objID != null) {
+                buf.append(multiPoint.objID);
+                buf.append(SEPARATION + " ");
+            }
+            buf.append("MULTIPOINT");
+            buf.append("(");
+            Coordinate[] coordinates = multiPoint.multiPoint.getCoordinates();
+            for (Coordinate c : coordinates) {
+                buf.append("(" + c.x + " " + c.y + "), ");
+            }
+            buf.deleteCharAt(buf.length() - 1);
+            buf.deleteCharAt(buf.length() - 1);
+            buf.append(")");
+            if (multiPoint.timeStampMillisec != 0) {
+                buf.append(SEPARATION + " ");
+                buf.append(this.dateFormat.format(new Date(multiPoint.timeStampMillisec)));
+            }
+            buf.append("\"");
+            buf.append(SEPARATION);
+
+            return new ProducerRecord<byte[], byte[]>(outputTopic, buf.toString().getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    public static class MultiPointToTSVOutputSchema implements Serializable, KafkaSerializationSchema<MultiPoint> {
+
+        private String outputTopic;
+        private DateFormat dateFormat;
+
+        public MultiPointToTSVOutputSchema(String outputTopicName, DateFormat dateFormat)
+        {
+            this.outputTopic = outputTopicName;
+            this.dateFormat = dateFormat;
+        }
+
+        @Override
+        public ProducerRecord<byte[], byte[]> serialize(MultiPoint multiPoint, @Nullable Long timestamp) {
+
+            final String SEPARATION = "\\t";
+            StringBuffer buf = new StringBuffer();
+
+            buf.append("\"");
+            if (multiPoint.objID != null) {
+                buf.append(multiPoint.objID);
+                buf.append(SEPARATION + " ");
+            }
+            buf.append("MULTIPOINT");
+            buf.append("(");
+            Coordinate[] coordinates = multiPoint.multiPoint.getCoordinates();
+            for (Coordinate c : coordinates) {
+                buf.append("(" + c.x + " " + c.y + "), ");
+            }
+            buf.deleteCharAt(buf.length() - 1);
+            buf.deleteCharAt(buf.length() - 1);
+            buf.append(")");
+            if (multiPoint.timeStampMillisec != 0) {
+                buf.append(SEPARATION + " ");
+                buf.append(this.dateFormat.format(new Date(multiPoint.timeStampMillisec)));
+            }
+            buf.append("\"");
+            buf.append(SEPARATION);
+
+            return new ProducerRecord<byte[], byte[]>(outputTopic, buf.toString().getBytes(StandardCharsets.UTF_8));
+        }
+    }
 }

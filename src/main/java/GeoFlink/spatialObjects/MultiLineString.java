@@ -14,6 +14,7 @@ import java.util.List;
 public class MultiLineString extends LineString implements Serializable {
 
     private List<List<Coordinate>> listCoordinate = new ArrayList<List<Coordinate>>();
+    public org.locationtech.jts.geom.LineString[] arrLineString;
 
     public MultiLineString() {}; // required for POJO
 
@@ -29,11 +30,28 @@ public class MultiLineString extends LineString implements Serializable {
     public MultiLineString(String objID, List<List<Coordinate>> listCoordinate, UniformGrid uGrid) {
         super(objID, listCoordinate.get(0), uGrid);
         this.listCoordinate = listCoordinate;
+        List<org.locationtech.jts.geom.LineString> listLineString = new ArrayList<org.locationtech.jts.geom.LineString>();
+        for (List<Coordinate> list : listCoordinate) {
+            GeometryFactory geofact = new GeometryFactory();
+            listLineString.add(geofact.createLineString(list.toArray(new Coordinate[0])));
+        }
+        this.arrLineString = listLineString.toArray(new org.locationtech.jts.geom.LineString[0]);
     }
 
     public MultiLineString(String objID, List<List<Coordinate>> listCoordinate, long timeStampMillisec, UniformGrid uGrid) {
         super(objID, listCoordinate.get(0), timeStampMillisec, uGrid);
         this.listCoordinate = listCoordinate;
+        List<org.locationtech.jts.geom.LineString> listLineString = new ArrayList<org.locationtech.jts.geom.LineString>();
+       for (List<Coordinate> list : listCoordinate) {
+            GeometryFactory geofact = new GeometryFactory();
+            listLineString.add(geofact.createLineString(list.toArray(new Coordinate[0])));
+        }
+        this.arrLineString = listLineString.toArray(new org.locationtech.jts.geom.LineString[0]);
+    }
+
+    public org.locationtech.jts.geom.MultiLineString getMultiPolygon() {
+        GeometryFactory geofact = new GeometryFactory();
+        return geofact.createMultiLineString(arrLineString);
     }
 
     // To print the point coordinates
