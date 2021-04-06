@@ -60,12 +60,13 @@ public class Deserialization implements Serializable {
         return pointStream;
     }
 
-    public static DataStream<Point> TrajectoryStream(DataStream inputStream, String inputType, DateFormat dateFormat, UniformGrid uGrid){
+    public static DataStream<Point> TrajectoryStream(DataStream inputStream, String inputType, DateFormat dateFormat,
+                                                     String propertyTimeStamp, String propertyObjID, UniformGrid uGrid){
 
         DataStream<Point> trajectoryStream = null;
 
         if(inputType.equals("GeoJSON")) {
-            trajectoryStream = inputStream.map(new GeoJSONToTSpatial(uGrid, dateFormat));
+            trajectoryStream = inputStream.map(new GeoJSONToTSpatial(uGrid, dateFormat, propertyTimeStamp, propertyObjID));
         }
         else if (inputType.equals("CSV")){
             trajectoryStream = inputStream.map(new CSVToTSpatial(uGrid, dateFormat));
@@ -94,12 +95,13 @@ public class Deserialization implements Serializable {
         return polygonStream;
     }
 
-    public static DataStream<Polygon> TrajectoryStreamPolygon(DataStream inputStream, String inputType, DateFormat dateFormat, UniformGrid uGrid){
+    public static DataStream<Polygon> TrajectoryStreamPolygon(DataStream inputStream, String inputType, DateFormat dateFormat,
+                                                              String propertyTimeStamp, String propertyObjID, UniformGrid uGrid){
 
         DataStream<Polygon> trajectoryStream = null;
 
         if(inputType.equals("GeoJSON")) {
-            trajectoryStream = inputStream.map(new GeoJSONToTSpatialPolygon(uGrid, dateFormat));
+            trajectoryStream = inputStream.map(new GeoJSONToTSpatialPolygon(uGrid, dateFormat, propertyTimeStamp, propertyObjID));
         }
         else if (inputType.equals("CSV")){
             trajectoryStream = inputStream.map(new CSVToTSpatialPolygon(uGrid, dateFormat));
@@ -147,14 +149,18 @@ public class Deserialization implements Serializable {
 
         UniformGrid uGrid;
         DateFormat dateFormat;
+        String propertyTimeStamp;
+        String propertyObjID;
 
         //ctor
         public  GeoJSONToTSpatial() {};
-        public  GeoJSONToTSpatial(UniformGrid uGrid, DateFormat dateFormat)
+        public  GeoJSONToTSpatial(UniformGrid uGrid, DateFormat dateFormat, String propertyTimeStamp, String propertyObjID)
         {
 
             this.uGrid = uGrid;
             this.dateFormat = dateFormat;
+            this.propertyTimeStamp = propertyTimeStamp;
+            this.propertyObjID = propertyObjID;
         };
 
         @Override
@@ -174,14 +180,14 @@ public class Deserialization implements Serializable {
             String strOId = null;
             long time = 0;
             if (nodeProperties != null) {
-                JsonNode nodeTime = jsonObj.get("value").get("properties").get("timestamp");
+                JsonNode nodeTime = jsonObj.get("value").get("properties").get(propertyTimeStamp);
                 try {
                     if (nodeTime != null && dateFormat != null) {
                         time = dateFormat.parse(nodeTime.textValue()).getTime();
                     }
                 }
                 catch (ParseException e) {}
-                JsonNode nodeOId = jsonObj.get("value").get("properties").get("oID");
+                JsonNode nodeOId = jsonObj.get("value").get("properties").get(propertyObjID);
                 if (nodeOId != null) {
                     strOId = nodeOId.textValue();
                 }
@@ -387,14 +393,19 @@ public class Deserialization implements Serializable {
 
         UniformGrid uGrid;
         DateFormat dateFormat;
+        String propertyTimeStamp;
+        String propertyObjID;
 
         //ctor
         public  GeoJSONToTSpatialPolygon() {};
-        public  GeoJSONToTSpatialPolygon(UniformGrid uGrid, DateFormat dateFormat)
+        public  GeoJSONToTSpatialPolygon(UniformGrid uGrid, DateFormat dateFormat, String propertyTimeStamp, String propertyObjID)
         {
             this.uGrid = uGrid;
             this.dateFormat = dateFormat;
-        };
+            this.propertyTimeStamp = propertyTimeStamp;
+            this.propertyObjID = propertyObjID;
+        }
+
 
         @Override
         public Polygon map(ObjectNode jsonObj) throws Exception {
@@ -414,16 +425,14 @@ public class Deserialization implements Serializable {
             String oId = null;
             long time = 0;
             if (nodeProperties != null) {
-                JsonNode nodeTime = jsonObj.get("value").get("properties").get("lstmoddate");
+                JsonNode nodeTime = jsonObj.get("value").get("properties").get(propertyTimeStamp);
                 try {
                     if (nodeTime != null && dateFormat != null) {
                         time = dateFormat.parse(nodeTime.textValue()).getTime();
                     }
                 }
                 catch (ParseException e) {}
-
-                JsonNode nodeOId = jsonObj.get("value").get("properties").get("mpluto_bbl");
-
+                JsonNode nodeOId = jsonObj.get("value").get("properties").get(propertyObjID);
                 if (nodeOId != null) {
                     try {
                         oId = nodeOId.textValue();
@@ -437,8 +446,9 @@ public class Deserialization implements Serializable {
                 List<List<List<Coordinate>>> listCoodinate = convertMultiCoordinates(
                         json, '[', ']', "],", ",", 4);
                 if (time != 0) {
-                    spatialPolygon = new MultiPolygon(listCoodinate, oId, time, uGrid);
-                    //spatialPolygon = new MultiPolygon(listCoodinate, oId, System.currentTimeMillis(), uGrid);
+                    //TODO: Fix timestamp to original timestamp
+                    //spatialPolygon = new MultiPolygon(listCoodinate, oId, time, uGrid);
+                    spatialPolygon = new MultiPolygon(listCoodinate, oId, System.currentTimeMillis(), uGrid);
                     //System.out.println("time " + time + spatialPolygon);
                 }
                 else {
@@ -666,12 +676,13 @@ public class Deserialization implements Serializable {
         return lineStringStream;
     }
 
-    public static DataStream<LineString> TrajectoryStreamLineString(DataStream inputStream, String inputType, DateFormat dateFormat, UniformGrid uGrid){
+    public static DataStream<LineString> TrajectoryStreamLineString(DataStream inputStream, String inputType, DateFormat dateFormat,
+                                                                    String propertyTimeStamp, String propertyObjID, UniformGrid uGrid){
 
         DataStream<LineString> trajectoryStream = null;
 
         if(inputType.equals("GeoJSON")) {
-            trajectoryStream = inputStream.map(new GeoJSONToTSpatialLineString(uGrid, dateFormat));
+            trajectoryStream = inputStream.map(new GeoJSONToTSpatialLineString(uGrid, dateFormat, propertyTimeStamp, propertyObjID));
         }
         else if (inputType.equals("CSV")){
             trajectoryStream = inputStream.map(new CSVToTSpatialLineString(uGrid, dateFormat));
@@ -731,13 +742,17 @@ public class Deserialization implements Serializable {
 
         UniformGrid uGrid;
         DateFormat dateFormat;
+        String propertyTimeStamp;
+        String propertyObjID;
 
         //ctor
         public  GeoJSONToTSpatialLineString() {};
-        public  GeoJSONToTSpatialLineString(UniformGrid uGrid, DateFormat dateFormat)
+        public  GeoJSONToTSpatialLineString(UniformGrid uGrid, DateFormat dateFormat, String propertyTimeStamp, String propertyObjID)
         {
             this.uGrid = uGrid;
             this.dateFormat = dateFormat;
+            this.propertyTimeStamp = propertyTimeStamp;
+            this.propertyObjID = propertyObjID;
         };
 
         @Override
@@ -758,14 +773,14 @@ public class Deserialization implements Serializable {
             String strOId = null;
             long time = 0;
             if (nodeProperties != null) {
-                JsonNode nodeTime = jsonObj.get("value").get("properties").get("timestamp");
+                JsonNode nodeTime = jsonObj.get("value").get("properties").get(propertyTimeStamp);
                 try {
                     if (nodeTime != null && dateFormat != null) {
                         time = dateFormat.parse(nodeTime.textValue()).getTime();
                     }
                 }
                 catch (ParseException e) {}
-                JsonNode nodeOId = jsonObj.get("value").get("properties").get("oID");
+                JsonNode nodeOId = jsonObj.get("value").get("properties").get(propertyObjID);
                 if (nodeOId != null) {
                     strOId = nodeOId.textValue();
                 }
@@ -786,8 +801,9 @@ public class Deserialization implements Serializable {
                         json, '[', ']', "],", ",", 2);
                 if (time != 0) {
                     //spatialLineString = new LineString(strOId, parent.get(0), time, uGrid);
-                    spatialLineString = new LineString(strOId, parent.get(0), time, uGrid);
-                    //spatialLineString = new LineString(strOId, parent.get(0), System.currentTimeMillis(), uGrid);
+                    //TODO: Fix timestamp to original timestamp
+                    //spatialPolygon = new MultiPolygon(listCoodinate, oId, time, uGrid);
+                    spatialLineString = new LineString(strOId, parent.get(0), System.currentTimeMillis(), uGrid);
 
                 }
                 else {
@@ -991,12 +1007,13 @@ public class Deserialization implements Serializable {
         return geometryCollectionStream;
     }
 
-    public static DataStream<GeometryCollection> TrajectoryStreamGeometryCollection(DataStream inputStream, String inputType, DateFormat dateFormat, UniformGrid uGrid){
+    public static DataStream<GeometryCollection> TrajectoryStreamGeometryCollection(DataStream inputStream, String inputType, DateFormat dateFormat,
+                                                                                    String propertyTimeStamp, String propertyObjID, UniformGrid uGrid){
 
         DataStream<GeometryCollection> trajectoryStream = null;
 
         if(inputType.equals("GeoJSON")) {
-            trajectoryStream = inputStream.map(new GeoJSONToTSpatialGeometryCollection(uGrid, dateFormat));
+            trajectoryStream = inputStream.map(new GeoJSONToTSpatialGeometryCollection(uGrid, dateFormat, propertyTimeStamp, propertyObjID));
         }
         else if (inputType.equals("CSV")){
             trajectoryStream = inputStream.map(new CSVToTSpatialGeometryCollection(uGrid, dateFormat));
@@ -1076,15 +1093,19 @@ public class Deserialization implements Serializable {
 
         UniformGrid uGrid;
         DateFormat dateFormat;
+        String propertyTimeStamp;
+        String propertyObjID;
 
         //ctor
         public GeoJSONToTSpatialGeometryCollection() {
         }
 
-        public GeoJSONToTSpatialGeometryCollection(UniformGrid uGrid, DateFormat dateFormat) {
+        public GeoJSONToTSpatialGeometryCollection(UniformGrid uGrid, DateFormat dateFormat, String propertyTimeStamp, String propertyObjID) {
 
             this.uGrid = uGrid;
             this.dateFormat = dateFormat;
+            this.propertyTimeStamp = propertyTimeStamp;
+            this.propertyObjID = propertyObjID;
         }
 
         @Override
@@ -1103,14 +1124,14 @@ public class Deserialization implements Serializable {
             String strOId = null;
             long time = 0;
             if (nodeProperties != null) {
-                JsonNode nodeTime = jsonObj.get("value").get("properties").get("timestamp");
+                JsonNode nodeTime = jsonObj.get("value").get("properties").get(propertyTimeStamp);
                 try {
                     if (nodeTime != null && dateFormat != null) {
                         time = dateFormat.parse(nodeTime.textValue()).getTime();
                     }
                 } catch (ParseException e) {
                 }
-                JsonNode nodeOId = jsonObj.get("value").get("properties").get("oID");
+                JsonNode nodeOId = jsonObj.get("value").get("properties").get(propertyObjID);
                 if (nodeOId != null) {
                     strOId = nodeOId.textValue();
                 }
@@ -1570,12 +1591,13 @@ public class Deserialization implements Serializable {
         return multiPointStream;
     }
 
-    public static DataStream<MultiPoint> TrajectoryStreamMultiPoint(DataStream inputStream, String inputType, DateFormat dateFormat, UniformGrid uGrid){
+    public static DataStream<MultiPoint> TrajectoryStreamMultiPoint(DataStream inputStream, String inputType, DateFormat dateFormat,
+                                                                    String propertyTimeStamp, String propertyObjID, UniformGrid uGrid){
 
         DataStream<MultiPoint> trajectoryStream = null;
 
         if(inputType.equals("GeoJSON")) {
-            trajectoryStream = inputStream.map(new GeoJSONToTSpatialMultiPoint(uGrid, dateFormat));
+            trajectoryStream = inputStream.map(new GeoJSONToTSpatialMultiPoint(uGrid, dateFormat, propertyTimeStamp, propertyObjID));
         }
         else if (inputType.equals("CSV")){
             trajectoryStream = inputStream.map(new CSVToTSpatialMultiPoint(uGrid, dateFormat));
@@ -1614,12 +1636,16 @@ public class Deserialization implements Serializable {
 
         UniformGrid uGrid;
         DateFormat dateFormat;
+        String propertyTimeStamp;
+        String propertyObjID;
 
         public  GeoJSONToTSpatialMultiPoint() {};
-        public  GeoJSONToTSpatialMultiPoint(UniformGrid uGrid, DateFormat dateFormat)
+        public  GeoJSONToTSpatialMultiPoint(UniformGrid uGrid, DateFormat dateFormat, String propertyTimeStamp, String propertyObjID)
         {
             this.uGrid = uGrid;
             this.dateFormat = dateFormat;
+            this.propertyTimeStamp = propertyTimeStamp;
+            this.propertyObjID = propertyObjID;
         }
 
         @Override
@@ -1630,14 +1656,14 @@ public class Deserialization implements Serializable {
             String strOId = null;
             long time = 0;
             if (nodeProperties != null) {
-                JsonNode nodeTime = jsonObj.get("value").get("properties").get("timestamp");
+                JsonNode nodeTime = jsonObj.get("value").get("properties").get(propertyTimeStamp);
                 try {
                     if (nodeTime != null && dateFormat != null) {
                         time = dateFormat.parse(nodeTime.textValue()).getTime();
                     }
                 }
                 catch (ParseException e) {}
-                JsonNode nodeOId = jsonObj.get("value").get("properties").get("oID");
+                JsonNode nodeOId = jsonObj.get("value").get("properties").get(propertyObjID);
                 if (nodeOId != null) {
                     strOId = nodeOId.textValue();
                 }
