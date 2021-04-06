@@ -437,9 +437,8 @@ public class Deserialization implements Serializable {
                 List<List<List<Coordinate>>> listCoodinate = convertMultiCoordinates(
                         json, '[', ']', "],", ",", 4);
                 if (time != 0) {
-                    //TODO: Fix timestamp to original timestamp
-                    //spatialPolygon = new MultiPolygon(listCoodinate, oId, time, uGrid);
-                    spatialPolygon = new MultiPolygon(listCoodinate, oId, System.currentTimeMillis(), uGrid);
+                    spatialPolygon = new MultiPolygon(listCoodinate, oId, time, uGrid);
+                    //spatialPolygon = new MultiPolygon(listCoodinate, oId, System.currentTimeMillis(), uGrid);
                     //System.out.println("time " + time + spatialPolygon);
                 }
                 else {
@@ -787,9 +786,8 @@ public class Deserialization implements Serializable {
                         json, '[', ']', "],", ",", 2);
                 if (time != 0) {
                     //spatialLineString = new LineString(strOId, parent.get(0), time, uGrid);
-                    //TODO: Fix timestamp to original timestamp
-                    //spatialPolygon = new MultiPolygon(listCoodinate, oId, time, uGrid);
-                    spatialLineString = new LineString(strOId, parent.get(0), System.currentTimeMillis(), uGrid);
+                    spatialLineString = new LineString(strOId, parent.get(0), time, uGrid);
+                    //spatialLineString = new LineString(strOId, parent.get(0), System.currentTimeMillis(), uGrid);
 
                 }
                 else {
