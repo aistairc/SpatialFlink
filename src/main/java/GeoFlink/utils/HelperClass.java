@@ -35,6 +35,7 @@ import org.apache.flink.streaming.connectors.kafka.KafkaSerializationSchema;
 import org.apache.flink.util.Collector;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -158,6 +159,26 @@ public class HelperClass {
         return gridCellIDs;
     }
      */
+
+    public static org.locationtech.jts.geom.Polygon generatePolygonUsingBBox(Coordinate[] boundingBox) {
+
+        // creating a cell polygon for the sake of computing the intersection between polygon and line segment
+        if (boundingBox.length > 0) {
+
+            Coordinate c1 = new Coordinate(boundingBox[0].getX(), boundingBox[0].getY(), 0);
+            Coordinate c2 = new Coordinate(boundingBox[1].getX(), boundingBox[0].getY(), 0);
+            Coordinate c3 = new Coordinate(boundingBox[1].getX(), boundingBox[1].getY(), 0);
+            Coordinate c4 = new Coordinate(boundingBox[0].getX(), boundingBox[1].getY(), 0);
+
+            Coordinate[] polygonCoordinates;
+            polygonCoordinates = new Coordinate[]{c1, c2, c3, c4, c1};
+            GeometryFactory geofact = new GeometryFactory();
+            org.locationtech.jts.geom.Polygon poly = geofact.createPolygon(polygonCoordinates);
+
+            return poly;
+        }
+        return null;
+    }
 
     public static ArrayList<Integer> getIntCellIndices(String cellID)
     {

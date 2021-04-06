@@ -420,6 +420,102 @@ public class DistanceFunctions {
 
     }
 
+    /*
+
+    public static double getPointPointEuclideanDistance(Coordinate c1, Coordinate c2) {
+
+        return getPointPointEuclideanDistance(c1.getX(), c1.getY(), c2.getX(), c2.getY());
+    }
+
+    public static double getPointPointEuclideanDistance(Double lon, Double lat, Double lon1, Double lat1) {
+
+        return Math.sqrt( Math.pow((lat1 - lat),2) + Math.pow((lon1 - lon),2));
+    }
+
+    static double getPointLineStringNearestBBoxBorderMinEuclideanDistance(Coordinate p, Coordinate c1, Coordinate c2){
+        return getPointLineStringNearestBBoxBorderMinEuclideanDistance(p.getX(), p.getY(), c1.getX(), c1.getY(), c2.getX(), c2.getY());
+    }
+
+    // Get exact min distance between Point and Polygon
+    public static double getPointPolygonMinEuclideanDistance(Point p, Polygon poly) {
+        return getPointCoordinatesArrayMinEuclideanDistance(p, poly.polygon.getCoordinates());
+    }
+
+    static double getPointCoordinatesArrayMinEuclideanDistance(Point p, Coordinate[] coordinates) {
+
+        double minDist = Double.MAX_VALUE;
+        for(int i = 0; i < coordinates.length - 1; i++){
+            double dist = getPointLineSegmentMinEuclideanDistance(p.point.getCoordinate(), coordinates[i], coordinates[i+1]);
+
+            if (dist < minDist){
+                minDist = dist;
+            }
+        }
+        return minDist;
+    }
+
+    // Get exact min distance between Point and LineString
+    public static double getPointLineStringMinEuclideanDistance(Point p, LineString lineString) {
+        return getPointCoordinatesArrayMinEuclideanDistance(p, lineString.lineString.getCoordinates());
+    }
+
+    // Exact Min distance between a point and a line segment of two points
+    // Point Line-Segment Distance. Source: https://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment
+    // x, y are point coordinates, whereas x1, y1 and x2, y2 are line segment co-ordinates
+
+    public static double getPointLineSegmentMinEuclideanDistance(Coordinate pointCoordinate, Coordinate lineSegmentCoordinate1, Coordinate lineSegmentCoordinate2){
+        return getPointLineSegmentMinEuclideanDistance(pointCoordinate.getX(), pointCoordinate.getY(),  lineSegmentCoordinate1.getX(), lineSegmentCoordinate1.getY(), lineSegmentCoordinate2.getX(), lineSegmentCoordinate2.getY());
+    }
+
+    public static double getPointLineSegmentMinEuclideanDistance(double x, double y, double x1, double y1, double x2, double y2){
+
+        double A = x - x1;
+        double B = y - y1;
+        double C = x2 - x1;
+        double D = y2 - y1;
+
+        double dot = (A * C) + (B * D);
+        double len_sq = (C * C) + (D * D);
+        double param = -1;
+
+        if (len_sq != 0) //in case of 0 length line
+            param = dot / len_sq;
+
+        double xx;
+        double yy;
+
+        if (param < 0) {
+            xx = x1;
+            yy = y1;
+        }
+        else if (param > 1) {
+            xx = x2;
+            yy = y2;
+        }
+        else {
+            xx = x1 + param * C;
+            yy = y1 + param * D;
+        }
+
+        return getPointPointEuclideanDistance(x, y, xx, yy);
+    }
+
+    public static double getPointLineStringNearestBBoxBorderMinEuclideanDistance(double x, double y, double x1, double y1, double x2, double y2){
+
+        if(x1 == x2){
+            return getPointPointEuclideanDistance(x, y, x1, y);
+        }
+        else if(y1 == y2){
+            return getPointPointEuclideanDistance(x, y, x, y1);
+        }
+        else{
+            System.out.println("getPointLineStringNearestBBoxBorderMinEuclideanDistance: invalid bbox coordinates");
+        }
+
+        return Double.MIN_VALUE;
+    }
+     */
+
 
     /*
     // Get min distance between Polygon and Polygon
