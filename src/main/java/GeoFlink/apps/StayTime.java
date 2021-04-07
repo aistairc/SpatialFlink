@@ -26,10 +26,14 @@ import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.triggers.Trigger;
 import org.apache.flink.streaming.api.windowing.triggers.TriggerResult;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
+import org.apache.flink.streaming.connectors.kafka.KafkaSerializationSchema;
 import org.apache.flink.util.Collector;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.locationtech.jts.geom.*;
 
+import javax.annotation.Nullable;
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -390,4 +394,24 @@ public class StayTime implements Serializable {
             output.collect(Tuple4.of(cellID, timeWindow.getStart(), timeWindow.getEnd(), sumStayTime));
         }
     }
+
+    // Kafka Output Schema
+    public static class normalizedStayTimeOutputSchema implements Serializable, KafkaSerializationSchema<Tuple4<String, Long, Long, Double>> {
+
+        String outputTopic;
+        Integer queryID;
+
+        public normalizedStayTimeOutputSchema(String outputTopicName)
+        {
+            this.outputTopic = outputTopicName;
+        }
+
+        @Override
+        public ProducerRecord<byte[], byte[]> serialize(Tuple4<String, Long, Long, Double> element, @Nullable Long timestamp) {
+            String outputStr = element.toString();
+            return new ProducerRecord<byte[], byte[]>(outputTopic, outputStr.getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+
 }
