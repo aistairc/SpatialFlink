@@ -97,6 +97,7 @@ public class StreamingJob implements Serializable {
 		String windowType = parameters.get("wType");
 		int k = Integer.parseInt(parameters.get("k")); // k denotes filter size in filter query
 		boolean onCluster = Boolean.parseBoolean(parameters.get("onCluster"));
+		String bootStrapServers = parameters.get("kafkaBootStrapServers");
 		boolean approximateQuery = Boolean.parseBoolean(parameters.get("approximateQuery"));
 		//String dataset = parameters.get("dataset"); // TDriveBeijing, ATCShoppingMall
 		Long inactiveTrajDeletionThreshold = Long.parseLong(parameters.get("trajDeletionThreshold"));
@@ -121,7 +122,7 @@ public class StreamingJob implements Serializable {
 		List<String> ordinaryStreamAttributeNames = HelperClass.getParametersArray(parameters.get("ordinaryStreamAttributes")); // default order of attributes: objectID, timestamp
 		List<String> queryStreamAttributeNames = HelperClass.getParametersArray(parameters.get("queryStreamAttributes"));
 
-		String bootStrapServers;
+		//String bootStrapServers;
 		DateFormat inputDateFormat;
 		DateFormat queryDateFormat;
 
@@ -139,13 +140,13 @@ public class StreamingJob implements Serializable {
 
 		if (onCluster) {
 			env = StreamExecutionEnvironment.getExecutionEnvironment();
-			bootStrapServers = "172.16.0.64:9092, 172.16.0.81:9092";
+			//bootStrapServers = "172.16.0.64:9092, 172.16.0.81:9092";
 
 		}else{
 			env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(config);
 			//env = StreamExecutionEnvironment.getExecutionEnvironment();
 			//bootStrapServers = "localhost:9092";
-			bootStrapServers = "150.82.97.204:9092";
+			//bootStrapServers = "150.82.97.204:9092";
 			// For testing spatial trajectory queries
 
 			/*
