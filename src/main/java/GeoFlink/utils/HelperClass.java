@@ -42,6 +42,8 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class HelperClass {
 
@@ -138,6 +140,45 @@ public class HelperClass {
             }
 
         return gridCellIDs;
+    }
+
+    public static List<Coordinate> getCoordinates(String inputValue) {
+        //"[100.0, 0.0], [103.0, 0.0], [103.0, 1.0], [102.0, 1.0], [100.0, 0.0]"
+        List<Coordinate> list = new ArrayList<Coordinate>();
+        if (inputValue == null) {
+            return list;
+        }
+        Pattern pattern = Pattern.compile("\\[(.+?)\\]");
+        Matcher matcher = pattern.matcher(inputValue);
+        while (matcher.find()) {
+            try {
+                String[] arr = matcher.group(1).trim().split("\\s*,\\s*");
+                list.add(new Coordinate(Double.valueOf(arr[0]), Double.valueOf(arr[1])));
+            }
+            catch (Exception e) {}
+        }
+        return list;
+    }
+
+    public static List<String> getParametersArray(String inputValue) {
+        //"[timestamp, oID]"
+        List<String> list = new ArrayList<String>();
+        if (inputValue == null) {
+            return list;
+        }
+
+        Pattern pattern = Pattern.compile("\\[(.+?)\\]");
+        Matcher matcher = pattern.matcher(inputValue);
+
+        while (matcher.find()) {
+        try {
+            String[] arr = matcher.group(1).trim().split("\\s*,\\s*");
+            Collections.addAll(list, arr);
+        }
+        catch (Exception e) {}
+        }
+
+        return list;
     }
 
     // assigning grid cell ID - using coordinates

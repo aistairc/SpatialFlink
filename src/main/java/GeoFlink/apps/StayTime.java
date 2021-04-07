@@ -75,8 +75,6 @@ public class StayTime implements Serializable {
                     }
                 }).window(SlidingEventTimeWindows.of(Time.seconds(windowSize), Time.seconds(windowSlideStep)))
                 .apply(new CellStayTimeAggregateWinFunction());
-
-
     }
 
 
