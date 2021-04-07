@@ -1500,12 +1500,12 @@ public class StreamingJob implements Serializable {
 				//trajIDs = Stream.of("1001", "2059", "1741", "1415", "2565").collect(Collectors.toSet());
 				trajIDs = Stream.of("0").collect(Collectors.toSet());
 				//Set<String> trajIDSet = Stream.of("1001", "2059", "1741", "1415", "2565").collect(Collectors.toSet());
-				DataStream<Multimap<String, Tuple4<Long, Long, String, Double>>> CellStayTime = StayTime.CellStayTime(spatialPointStream, trajIDs, allowedLateness, windowSize, windowSlideStep, uGrid);
+				DataStream<Tuple4<String, Long, Long, Double>> CellStayTime = StayTime.CellStayTime(spatialPointStream, trajIDs, allowedLateness, windowSize, windowSlideStep, uGrid);
 				//CellStayTime.print();
 				//CellStayTime.addSink(new FlinkKafkaProducer<>(outputTopicName, new Serialization.PointToGeoJSONOutputSchema(outputTopicName, inputDateFormat), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 			}
 			case 1011:{
-				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(queryTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to point spatial data stream
 				DataStream<Polygon> spatialStream = Deserialization.TrajectoryStreamPolygon(geoJSONStream, inputFormat, inputDateFormat, uGrid);
 				//spatialStream.print();
@@ -1513,7 +1513,26 @@ public class StreamingJob implements Serializable {
 				//trajIDs = Stream.of("0").collect(Collectors.toSet());
 				//Set<String> trajIDSet = Stream.of("1001", "2059", "1741", "1415", "2565").collect(Collectors.toSet());
 				Set<String> trajectoryIDSet = new HashSet<String>();
-				DataStream<Tuple2<String, Multimap<Long, Polygon>>> CellStayTime = StayTime.CellSensorIntersection(spatialStream, trajectoryIDSet, allowedLateness, windowSize, windowSlideStep, uGrid);
+				DataStream<Tuple4<String, Long, Long, Integer>> CellSensorRangeIntersection = StayTime.CellSensorRangeIntersection(spatialStream, trajectoryIDSet, allowedLateness, windowSize, windowSlideStep, uGrid);
+				CellSensorRangeIntersection.print();
+			}
+			case 1012:{
+				// Point stream
+				DataStream pointStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromLatest());
+				// Converting GeoJSON,CSV stream to point spatial data stream
+				DataStream<Point> spatialPointStream = Deserialization.TrajectoryStream(pointStream, inputFormat, inputDateFormat, uGrid);
+				//spatialPointStream.print();
+				Set<String> trajectoryIDSetPoint = new HashSet<String>();
+
+				// Polygon stream
+				DataStream polygonStream  = env.addSource(new FlinkKafkaConsumer<>(queryTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromLatest());
+				// Converting GeoJSON,CSV stream to point spatial data stream
+				DataStream<Polygon> spatialPolygonStream = Deserialization.TrajectoryStreamPolygon(polygonStream, inputFormat, inputDateFormat, uGrid);
+				//spatialPolygonStream.print();
+				Set<String> trajectoryIDSetPolygon = new HashSet<String>();
+
+				DataStream<Tuple4<String, Long, Long, Double>> normalizedCellStayTime = StayTime.normalizedCellStayTime(spatialPointStream, trajectoryIDSetPoint, spatialPolygonStream, trajectoryIDSetPolygon, allowedLateness, windowSize, windowSlideStep, uGrid);
+				normalizedCellStayTime.print();
 			}
 			default:
 				System.out.println("Input Unrecognized. Please select option from 1-10.");

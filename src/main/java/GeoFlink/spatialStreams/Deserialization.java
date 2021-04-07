@@ -422,7 +422,7 @@ public class Deserialization implements Serializable {
                 }
                 catch (ParseException e) {}
 
-                JsonNode nodeOId = jsonObj.get("value").get("properties").get("mpluto_bbl");
+                JsonNode nodeOId = jsonObj.get("value").get("properties").get("doitt_id");
 
                 if (nodeOId != null) {
                     try {

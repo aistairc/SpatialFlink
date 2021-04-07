@@ -4,13 +4,18 @@ import GeoFlink.spatialIndices.UniformGrid;
 import GeoFlink.spatialObjects.Point;
 import GeoFlink.spatialObjects.Polygon;
 import GeoFlink.spatialOperators.TStatsQuery;
+import GeoFlink.utils.DistanceFunctions;
 import GeoFlink.utils.HelperClass;
 import org.apache.flink.api.common.functions.FilterFunction;
+import org.apache.flink.api.common.functions.JoinFunction;
+import org.apache.flink.api.common.functions.RichJoinFunction;
 import org.apache.flink.api.common.state.ValueState;
 import org.apache.flink.api.common.state.ValueStateDescriptor;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.tuple.Tuple4;
+import org.apache.flink.api.java.tuple.Tuple5;
 import org.apache.flink.shaded.guava18.com.google.common.collect.*;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrdernessTimestampExtractor;
@@ -32,7 +37,7 @@ import java.util.stream.Stream;
 public class StayTime implements Serializable {
 
     //--------------- CellStayTime - Point Stream - Window-based -----------------//
-    public static DataStream<Multimap<String, Tuple4<Long, Long, String, Double>>> CellStayTime(DataStream<Point> pointStream, Set<String> trajIDSet, int allowedLateness, int windowSize, int windowSlideStep, UniformGrid uGrid){
+    public static DataStream<Tuple4<String, Long, Long, Double>> CellStayTime(DataStream<Point> pointStream, Set<String> trajIDSet, int allowedLateness, int windowSize, int windowSlideStep, UniformGrid uGrid){
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: windowSize
@@ -62,11 +67,22 @@ public class StayTime implements Serializable {
                 return p.objID;
             }
         }).window(SlidingEventTimeWindows.of(Time.seconds(windowSize), Time.seconds(windowSlideStep)))
-                .apply(new CellStayTimeWinFunction(uGrid));
+                .apply(new CellStayTimeWinFunction(uGrid))
+                .keyBy(new KeySelector<Tuple5<String, Long, Long, String, Double>, String>() {
+                    @Override
+                    public String getKey(Tuple5<String, Long, Long, String, Double> tuple5) throws Exception {
+                        return tuple5.f3;
+                    }
+                }).window(SlidingEventTimeWindows.of(Time.seconds(windowSize), Time.seconds(windowSlideStep)))
+                .apply(new CellStayTimeAggregateWinFunction());
+
+
     }
 
+
+
     //--------------- Cell SensorRange Intersection- Window-based -----------------//
-    public static DataStream<Tuple2<String, Multimap<Long, Polygon>>> CellSensorIntersection(DataStream<Polygon> inputStream, Set<String> trajIDSet, int allowedLateness, int windowSize, int windowSlideStep, UniformGrid uGrid){
+    public static DataStream<Tuple4<String, Long, Long, Integer>> CellSensorRangeIntersection(DataStream<Polygon> inputStream, Set<String> trajIDSet, int allowedLateness, int windowSize, int windowSlideStep, UniformGrid uGrid){
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: windowSize
@@ -96,50 +112,55 @@ public class StayTime implements Serializable {
             public String getKey(Polygon p) throws Exception {
                 return p.gridID;
             }
-        }).window(SlidingProcessingTimeWindows.of(Time.seconds(windowSize), Time.seconds(windowSlideStep)))
+        }).window(SlidingEventTimeWindows.of(Time.seconds(windowSize), Time.seconds(windowSlideStep)))
                 .apply(new CellSensorIntersectionWinFunction(uGrid));
-
-
     }
 
-    //CellSensorIntersection RichWindowFunction<IN, OUT, KEY, W>
-    public static class CellSensorIntersectionWinFunction extends RichWindowFunction<Polygon, Tuple2<String, Multimap<Long, Polygon>>, String, TimeWindow> {
+    //--------------- Cell SensorRange Intersection- Window-based -----------------//
 
-        UniformGrid uGrid;
-        //ctor
-        public  CellSensorIntersectionWinFunction() {};
+    public static DataStream<Tuple4<String, Long, Long, Double>> normalizedCellStayTime(DataStream<Point> movingPointStream, Set<String> trajIDSetPoint, DataStream<Polygon> sensorRangeStream, Set<String> trajIDSetSensorRange,  int allowedLateness, int windowSize, int windowSlideStep, UniformGrid uGrid){
 
-        public  CellSensorIntersectionWinFunction(UniformGrid uniformGrid) {
-            this.uGrid = uniformGrid;
-        };
+        DataStream<Tuple4<String, Long, Long, Double>> cellStayTime = CellStayTime(movingPointStream, trajIDSetPoint, allowedLateness, windowSize, windowSlideStep, uGrid);
+        DataStream<Tuple4<String, Long, Long, Integer>> cellSensorRangeIntersection = CellSensorRangeIntersection(sensorRangeStream, trajIDSetSensorRange, allowedLateness, windowSize, windowSlideStep, uGrid);
+
+        //cellStayTime.print();
+        //cellSensorRangeIntersection.print();
+
+                return cellStayTime.join(cellSensorRangeIntersection)
+                .where(new KeySelector<Tuple4<String, Long, Long, Double>, String>() {
+                    @Override
+                    public String getKey(Tuple4<String, Long, Long, Double> tuple4) throws Exception {
+                        return tuple4.f0;
+                    }
+                }).equalTo(new KeySelector<Tuple4<String, Long, Long, Integer>, String>() {
+                    @Override
+                    public String getKey(Tuple4<String, Long, Long, Integer> tuple4) throws Exception {
+                        return tuple4.f0;
+                    }
+                }).window(SlidingEventTimeWindows.of(Time.seconds(windowSize), Time.seconds(windowSlideStep)))
+                .apply(new normalizedCellStayTimeWinFunction(windowSize));
+    }
+
+    //normalizedCellStayTimeWinFunction RichWindowFunction<IN, OUT, KEY, W>
+    public static class normalizedCellStayTimeWinFunction extends RichJoinFunction<Tuple4<String, Long, Long, Double>, Tuple4<String, Long, Long, Integer>, Tuple4<String, Long, Long, Double>> {
+
+        int windowSize_;
+        public  normalizedCellStayTimeWinFunction() {}
+
+        public  normalizedCellStayTimeWinFunction(int windowSize) {
+            this.windowSize_ = windowSize;
+        }
 
         @Override
-        public void apply(String cellID, TimeWindow window, Iterable<Polygon> input, Collector<Tuple2<String, Multimap<Long, Polygon>>> out) throws Exception {
+        public Tuple4<String, Long, Long, Double> join(Tuple4<String, Long, Long, Double> stayTime, Tuple4<String, Long, Long, Integer> sensorRangeIntersection) throws Exception {
 
-            //Map<Long, Polygon> timestampPolygonMap = new HashMap<>();
-            Multimap<Long, Polygon> timestampPolygonMap = TreeMultimap.create(Ordering.natural(), Ordering.arbitrary()); // Ordering is maintained for keys, avoid duplicates in values
-
-            // Generating polygon corresponding to cell boundary
-            Coordinate[] cellBoundary = uGrid.getCellMinMaxBoundary(cellID);
-            org.locationtech.jts.geom.Polygon cellPoly = HelperClass.generatePolygonUsingBBox(cellBoundary);
-
-            for (Polygon p : input) {
-
-                if(cellPoly != null) {
-                    if (cellPoly.intersects(p.polygon)) {
-                        timestampPolygonMap.put(p.timeStampMillisec, p);
-                    }
-                }
-            }
-            System.out.println(cellID + ", " + timestampPolygonMap);
-
-            // <Tuple2(gridID, MultiMap<timestamp, Polygon>)>
-            out.collect(Tuple2.of(cellID,timestampPolygonMap));
+            double normalizedStayTime = ((stayTime.f3/1000)/sensorRangeIntersection.f3)*this.windowSize_;
+            return Tuple4.of(stayTime.f0, stayTime.f1, stayTime.f2, normalizedStayTime);
         }
     }
 
     //CellStayTimeWinFunction RichWindowFunction<IN, OUT, KEY, W>
-    public static class CellStayTimeWinFunction extends RichWindowFunction<Point, Multimap<String, Tuple4<Long, Long, String, Double>>, String, TimeWindow> {
+    public static class CellStayTimeWinFunction extends RichWindowFunction<Point, Tuple5<String, Long, Long, String, Double>, String, TimeWindow> {
 
         UniformGrid uGrid;
         //ctor
@@ -150,7 +171,7 @@ public class StayTime implements Serializable {
         };
 
         @Override
-        public void apply(String key, TimeWindow window, Iterable<Point> input, Collector<Multimap<String, Tuple4<Long, Long, String, Double>>> output) throws Exception {
+        public void apply(String key, TimeWindow window, Iterable<Point> input, Collector<Tuple5<String, Long, Long, String, Double>> output) throws Exception {
 
             Multimap<Long, Point> timeStampPointMap = TreeMultimap.create(Ordering.natural(), Ordering.arbitrary()); // Ordering is maintained for keys, avoid duplicates in values
             //Multimap<String, Double> cellStayTime = LinkedListMultimap.create(); // Ordering is not maintained
@@ -276,25 +297,6 @@ public class StayTime implements Serializable {
                                 continue;
                             }
 
-                            /*
-                            // creating a cell polygon for the sake of computing the intersection between polygon and line segment
-                            if(cellBoundary.length > 0) {
-
-                                Coordinate c1 = new Coordinate(cellBoundary[0].getX(), cellBoundary[0].getY(), 0);
-                                Coordinate c2 = new Coordinate(cellBoundary[1].getX(), cellBoundary[0].getY(), 0);
-                                Coordinate c3 = new Coordinate(cellBoundary[1].getX(), cellBoundary[1].getY(), 0);
-                                Coordinate c4 = new Coordinate(cellBoundary[0].getX(), cellBoundary[1].getY(), 0);
-
-                                Coordinate[] polygonCoordinates;
-                                polygonCoordinates = new Coordinate[]{c1, c2, c3, c4, c1};
-                                org.locationtech.jts.geom.Polygon cellPoly = geofact.createPolygon(polygonCoordinates);
-
-                                if (cellPoly.intersects(jtsLineString)) {
-                                    intersectingCells.add(gridID);
-                                }
-                            }
-                            */
-
                             // get the cell min,max-boundary
                             Coordinate[] cellBoundary = uGrid.getCellMinMaxBoundary(gridID);
                             org.locationtech.jts.geom.Polygon cellPoly = HelperClass.generatePolygonUsingBBox(cellBoundary);
@@ -327,14 +329,67 @@ public class StayTime implements Serializable {
             }
             //System.out.println(cellStayTimeMap.toString());
             cellStayTimeMap.asMap().forEach((mapKey, collection) -> {
-                System.out.println("Object ID:" + mapKey);
+                //System.out.println("Object ID:" + mapKey);
                 // Tuple4<lastTimestamp, currentTimestamp, cellID, stayTime>
                 for(Tuple4<Long, Long, String, Double> x:collection){
-                    System.out.println(x);
+                    //System.out.println(x);
+                    output.collect(Tuple5.of(mapKey, x.f0, x.f1, x.f2, x.f3));
                 }
             });
-            // cellStayTimeMap: <ObjectID, Tuple4<lastTimestamp, currentTimestamp, cellID, stayTime>>
-            output.collect(cellStayTimeMap);
+            // cellStayTimeMap: <ObjectID(TrajID), Tuple4<lastTimestamp, currentTimestamp, cellID, stayTime>>
+            //output.collect(cellStayTimeMap);
+        }
+    }
+
+    //CellSensorIntersection RichWindowFunction<IN, OUT, KEY, W>
+    public static class CellSensorIntersectionWinFunction extends RichWindowFunction<Polygon, Tuple4<String, Long, Long, Integer>, String, TimeWindow> {
+
+        UniformGrid uGrid;
+        //ctor
+        public  CellSensorIntersectionWinFunction() {};
+
+        public  CellSensorIntersectionWinFunction(UniformGrid uniformGrid) {
+            this.uGrid = uniformGrid;
+        };
+
+        @Override
+        public void apply(String cellID, TimeWindow window, Iterable<Polygon> input, Collector<Tuple4<String, Long, Long, Integer>> out) throws Exception {
+
+            //Map<Long, Polygon> timestampPolygonMap = new HashMap<>();
+            Multimap<Long, Polygon> timestampPolygonMap = TreeMultimap.create(Ordering.natural(), Ordering.arbitrary()); // Ordering is maintained for keys, avoid duplicates in values
+
+            // Generating polygon corresponding to cell boundary
+            Coordinate[] cellBoundary = uGrid.getCellMinMaxBoundary(cellID);
+            org.locationtech.jts.geom.Polygon cellPoly = HelperClass.generatePolygonUsingBBox(cellBoundary);
+
+            for (Polygon p : input) {
+                if(cellPoly != null) {
+                    if (cellPoly.intersects(p.polygon)) {
+                        timestampPolygonMap.put(p.timeStampMillisec, p);
+                    }
+                }
+            }
+
+            if(timestampPolygonMap.keySet().size() > 0) {
+                out.collect(Tuple4.of(cellID, window.getStart(), window.getEnd(), timestampPolygonMap.keySet().size()));
+            }
+        }
+    }
+
+    // class CellStayTimeAggregateWinFunction window function
+    public static class CellStayTimeAggregateWinFunction extends RichWindowFunction<Tuple5<String, Long, Long, String, Double>, Tuple4<String, Long, Long, Double>, String, TimeWindow>{
+
+        //ctor
+        public CellStayTimeAggregateWinFunction(){}
+
+        @Override
+        public void apply(String cellID, TimeWindow timeWindow, Iterable<Tuple5<String, Long, Long, String, Double>> input, Collector<Tuple4<String, Long, Long, Double>> output) throws Exception {
+
+            double sumStayTime = 0;
+            for(Tuple5<String, Long, Long, String, Double> tuple5: input){
+                sumStayTime += tuple5.f4;
+            }
+            output.collect(Tuple4.of(cellID, timeWindow.getStart(), timeWindow.getEnd(), sumStayTime));
         }
     }
 }
