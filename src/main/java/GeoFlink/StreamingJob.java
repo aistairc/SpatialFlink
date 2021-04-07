@@ -19,6 +19,7 @@
 package GeoFlink;
 
 import GeoFlink.apps.StayTime;
+import GeoFlink.apps.CheckIn;
 import GeoFlink.spatialIndices.UniformGrid;
 import GeoFlink.spatialObjects.*;
 import GeoFlink.spatialOperators.*;
@@ -135,7 +136,7 @@ public class StreamingJob implements Serializable {
 			queryDateFormat = null;
 		else
 			queryDateFormat = new SimpleDateFormat(queryDateFormatStr);
-			//inputDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"); // TDrive Dataset
+		//inputDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"); // TDrive Dataset
 
 
 		if (onCluster) {
@@ -1521,7 +1522,7 @@ public class StreamingJob implements Serializable {
 				DataStream<Tuple4<String, Long, Long, Integer>> CellSensorRangeIntersection = StayTime.CellSensorRangeIntersection(spatialStream, trajectoryIDSet, allowedLateness, windowSize, windowSlideStep, uGrid);
 				CellSensorRangeIntersection.print();
 			}
-			case 1012:{
+			case 1012: {
 				// Point stream
 				DataStream pointStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromLatest());
 				// Converting GeoJSON,CSV stream to point spatial data stream
@@ -1541,6 +1542,24 @@ public class StreamingJob implements Serializable {
 				//normalizedCellStayTime.print();
 				normalizedCellStayTime.addSink(new FlinkKafkaProducer<>(outputTopicName, new StayTime.normalizedStayTimeOutputSchema(outputTopicName), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 			}
+			case 2000:{ //DEIM Check-In
+
+				HashMap<String, Integer> roomCapacities = new HashMap<>();
+				roomCapacities.put("A", 100);
+				roomCapacities.put("B", 100);
+				roomCapacities.put("C", 100);
+
+				DataStream pointStream = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromLatest());
+				// Converting GeoJSON,CSV stream to point spatial data stream
+				//inputDateFormat = "12/25/2020 17:24:36 +0900";
+				inputDateFormat = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss z"); // TDrive Dataset
+				inputFormat = "JSON";
+				DataStream<Point> deimCheckInStream = Deserialization.TrajectoryStream(pointStream, inputFormat, inputDateFormat, ordinaryStreamAttributeNames.get(1), ordinaryStreamAttributeNames.get(0), uGrid);
+
+
+				CheckIn.CheckInQuery(deimCheckInStream, roomCapacities, 24).print();
+				//CheckIn.CheckInQuery(deimCheckInStream, roomCapacities, 24).print();
+			}
 			default:
 				System.out.println("Input Unrecognized. Please select option from 1-10.");
 		}
@@ -1551,4 +1570,3 @@ public class StreamingJob implements Serializable {
 
 
 }
-

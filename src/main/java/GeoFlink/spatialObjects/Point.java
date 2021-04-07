@@ -41,10 +41,10 @@ public class Point extends SpatialObject implements Serializable {
     public String gridID;
     public org.locationtech.jts.geom.Point point;
     public long ingestionTime;
-    //public String eventID;
-    //public String deviceID;
-    //public String userID;
-    //Date date = new Date();
+    public String eventID;
+    public String deviceID;
+    public String userID;
+    Date date = new Date();
 
     public Point() {}; // required for POJO
 
@@ -111,7 +111,6 @@ public class Point extends SpatialObject implements Serializable {
     }
 
     // Point for DEIM App
-    /*
     public Point(String eventID, String deviceID, String userID,  long timeStampMillisec, double x, double y) {
         Date date = new Date();
         GeometryFactory geofact = new GeometryFactory();
@@ -124,7 +123,6 @@ public class Point extends SpatialObject implements Serializable {
         this.gridID = "";
         this.ingestionTime = date.getTime();;
     }
-    */
 
     // To print the point coordinates
     @Override
