@@ -78,7 +78,7 @@ public class StreamingJob implements Serializable {
 		//--onCluster "false" --approximateQuery "false" --queryOption "17" --inputTopicName "NYCBuildingsPolygons" --queryTopicName "NYCBuildingsLineStringsGeoJSON_Live" --outputTopicName "QueryLatency" --inputFormat "GeoJSON" --dateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --queryDateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --radius "0.05" --aggregate "SUM" --wType "TIME" --wInterval "1" --wStep "1" --uniformGridSize 100 --k "10" --trajDeletionThreshold 1000 --outOfOrderAllowedLateness "1" --omegaJoinDuration "1" --gridMinX "-74.25540" --gridMaxX "-73.70007" --gridMinY "40.49843" --gridMaxY "40.91506" --qGridMinX "-74.25540" --qGridMaxX "-73.70007" --qGridMinY "40.49843" --qGridMaxY "40.91506" --trajIDSet "9211800, 9320801, 9090500, 7282400, 10390100" --queryPoint "[-74.0000, 40.72714]" --queryPolygon "[-73.98452330316861, 40.67563064195701], [-73.98776303794413, 40.671603874732455], [-73.97826680869485, 40.666980275860936], [-73.97297380718484, 40.67347172572744], [-73.98452330316861, 40.67563064195701]" --queryLineString "[-73.98452330316861, 40.67563064195701], [-73.98776303794413, 40.671603874732455], [-73.97826680869485, 40.666980275860936], [-73.97297380718484, 40.67347172572744]"
 		//--onCluster "false" --approximateQuery "false" --queryOption "106" --inputTopicName "TaxiDrive17MillionGeoJSON" --queryTopicName "NYCBuildingsPolygonsGeoJSON_Live" --outputTopicName "Latency8" --inputFormat "GeoJSON" --dateFormat "yyyy-MM-dd HH:mm:ss" --queryDateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --radius "0.05" --aggregate "SUM" --wType "TIME" --wInterval "5" --wStep "3" --uniformGridSize 100 --k "10" --trajDeletionThreshold 1000 --outOfOrderAllowedLateness "1" --omegaJoinDuration "1" --gridMinX "115.50000" --gridMaxX "117.60000" --gridMinY "39.60000" --gridMaxY "41.10000" --qGridMinX "-74.25540" --qGridMaxX "-73.70007" --qGridMinY "40.49843" --qGridMaxY "40.91506" --trajIDSet "9211800, 9320801, 9090500, 7282400, 10390100" --queryPoint "[116.14319183444924, 40.07271444145411]" --queryPolygon "[116.14319183444924, 40.07271444145411], [116.14305232274667, 40.06231150684208], [116.16313670438304, 40.06152322130762], [116.14319183444924, 40.07271444145411]" --queryLineString "[116.14319183444924, 40.07271444145411], [116.14305232274667, 40.06231150684208], [116.16313670438304, 40.06152322130762]"
 		//--onCluster "false" --approximateQuery "false" --queryOption "137" --inputTopicName "NYCBuildingsLineStrings" --queryTopicName "NYCBuildingsPolygonsGeoJSON_Live" --outputTopicName "QueryLatency" --inputFormat "GeoJSON" --dateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --queryDateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --radius "0.05" --aggregate "SUM" --wType "TIME" --wInterval "1" --wStep "1" --uniformGridSize 100 --k "10" --trajDeletionThreshold 1000 --outOfOrderAllowedLateness "1" --omegaJoinDuration "1" --gridMinX "-74.25540" --gridMaxX "-73.70007" --gridMinY "40.49843" --gridMaxY "40.91506" --qGridMinX "-74.25540" --qGridMaxX "-73.70007" --qGridMinY "40.49843" --qGridMaxY "40.91506" --trajIDSet "9211800, 9320801, 9090500, 7282400, 10390100" --queryPoint "[-74.0000, 40.72714]" --queryPolygon "[-73.98452330316861, 40.67563064195701], [-73.98776303794413, 40.671603874732455], [-73.97826680869485, 40.666980275860936], [-73.97297380718484, 40.67347172572744], [-73.98452330316861, 40.67563064195701]" --queryLineString "[-73.98452330316861, 40.67563064195701], [-73.98776303794413, 40.671603874732455], [-73.97826680869485, 40.666980275860936], [-73.97297380718484, 40.67347172572744]"
-		//--onCluster "false" --kafkaBootStrapServers "150.82.97.204:9092" --approximateQuery "false" --queryOption "1012" --inputTopicName "TaxiDriveGeoJSON_Live" --queryTopicName "Beijing_Polygons_Live" --outputTopicName "QueryLatency" --inputFormat "GeoJSON" --dateFormat "yyyy-MM-dd HH:mm:ss" --queryDateFormat "yyyy-MM-dd HH:mm:ss" --ordinaryStreamAttributes "[oID, timestamp]" --queryStreamAttributes "[doitt_id, lstmoddate]" --radius "0.05" --aggregate "SUM" --wType "TIME" --wInterval "3" --wStep "3" --uniformGridSize 100 --k "10" --trajDeletionThreshold 1000 --outOfOrderAllowedLateness "1" --omegaJoinDuration "1" --gridMinX "115.50000" --gridMaxX "117.60000" --gridMinY "39.60000" --gridMaxY "40.91506" --qGridMinX "115.50000" --qGridMaxX "117.60000" --qGridMinY "39.60000" --qGridMaxY "41.10000" --trajIDSet "9211800, 9320801, 9090500, 7282400, 10390100" --queryPoint "[-74.0000, 40.72714]" --queryPolygon "[-73.98452330316861, 40.67563064195701], [-73.98776303794413, 40.671603874732455], [-73.97826680869485, 40.666980275860936], [-73.97297380718484, 40.67347172572744], [-73.98452330316861, 40.67563064195701]" --queryLineString "[-73.98452330316861, 40.67563064195701], [-73.98776303794413, 40.671603874732455], [-73.97826680869485, 40.666980275860936], [-73.97297380718484, 40.67347172572744]"
+		//--onCluster "false" --kafkaBootStrapServers "150.82.97.204:9092" --approximateQuery "false" --queryOption "1012" --inputTopicName "TaxiDriveGeoJSON_Live" --queryTopicName "Beijing_Polygons_Live" --outputTopicName "QueryLatency" --inputFormat "GeoJSON" --dateFormat "yyyy-MM-dd HH:mm:ss" --queryDateFormat "yyyy-MM-dd HH:mm:ss" --ordinaryStreamAttributes "[oID, timestamp]" --queryStreamAttributes "[doitt_id, lstmoddate]" --radius "0.05" --aggregate "SUM" --wType "TIME" --wInterval "3" --wStep "3" --uniformGridSize 100 --cellLengthMeters 50 --k "10" --trajDeletionThreshold 1000 --outOfOrderAllowedLateness "1" --omegaJoinDuration "1" --gridMinX "115.50000" --gridMaxX "117.60000" --gridMinY "39.60000" --gridMaxY "40.91506" --qGridMinX "115.50000" --qGridMaxX "117.60000" --qGridMinY "39.60000" --qGridMaxY "41.10000" --trajIDSet "9211800, 9320801, 9090500, 7282400, 10390100" --queryPoint "[-74.0000, 40.72714]" --queryPolygon "[-73.98452330316861, 40.67563064195701], [-73.98776303794413, 40.671603874732455], [-73.97826680869485, 40.666980275860936], [-73.97297380718484, 40.67347172572744], [-73.98452330316861, 40.67563064195701]" --queryLineString "[-73.98452330316861, 40.67563064195701], [-73.98776303794413, 40.671603874732455], [-73.97826680869485, 40.666980275860936], [-73.97297380718484, 40.67347172572744]"
 		
 
 		ParameterTool parameters = ParameterTool.fromArgs(args);
@@ -1475,6 +1475,8 @@ public class StreamingJob implements Serializable {
 
 					points.add(new Point( Integer.toString(j), r.nextInt(10), r.nextInt(10), date.getTime() + i*100, uGrid));
 					j++;
+
+					break;
 				}
 
 
@@ -1517,6 +1519,7 @@ public class StreamingJob implements Serializable {
 				DataStream<Tuple4<String, Long, Long, Double>> CellStayTime = StayTime.CellStayTime(spatialPointStream, trajIDs, allowedLateness, windowSize, windowSlideStep, uGrid);
 				//CellStayTime.print();
 				//CellStayTime.addSink(new FlinkKafkaProducer<>(outputTopicName, new Serialization.PointToGeoJSONOutputSchema(outputTopicName, inputDateFormat), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				break;
 			}
 			case 1011:{
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(queryTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
@@ -1529,6 +1532,7 @@ public class StreamingJob implements Serializable {
 				Set<String> trajectoryIDSet = new HashSet<String>();
 				DataStream<Tuple4<String, Long, Long, Integer>> CellSensorRangeIntersection = StayTime.CellSensorRangeIntersection(spatialStream, trajectoryIDSet, allowedLateness, windowSize, windowSlideStep, uGrid);
 				CellSensorRangeIntersection.print();
+				break;
 			}
 			case 1012: {
 				// Point stream
@@ -1549,6 +1553,7 @@ public class StreamingJob implements Serializable {
 				DataStream<Tuple4<String, Long, Long, Double>> normalizedCellStayTime = StayTime.normalizedCellStayTime(spatialPointStream, trajectoryIDSetPoint, spatialPolygonStream, trajectoryIDSetPolygon, allowedLateness, windowSize, windowSlideStep, uGrid);
 				//normalizedCellStayTime.print();
 				normalizedCellStayTime.addSink(new FlinkKafkaProducer<>(outputTopicName, new StayTime.normalizedStayTimeOutputSchema(outputTopicName), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				break;
 			}
 			case 2000:{ //DEIM Check-In
 

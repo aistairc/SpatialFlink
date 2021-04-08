@@ -19,6 +19,7 @@ package GeoFlink.spatialIndices;
 import GeoFlink.spatialObjects.LineString;
 import GeoFlink.spatialObjects.Point;
 import GeoFlink.spatialObjects.Polygon;
+import GeoFlink.utils.DistanceFunctions;
 import GeoFlink.utils.HelperClass;
 import org.apache.commons.collections.map.HashedMap;
 import org.apache.flink.api.common.functions.RichFilterFunction;
@@ -43,6 +44,7 @@ public class UniformGrid implements Serializable {
     HashSet<String> girdCellsSet = new HashSet<String>();
     //Map<String, Coordinate[]> cellBoundaries = new HashMap<>();
 
+    // UTM coordinates in meters
     public UniformGrid(double cellLengthInMeters, double minX, double maxX, double minY, double maxY){
 
         this.minX = minX;     //X - East-West longitude
@@ -51,11 +53,13 @@ public class UniformGrid implements Serializable {
         this.maxY = maxY;
 
         this.cellLengthMeters = cellLengthInMeters;
-
         adjustCoordinatesForSquareGrid();
 
-        double gridLengthInMeters = HelperClass.computeHaverSine(this.minX, this.minY, this.maxX, this.minY);
+        double gridLengthInMeters = DistanceFunctions.getPointPointEuclideanDistance(this.minX, this.minY, this.maxX, this.minY);
+        //System.out.println("gridLengthInMeters " + gridLengthInMeters);
+
         double numGridRows = gridLengthInMeters/cellLengthInMeters;
+        //System.out.println("numGridRows" + numGridRows);
 
         if(numGridRows < 1)
             this.numGridPartitions = 1;
@@ -63,7 +67,7 @@ public class UniformGrid implements Serializable {
             this.numGridPartitions = (int)Math.ceil(numGridRows);
 
         this.cellLength = (this.maxX - this.minX) / this.numGridPartitions;
-        this.cellLengthMeters = HelperClass.computeHaverSine(this.minX, this.minY, this.minX + cellLength, this.minY);
+        //System.out.println("-> " + this.cellLength + ", " + cellLengthInMeters + ", " + this.cellLengthMeters + ", " + this.numGridPartitions);
 
         populateGridCells();
     }
@@ -91,6 +95,8 @@ public class UniformGrid implements Serializable {
             for (int j = 0; j < this.numGridPartitions; j++) {
                 String cellKey = HelperClass.padLeadingZeroesToInt(i, CELLINDEXSTRLENGTH) + HelperClass.padLeadingZeroesToInt(j, CELLINDEXSTRLENGTH);
                 girdCellsSet.add(cellKey);
+
+                //System.out.println(cellKey);
 
                 // Computing cell boundaries in terms of two extreme coordinates
                 //Coordinate minCoordinate = new Coordinate(this.minX + (i * cellLength), this.minY + (j * cellLength), 0);
