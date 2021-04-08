@@ -93,6 +93,7 @@ public class StreamingJob implements Serializable {
 		String aggregateFunction = parameters.get("aggregate");  // "ALL", "SUM", "AVG", "MIN", "MAX" (Default = ALL)
 		double radius = Double.parseDouble(parameters.get("radius")); // Default 10x10 Grid
 		int uniformGridSize = Integer.parseInt(parameters.get("uniformGridSize"));
+		double cellLengthMeters = Double.parseDouble(parameters.get("cellLengthMeters"));
 		int windowSize = Integer.parseInt(parameters.get("wInterval"));
 		int windowSlideStep = Integer.parseInt(parameters.get("wStep"));
 		String windowType = parameters.get("wType");
@@ -263,8 +264,15 @@ public class StreamingJob implements Serializable {
 		Polygon queryPolygon;
 		LineString queryLineString;
 
-		uGrid = new UniformGrid(uniformGridSize, gridMinX, gridMaxX, gridMinY, gridMaxY);
-		qGrid = new UniformGrid(uniformGridSize, qGridMinX, qGridMaxX, qGridMinY, qGridMaxY);
+		if(cellLengthMeters > 0) {
+			uGrid = new UniformGrid(cellLengthMeters, gridMinX, gridMaxX, gridMinY, gridMaxY);
+			qGrid = new UniformGrid(cellLengthMeters, qGridMinX, qGridMaxX, qGridMinY, qGridMaxY);
+		}else{
+			uGrid = new UniformGrid(uniformGridSize, gridMinX, gridMaxX, gridMinY, gridMaxY);
+			qGrid = new UniformGrid(uniformGridSize, qGridMinX, qGridMaxX, qGridMinY, qGridMaxY);
+		}
+
+
 
 		String[] trajID = trajIDSet.split("\\s*,\\s*");
 		trajIDs = Stream.of(trajID).collect(Collectors.toSet());

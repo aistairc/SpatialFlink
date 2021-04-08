@@ -43,7 +43,30 @@ public class UniformGrid implements Serializable {
     HashSet<String> girdCellsSet = new HashSet<String>();
     //Map<String, Coordinate[]> cellBoundaries = new HashMap<>();
 
-    //TODO: Remove variable cellLengthMeters (Deprecated)
+    public UniformGrid(double cellLengthInMeters, double minX, double maxX, double minY, double maxY){
+
+        this.minX = minX;     //X - East-West longitude
+        this.maxX = maxX;
+        this.minY = minY;     //Y - North-South latitude
+        this.maxY = maxY;
+
+        this.cellLengthMeters = cellLengthInMeters;
+
+        adjustCoordinatesForSquareGrid();
+
+        double gridLengthInMeters = HelperClass.computeHaverSine(this.minX, this.minY, this.maxX, this.minY);
+        double numGridRows = gridLengthInMeters/cellLengthInMeters;
+
+        if(numGridRows < 1)
+            this.numGridPartitions = 1;
+        else
+            this.numGridPartitions = (int)Math.ceil(numGridRows);
+
+        this.cellLength = (this.maxX - this.minX) / this.numGridPartitions;
+        this.cellLengthMeters = HelperClass.computeHaverSine(this.minX, this.minY, this.minX + cellLength, this.minY);
+
+        populateGridCells();
+    }
 
     public UniformGrid(int uniformGridRows, double minX, double maxX, double minY, double maxY)
     {
@@ -52,35 +75,20 @@ public class UniformGrid implements Serializable {
         this.minY = minY;     //Y - North-South latitude
         this.maxY = maxY;
 
-        double xAxisDiff = this.maxX - this.minX;
-        double yAxisDiff = this.maxY - this.minY;
-
         this.numGridPartitions = uniformGridRows;
-
-        // Adjusting coordinates to make square grid cells
-        if(xAxisDiff > yAxisDiff)
-        {
-            double diff = xAxisDiff - yAxisDiff;
-            this.maxY += diff / 2;
-            this.minY -= diff / 2;
-        }
-        else if(yAxisDiff > xAxisDiff)
-        {
-            double diff = yAxisDiff - xAxisDiff;
-            this.maxX += diff / 2;
-            this.minX -= diff / 2;
-        }
 
         this.cellLength = (this.maxX - this.minX) / uniformGridRows;
         //System.out.println("cellLength: " + cellLength);
         this.cellLengthMeters = HelperClass.computeHaverSine(this.minX, this.minY, this.minX + cellLength, this.minY);
 
-        //Coordinate minCoordinate = new CoordinateXY();
-        //Coordinate maxCoordinate = new CoordinateXY();
+        populateGridCells();
+    }
+
+    private void populateGridCells(){
 
         // Populating the girdCellset - contains all the cells in the grid
-        for (int i = 0; i < uniformGridRows; i++) {
-            for (int j = 0; j < uniformGridRows; j++) {
+        for (int i = 0; i < this.numGridPartitions; i++) {
+            for (int j = 0; j < this.numGridPartitions; j++) {
                 String cellKey = HelperClass.padLeadingZeroesToInt(i, CELLINDEXSTRLENGTH) + HelperClass.padLeadingZeroesToInt(j, CELLINDEXSTRLENGTH);
                 girdCellsSet.add(cellKey);
 
@@ -99,6 +107,28 @@ public class UniformGrid implements Serializable {
             System.out.println("Key = " + entry.getKey() +
                     ", Value = " + entry.getValue()[0].getX() + ", " + entry.getValue()[0].getY() );
          */
+    }
+
+    private void adjustCoordinatesForSquareGrid(){
+
+        double xAxisDiff = this.maxX - this.minX;
+        double yAxisDiff = this.maxY - this.minY;
+
+        // Adjusting coordinates to make square grid cells
+        if(xAxisDiff > yAxisDiff)
+        {
+            double diff = xAxisDiff - yAxisDiff;
+            this.maxY += diff / 2;
+            this.minY -= diff / 2;
+        }
+        else if(yAxisDiff > xAxisDiff)
+        {
+            double diff = yAxisDiff - xAxisDiff;
+            this.maxX += diff / 2;
+            this.minX -= diff / 2;
+        }
+
+
     }
 
     public double getMinX() {return this.minX;}
