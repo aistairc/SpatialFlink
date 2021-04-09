@@ -29,6 +29,8 @@ import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.streaming.connectors.kafka.KafkaSerializationSchema;
 import org.apache.flink.util.Collector;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.locationtech.jts.geom.*;
 
 import javax.annotation.Nullable;
@@ -144,7 +146,8 @@ public class StayTime implements Serializable {
     }
 
     //normalizedCellStayTimeWinFunction RichWindowFunction<IN, OUT, KEY, W>
-    public static class normalizedCellStayTimeWinFunction extends RichJoinFunction<Tuple4<String, Long, Long, Double>, Tuple4<String, Long, Long, Integer>, Tuple4<String, Long, Long, Double>> {
+    //public static class normalizedCellStayTimeWinFunction extends RichJoinFunction<Tuple4<String, Long, Long, Double>, Tuple4<String, Long, Long, Integer>, Tuple4<String, Long, Long, Double>> {
+        public static class normalizedCellStayTimeWinFunction extends RichJoinFunction<Tuple4<String, Long, Long, Double>, Tuple4<String, Long, Long, Integer>, Tuple4<String, Long, Long, Double>> {
 
         int windowSize_;
         public  normalizedCellStayTimeWinFunction() {}
@@ -408,8 +411,28 @@ public class StayTime implements Serializable {
 
         @Override
         public ProducerRecord<byte[], byte[]> serialize(Tuple4<String, Long, Long, Double> element, @Nullable Long timestamp) {
-            String outputStr = element.toString();
-            return new ProducerRecord<byte[], byte[]>(outputTopic, outputStr.getBytes(StandardCharsets.UTF_8));
+
+            /* required output format
+            {
+                "cellid": "0000100002",
+                "window": [123456,223145],
+                "normalize": 0.002
+            }
+
+         */
+
+            JSONObject jsonObj = new JSONObject();
+
+            jsonObj.put("cellID", element.f0);
+            JSONArray window = new JSONArray();
+            window.put(element.f1);
+            window.put(element.f2);
+            jsonObj.put("window", window);
+            jsonObj.put("normalizedStayTime", element.f3);
+
+            //System.out.println(jsonObj);
+            return new ProducerRecord<byte[], byte[]>(outputTopic, jsonObj.toString().getBytes(StandardCharsets.UTF_8));
+            //return new ProducerRecord<byte[], byte[]>(outputTopic, element.f0.getBytes(StandardCharsets.UTF_8), outputStr.getBytes(StandardCharsets.UTF_8));
         }
     }
 

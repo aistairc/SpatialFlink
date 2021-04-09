@@ -25,6 +25,7 @@ import GeoFlink.spatialObjects.*;
 import GeoFlink.spatialOperators.*;
 import GeoFlink.spatialStreams.*;
 import GeoFlink.utils.HelperClass;
+import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
@@ -214,9 +215,6 @@ public class StreamingJob implements Serializable {
 //		kafkaProperties.setProperty("bootstrap.servers", "localhost:9092");
 		kafkaProperties.setProperty("bootstrap.servers", bootStrapServers);
 		kafkaProperties.setProperty("group.id", "messageStream");
-		//DataStream abc  = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
-		//abc.print();
-		//DataStream csvStream  = env.addSource(new FlinkKafkaConsumer<>(topicName, new SimpleStringSchema(), kafkaProperties).setStartFromEarliest());
 
 		// Defining Grid
 		UniformGrid uGrid;
@@ -1537,6 +1535,7 @@ public class StreamingJob implements Serializable {
 			case 1012: {
 				// Point stream
 				DataStream pointStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromLatest());
+				//DataStream pointStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				//pointStream.print();
 				// Converting GeoJSON,CSV stream to point spatial data stream
 				DataStream<Point> spatialPointStream = Deserialization.TrajectoryStream(pointStream, inputFormat, inputDateFormat, ordinaryStreamAttributeNames.get(1), ordinaryStreamAttributeNames.get(0), uGrid);
@@ -1545,6 +1544,7 @@ public class StreamingJob implements Serializable {
 
 				// Polygon stream
 				DataStream polygonStream  = env.addSource(new FlinkKafkaConsumer<>(queryTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromLatest());
+				//DataStream polygonStream  = env.addSource(new FlinkKafkaConsumer<>(queryTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to point spatial data stream
 				DataStream<Polygon> spatialPolygonStream = Deserialization.TrajectoryStreamPolygon(polygonStream, inputFormat, inputDateFormat, queryStreamAttributeNames.get(1), queryStreamAttributeNames.get(0), uGrid);
 				//spatialPolygonStream.print();
@@ -1552,10 +1552,19 @@ public class StreamingJob implements Serializable {
 
 				DataStream<Tuple4<String, Long, Long, Double>> normalizedCellStayTime = StayTime.normalizedCellStayTime(spatialPointStream, trajectoryIDSetPoint, spatialPolygonStream, trajectoryIDSetPolygon, allowedLateness, windowSize, windowSlideStep, uGrid);
 				//normalizedCellStayTime.print();
-				normalizedCellStayTime.addSink(new FlinkKafkaProducer<>(outputTopicName, new StayTime.normalizedStayTimeOutputSchema(outputTopicName), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 
+				normalizedCellStayTime.addSink(new FlinkKafkaProducer<>(outputTopicName, new StayTime.normalizedStayTimeOutputSchema(outputTopicName), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
+			/*
+			DataStream<Tuple4<String, Long, Long, Double>> normalizedCellStayTime_ = spatialPointStream.map(new MapFunction<Point, Tuple4<String, Long, Long, Double>>() {
+				@Override
+				public Tuple4<String, Long, Long, Double> map(Point point) throws Exception {
+					return Tuple4.of(point.objID, point.timeStampMillisec, point.ingestionTime, 500.95);
+				}
+			});
+			 */
+
 			case 2000:{ //DEIM Check-In
 
 				HashMap<String, Integer> roomCapacities = new HashMap<>();
