@@ -189,7 +189,9 @@ public class Deserialization implements Serializable {
                 catch (ParseException e) {}
                 JsonNode nodeOId = jsonObj.get("value").get("properties").get(propertyObjID);
                 if (nodeOId != null) {
-                    strOId = nodeOId.textValue();
+                    //strOId = nodeOId.textValue();
+                    strOId = nodeOId.toString();
+
                 }
             }
             Point spatialPoint;
@@ -437,7 +439,8 @@ public class Deserialization implements Serializable {
 
                 if (nodeOId != null) {
                     try {
-                        oId = nodeOId.textValue();
+                        //oId = nodeOId.textValue();
+                        oId = nodeOId.toString();
                     }
                     catch (NumberFormatException e) {}
                 }
@@ -449,8 +452,8 @@ public class Deserialization implements Serializable {
                         json, '[', ']', "],", ",", 4);
                 if (time != 0) {
                     //TODO: Fix timestamp to original timestamp
-                    //spatialPolygon = new MultiPolygon(listCoodinate, oId, time, uGrid);
-                    spatialPolygon = new MultiPolygon(listCoodinate, oId, System.currentTimeMillis(), uGrid);
+                    spatialPolygon = new MultiPolygon(listCoodinate, oId, time, uGrid);
+                    //spatialPolygon = new MultiPolygon(listCoodinate, oId, System.currentTimeMillis(), uGrid);
                     //System.out.println("time " + time + spatialPolygon);
                 }
                 else {
@@ -784,7 +787,8 @@ public class Deserialization implements Serializable {
                 catch (ParseException e) {}
                 JsonNode nodeOId = jsonObj.get("value").get("properties").get(propertyObjID);
                 if (nodeOId != null) {
-                    strOId = nodeOId.textValue();
+                    //strOId = nodeOId.textValue();
+                    strOId = nodeOId.toString();
                 }
             }
             LineString spatialLineString;
@@ -804,8 +808,8 @@ public class Deserialization implements Serializable {
                 if (time != 0) {
                     //spatialLineString = new LineString(strOId, parent.get(0), time, uGrid);
                     //TODO: Fix timestamp to original timestamp
-                    //spatialPolygon = new MultiPolygon(listCoodinate, oId, time, uGrid);
-                    spatialLineString = new LineString(strOId, parent.get(0), System.currentTimeMillis(), uGrid);
+                    spatialLineString = new LineString(strOId, parent.get(0), time, uGrid);
+                    //spatialLineString = new LineString(strOId, parent.get(0), System.currentTimeMillis(), uGrid);
 
                 }
                 else {
@@ -1135,7 +1139,8 @@ public class Deserialization implements Serializable {
                 }
                 JsonNode nodeOId = jsonObj.get("value").get("properties").get(propertyObjID);
                 if (nodeOId != null) {
-                    strOId = nodeOId.textValue();
+                    //strOId = nodeOId.textValue();
+                    strOId = nodeOId.toString();
                 }
             }
             List<SpatialObject> listObj = new ArrayList<SpatialObject>();
@@ -1667,7 +1672,8 @@ public class Deserialization implements Serializable {
                 catch (ParseException e) {}
                 JsonNode nodeOId = jsonObj.get("value").get("properties").get(propertyObjID);
                 if (nodeOId != null) {
-                    strOId = nodeOId.textValue();
+                    //strOId = nodeOId.textValue();
+                    strOId = nodeOId.toString();
                 }
             }
             MultiPoint spatialMultiPoint;
