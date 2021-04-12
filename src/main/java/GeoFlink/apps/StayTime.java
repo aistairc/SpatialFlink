@@ -18,14 +18,18 @@ import org.apache.flink.api.java.tuple.Tuple4;
 import org.apache.flink.api.java.tuple.Tuple5;
 import org.apache.flink.shaded.guava18.com.google.common.collect.*;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.functions.co.ProcessJoinFunction;
 import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrdernessTimestampExtractor;
+import org.apache.flink.streaming.api.functions.windowing.AllWindowFunction;
 import org.apache.flink.streaming.api.functions.windowing.RichWindowFunction;
+import org.apache.flink.streaming.api.functions.windowing.WindowFunction;
 import org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.assigners.SlidingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.triggers.Trigger;
 import org.apache.flink.streaming.api.windowing.triggers.TriggerResult;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
+import org.apache.flink.streaming.api.windowing.windows.Window;
 import org.apache.flink.streaming.connectors.kafka.KafkaSerializationSchema;
 import org.apache.flink.util.Collector;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -43,7 +47,7 @@ import java.util.stream.Stream;
 public class StayTime implements Serializable {
 
     //--------------- CellStayTime - Point Stream - Window-based -----------------//
-    public static DataStream<Tuple4<String, Long, Long, Double>> CellStayTime(DataStream<Point> pointStream, Set<String> trajIDSet, int allowedLateness, int windowSize, int windowSlideStep, UniformGrid uGrid){
+    public static DataStream<Tuple2<String, Double>> CellStayTime(DataStream<Point> pointStream, Set<String> trajIDSet, int allowedLateness, int windowSize, int windowSlideStep, UniformGrid uGrid){
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: windowSize
@@ -86,7 +90,7 @@ public class StayTime implements Serializable {
 
 
     //--------------- Cell SensorRange Intersection- Window-based -----------------//
-    public static DataStream<Tuple4<String, Long, Long, Integer>> CellSensorRangeIntersection(DataStream<Polygon> inputStream, Set<String> trajIDSet, int allowedLateness, int windowSize, int windowSlideStep, UniformGrid uGrid){
+    public static DataStream<Tuple2<String, Integer>> CellSensorRangeIntersection(DataStream<Polygon> inputStream, Set<String> trajIDSet, int allowedLateness, int windowSize, int windowSlideStep, UniformGrid uGrid){
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: windowSize
@@ -124,30 +128,81 @@ public class StayTime implements Serializable {
 
     public static DataStream<Tuple4<String, Long, Long, Double>> normalizedCellStayTime(DataStream<Point> movingPointStream, Set<String> trajIDSetPoint, DataStream<Polygon> sensorRangeStream, Set<String> trajIDSetSensorRange,  int allowedLateness, int windowSize, int windowSlideStep, UniformGrid uGrid){
 
-        DataStream<Tuple4<String, Long, Long, Double>> cellStayTime = CellStayTime(movingPointStream, trajIDSetPoint, allowedLateness, windowSize, windowSlideStep, uGrid);
-        DataStream<Tuple4<String, Long, Long, Integer>> cellSensorRangeIntersection = CellSensorRangeIntersection(sensorRangeStream, trajIDSetSensorRange, allowedLateness, windowSize, windowSlideStep, uGrid);
+        DataStream<Tuple2<String, Double>> cellStayTime = CellStayTime(movingPointStream, trajIDSetPoint, allowedLateness, windowSize, windowSlideStep, uGrid);
+        DataStream<Tuple2<String, Integer>> cellSensorRangeIntersection = CellSensorRangeIntersection(sensorRangeStream, trajIDSetSensorRange, allowedLateness, windowSize, windowSlideStep, uGrid);
 
         //cellStayTime.print();
         //cellSensorRangeIntersection.print();
 
-                return cellStayTime.join(cellSensorRangeIntersection)
-                .where(new KeySelector<Tuple4<String, Long, Long, Double>, String>() {
+        return cellStayTime.join(cellSensorRangeIntersection)
+        .where(new KeySelector<Tuple2<String, Double>, String>() {
+            @Override
+            public String getKey(Tuple2<String, Double> tuple2) throws Exception {
+                return tuple2.f0;
+            }
+        }).equalTo(new KeySelector<Tuple2<String, Integer>, String>() {
+            @Override
+            public String getKey(Tuple2<String, Integer> tuple2) throws Exception {
+                return tuple2.f0;
+            }
+        }).window(SlidingEventTimeWindows.of(Time.seconds(windowSize), Time.seconds(windowSlideStep)))
+        .apply(new normalizedCellStayTimeWinFunction(windowSize))
+        .keyBy(
+                new KeySelector<Tuple2<String, Double>, String>() {
+                    @Override
+                    public String getKey(Tuple2<String, Double> tuple2) throws Exception {
+                        return tuple2.f0;
+                    }
+                })
+        // Second window is used to get the window timestamp boundaries
+        .window(SlidingEventTimeWindows.of(Time.seconds(windowSize), Time.seconds(windowSlideStep)))
+        .apply(new RichWindowFunction<Tuple2<String, Double>, Tuple4<String, Long, Long, Double>, String, TimeWindow>() {
+            @Override
+            public void apply(String s, TimeWindow timeWindow, Iterable<Tuple2<String, Double>> iterable, Collector<Tuple4<String, Long, Long, Double>> collector) throws Exception {
+                for(Tuple2<String, Double> element : iterable)
+                {
+                    collector.collect(Tuple4.of(element.f0, timeWindow.getStart(), timeWindow.getEnd(), element.f1));
+                }
+            }
+        });
+
+                /*
+                .windowAll(SlidingEventTimeWindows.of(Time.seconds(windowSize), Time.seconds(windowSlideStep))).apply(new AllWindowFunction<Tuple4<String, Long, Long, Double>, Tuple4<String, Long, Long, Double>, TimeWindow>() {
+                    @Override
+                    public void apply(TimeWindow timeWindow, Iterable<Tuple4<String, Long, Long, Double>> iterable, Collector<Tuple4<String, Long, Long, Double>> collector) throws Exception {
+                        for(Tuple4<String, Long, Long, Double> element : iterable)
+                        {
+                            collector.collect(Tuple4.of(element.f0, timeWindow.getStart(), timeWindow.getEnd(), element.f3));
+                        }
+                    }
+                });*/
+
+                /*
+        return cellStayTime.keyBy(new KeySelector<Tuple4<String, Long, Long, Double>, String>() {
                     @Override
                     public String getKey(Tuple4<String, Long, Long, Double> tuple4) throws Exception {
                         return tuple4.f0;
                     }
-                }).equalTo(new KeySelector<Tuple4<String, Long, Long, Integer>, String>() {
+                }).intervalJoin(cellSensorRangeIntersection.keyBy(new KeySelector<Tuple4<String, Long, Long, Integer>, String>() {
                     @Override
                     public String getKey(Tuple4<String, Long, Long, Integer> tuple4) throws Exception {
                         return tuple4.f0;
                     }
-                }).window(SlidingEventTimeWindows.of(Time.seconds(windowSize), Time.seconds(windowSlideStep)))
-                .apply(new normalizedCellStayTimeWinFunction(windowSize));
+                })).between(Time.seconds(-10), Time.seconds(1)).process(
+                        new ProcessJoinFunction<Tuple4<String, Long, Long, Double>, Tuple4<String, Long, Long, Integer>, Tuple4<String, Long, Long, Double>>() {
+                             @Override
+                             public void processElement(Tuple4<String, Long, Long, Double> stringLongLongDoubleTuple4, Tuple4<String, Long, Long, Integer> stringLongLongIntegerTuple4, Context context, Collector<Tuple4<String, Long, Long, Double>> collector) throws Exception {
+
+                             }
+                        }
+        );
+
+                 */
     }
 
     //normalizedCellStayTimeWinFunction RichWindowFunction<IN, OUT, KEY, W>
     //public static class normalizedCellStayTimeWinFunction extends RichJoinFunction<Tuple4<String, Long, Long, Double>, Tuple4<String, Long, Long, Integer>, Tuple4<String, Long, Long, Double>> {
-        public static class normalizedCellStayTimeWinFunction extends RichJoinFunction<Tuple4<String, Long, Long, Double>, Tuple4<String, Long, Long, Integer>, Tuple4<String, Long, Long, Double>> {
+        public static class normalizedCellStayTimeWinFunction extends RichJoinFunction<Tuple2<String, Double>, Tuple2<String, Integer>, Tuple2<String, Double>> {
 
         int windowSize_;
         public  normalizedCellStayTimeWinFunction() {}
@@ -157,10 +212,19 @@ public class StayTime implements Serializable {
         }
 
         @Override
-        public Tuple4<String, Long, Long, Double> join(Tuple4<String, Long, Long, Double> stayTime, Tuple4<String, Long, Long, Integer> sensorRangeIntersection) throws Exception {
+        public Tuple2<String, Double> join(Tuple2<String, Double> stayTime, Tuple2<String, Integer> sensorRangeIntersection) throws Exception {
 
-            double normalizedStayTime = ((stayTime.f3/1000)/sensorRangeIntersection.f3)*this.windowSize_;
-            return Tuple4.of(stayTime.f0, stayTime.f1, stayTime.f2, normalizedStayTime);
+            double normalizedStayTime = ((stayTime.f1/1000)/sensorRangeIntersection.f1)*this.windowSize_;
+
+            /*
+            if ((stayTime.f1 != sensorRangeIntersection.f1) || (stayTime.f2 != sensorRangeIntersection.f2)) {
+                System.out.println("traj win, sensor win: " + stayTime.f1 + ", " + sensorRangeIntersection.f1 + ", " + stayTime.f2 + ", " + sensorRangeIntersection.f2);
+                //System.out.println("sensor range time window: " + ", " + sensorRangeIntersection.f1 + ", " + sensorRangeIntersection.f2);
+                System.out.println("");
+            }
+             */
+
+            return Tuple2.of(stayTime.f0, normalizedStayTime);
         }
     }
 
@@ -347,7 +411,7 @@ public class StayTime implements Serializable {
     }
 
     //CellSensorIntersection RichWindowFunction<IN, OUT, KEY, W>
-    public static class CellSensorIntersectionWinFunction extends RichWindowFunction<Polygon, Tuple4<String, Long, Long, Integer>, String, TimeWindow> {
+    public static class CellSensorIntersectionWinFunction extends RichWindowFunction<Polygon, Tuple2<String, Integer>, String, TimeWindow> {
 
         UniformGrid uGrid;
         //ctor
@@ -358,7 +422,7 @@ public class StayTime implements Serializable {
         };
 
         @Override
-        public void apply(String cellID, TimeWindow window, Iterable<Polygon> input, Collector<Tuple4<String, Long, Long, Integer>> out) throws Exception {
+        public void apply(String cellID, TimeWindow window, Iterable<Polygon> input, Collector<Tuple2<String, Integer>> out) throws Exception {
 
             //Map<Long, Polygon> timestampPolygonMap = new HashMap<>();
             Multimap<Long, Polygon> timestampPolygonMap = TreeMultimap.create(Ordering.natural(), Ordering.arbitrary()); // Ordering is maintained for keys, avoid duplicates in values
@@ -376,25 +440,25 @@ public class StayTime implements Serializable {
             }
 
             if(timestampPolygonMap.keySet().size() > 0) {
-                out.collect(Tuple4.of(cellID, window.getStart(), window.getEnd(), timestampPolygonMap.keySet().size()));
+                out.collect(Tuple2.of(cellID, timestampPolygonMap.keySet().size()));
             }
         }
     }
 
     // class CellStayTimeAggregateWinFunction window function
-    public static class CellStayTimeAggregateWinFunction extends RichWindowFunction<Tuple5<String, Long, Long, String, Double>, Tuple4<String, Long, Long, Double>, String, TimeWindow>{
+    public static class CellStayTimeAggregateWinFunction extends RichWindowFunction<Tuple5<String, Long, Long, String, Double>, Tuple2<String, Double>, String, TimeWindow>{
 
         //ctor
         public CellStayTimeAggregateWinFunction(){}
 
         @Override
-        public void apply(String cellID, TimeWindow timeWindow, Iterable<Tuple5<String, Long, Long, String, Double>> input, Collector<Tuple4<String, Long, Long, Double>> output) throws Exception {
+        public void apply(String cellID, TimeWindow timeWindow, Iterable<Tuple5<String, Long, Long, String, Double>> input, Collector<Tuple2<String, Double>> output) throws Exception {
 
             double sumStayTime = 0;
             for(Tuple5<String, Long, Long, String, Double> tuple5: input){
                 sumStayTime += tuple5.f4;
             }
-            output.collect(Tuple4.of(cellID, timeWindow.getStart(), timeWindow.getEnd(), sumStayTime));
+            output.collect(Tuple2.of(cellID, sumStayTime));
         }
     }
 
@@ -418,9 +482,7 @@ public class StayTime implements Serializable {
                 "window": [123456,223145],
                 "normalize": 0.002
             }
-
          */
-
             JSONObject jsonObj = new JSONObject();
 
             jsonObj.put("cellID", element.f0);

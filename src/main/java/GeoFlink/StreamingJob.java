@@ -1514,7 +1514,7 @@ public class StreamingJob implements Serializable {
 				//trajIDs = Stream.of("1001", "2059", "1741", "1415", "2565").collect(Collectors.toSet());
 				trajIDs = Stream.of("0").collect(Collectors.toSet());
 				//Set<String> trajIDSet = Stream.of("1001", "2059", "1741", "1415", "2565").collect(Collectors.toSet());
-				DataStream<Tuple4<String, Long, Long, Double>> CellStayTime = StayTime.CellStayTime(spatialPointStream, trajIDs, allowedLateness, windowSize, windowSlideStep, uGrid);
+				DataStream<Tuple2<String, Double>> CellStayTime = StayTime.CellStayTime(spatialPointStream, trajIDs, allowedLateness, windowSize, windowSlideStep, uGrid);
 				//CellStayTime.print();
 				//CellStayTime.addSink(new FlinkKafkaProducer<>(outputTopicName, new Serialization.PointToGeoJSONOutputSchema(outputTopicName, inputDateFormat), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
@@ -1528,14 +1528,14 @@ public class StreamingJob implements Serializable {
 				//trajIDs = Stream.of("0").collect(Collectors.toSet());
 				//Set<String> trajIDSet = Stream.of("1001", "2059", "1741", "1415", "2565").collect(Collectors.toSet());
 				Set<String> trajectoryIDSet = new HashSet<String>();
-				DataStream<Tuple4<String, Long, Long, Integer>> CellSensorRangeIntersection = StayTime.CellSensorRangeIntersection(spatialStream, trajectoryIDSet, allowedLateness, windowSize, windowSlideStep, uGrid);
+				DataStream<Tuple2<String, Integer>> CellSensorRangeIntersection = StayTime.CellSensorRangeIntersection(spatialStream, trajectoryIDSet, allowedLateness, windowSize, windowSlideStep, uGrid);
 				CellSensorRangeIntersection.print();
 				break;
 			}
 			case 1012: {
 				// Point stream
-				DataStream pointStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromLatest());
-				//DataStream pointStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				//DataStream pointStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromLatest());
+				DataStream pointStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				//pointStream.print();
 				// Converting GeoJSON,CSV stream to point spatial data stream
 				DataStream<Point> spatialPointStream = Deserialization.TrajectoryStream(pointStream, inputFormat, inputDateFormat, ordinaryStreamAttributeNames.get(1), ordinaryStreamAttributeNames.get(0), uGrid);
@@ -1543,16 +1543,14 @@ public class StreamingJob implements Serializable {
 				Set<String> trajectoryIDSetPoint = new HashSet<String>();
 
 				// Polygon stream
-				DataStream polygonStream  = env.addSource(new FlinkKafkaConsumer<>(queryTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromLatest());
-				//DataStream polygonStream  = env.addSource(new FlinkKafkaConsumer<>(queryTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
-				// Converting GeoJSON,CSV stream to point spatial data stream
+				//DataStream polygonStream  = env.addSource(new FlinkKafkaConsumer<>(queryTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromLatest());
+				DataStream polygonStream  = env.addSource(new FlinkKafkaConsumer<>(queryTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				 //Converting GeoJSON,CSV stream to point spatial data stream
 				DataStream<Polygon> spatialPolygonStream = Deserialization.TrajectoryStreamPolygon(polygonStream, inputFormat, inputDateFormat, queryStreamAttributeNames.get(1), queryStreamAttributeNames.get(0), uGrid);
 				//spatialPolygonStream.print();
 				Set<String> trajectoryIDSetPolygon = new HashSet<String>();
-
 				DataStream<Tuple4<String, Long, Long, Double>> normalizedCellStayTime = StayTime.normalizedCellStayTime(spatialPointStream, trajectoryIDSetPoint, spatialPolygonStream, trajectoryIDSetPolygon, allowedLateness, windowSize, windowSlideStep, uGrid);
 				//normalizedCellStayTime.print();
-
 				normalizedCellStayTime.addSink(new FlinkKafkaProducer<>(outputTopicName, new StayTime.normalizedStayTimeOutputSchema(outputTopicName), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
