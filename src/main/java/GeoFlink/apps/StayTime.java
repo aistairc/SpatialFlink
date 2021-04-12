@@ -125,7 +125,6 @@ public class StayTime implements Serializable {
     }
 
     //--------------- Cell SensorRange Intersection- Window-based -----------------//
-
     public static DataStream<Tuple4<String, Long, Long, Double>> normalizedCellStayTime(DataStream<Point> movingPointStream, Set<String> trajIDSetPoint, DataStream<Polygon> sensorRangeStream, Set<String> trajIDSetSensorRange,  int allowedLateness, int windowSize, int windowSlideStep, UniformGrid uGrid){
 
         DataStream<Tuple2<String, Double>> cellStayTime = CellStayTime(movingPointStream, trajIDSetPoint, allowedLateness, windowSize, windowSlideStep, uGrid);

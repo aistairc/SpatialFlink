@@ -1534,8 +1534,8 @@ public class StreamingJob implements Serializable {
 			}
 			case 1012: {
 				// Point stream
-				//DataStream pointStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromLatest());
-				DataStream pointStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				DataStream pointStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromLatest());
+				//DataStream pointStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				//pointStream.print();
 				// Converting GeoJSON,CSV stream to point spatial data stream
 				DataStream<Point> spatialPointStream = Deserialization.TrajectoryStream(pointStream, inputFormat, inputDateFormat, ordinaryStreamAttributeNames.get(1), ordinaryStreamAttributeNames.get(0), uGrid);
@@ -1543,8 +1543,8 @@ public class StreamingJob implements Serializable {
 				Set<String> trajectoryIDSetPoint = new HashSet<String>();
 
 				// Polygon stream
-				//DataStream polygonStream  = env.addSource(new FlinkKafkaConsumer<>(queryTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromLatest());
-				DataStream polygonStream  = env.addSource(new FlinkKafkaConsumer<>(queryTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				DataStream polygonStream  = env.addSource(new FlinkKafkaConsumer<>(queryTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromLatest());
+				//DataStream polygonStream  = env.addSource(new FlinkKafkaConsumer<>(queryTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				 //Converting GeoJSON,CSV stream to point spatial data stream
 				DataStream<Polygon> spatialPolygonStream = Deserialization.TrajectoryStreamPolygon(polygonStream, inputFormat, inputDateFormat, queryStreamAttributeNames.get(1), queryStreamAttributeNames.get(0), uGrid);
 				//spatialPolygonStream.print();
