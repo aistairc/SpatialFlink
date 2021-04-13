@@ -190,7 +190,7 @@ public class Deserialization implements Serializable {
                 JsonNode nodeOId = jsonObj.get("value").get("properties").get(propertyObjID);
                 if (nodeOId != null) {
                     //strOId = nodeOId.textValue();
-                    strOId = nodeOId.toString();
+                    strOId = nodeOId.toString().replaceAll("\\\"", "");
 
                 }
             }
@@ -440,7 +440,7 @@ public class Deserialization implements Serializable {
                 if (nodeOId != null) {
                     try {
                         //oId = nodeOId.textValue();
-                        oId = nodeOId.toString();
+                        oId = nodeOId.toString().replaceAll("\\\"", "");
                     }
                     catch (NumberFormatException e) {}
                 }
@@ -788,7 +788,7 @@ public class Deserialization implements Serializable {
                 JsonNode nodeOId = jsonObj.get("value").get("properties").get(propertyObjID);
                 if (nodeOId != null) {
                     //strOId = nodeOId.textValue();
-                    strOId = nodeOId.toString();
+                    strOId = nodeOId.toString().replaceAll("\\\"", "");
                 }
             }
             LineString spatialLineString;
@@ -1140,7 +1140,7 @@ public class Deserialization implements Serializable {
                 JsonNode nodeOId = jsonObj.get("value").get("properties").get(propertyObjID);
                 if (nodeOId != null) {
                     //strOId = nodeOId.textValue();
-                    strOId = nodeOId.toString();
+                    strOId = nodeOId.toString().replaceAll("\\\"", "");
                 }
             }
             List<SpatialObject> listObj = new ArrayList<SpatialObject>();
@@ -1673,7 +1673,7 @@ public class Deserialization implements Serializable {
                 JsonNode nodeOId = jsonObj.get("value").get("properties").get(propertyObjID);
                 if (nodeOId != null) {
                     //strOId = nodeOId.textValue();
-                    strOId = nodeOId.toString();
+                    strOId = nodeOId.toString().replaceAll("\\\"", "");
                 }
             }
             MultiPoint spatialMultiPoint;

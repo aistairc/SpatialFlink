@@ -25,6 +25,7 @@ import GeoFlink.spatialObjects.*;
 import GeoFlink.spatialOperators.*;
 import GeoFlink.spatialStreams.*;
 import GeoFlink.utils.HelperClass;
+import com.typesafe.config.ConfigException;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -69,6 +70,7 @@ public class StreamingJob implements Serializable {
 		//--onCluster "false" --approximateQuery "false" --queryOption "1" --inputTopicName "TaxiDrive17MillionGeoJSON" --queryTopicName "queryPointTopic" --outputTopicName "QueryLatency" --inputFormat "GeoJSON" --dateFormat "yyyy-MM-dd HH:mm:ss" --queryDateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --radius "0.05" --aggregate "SUM" --wType "TIME" --wInterval "5" --wStep "3" --uniformGridSize 100 --k "10" --trajDeletionThreshold 1000 --outOfOrderAllowedLateness "1" --omegaJoinDuration "1" --gridMinX "115.50000" --gridMaxX "117.60000" --gridMinY "39.60000" --gridMaxY "41.10000" --trajIDSet "9211800, 9320801, 9090500, 7282400, 10390100" --queryPoint "[116.14319183444924, 40.07271444145411]" --queryPolygon "[116.14319183444924, 40.07271444145411], [116.14305232274667, 40.06231150684208], [116.16313670438304, 40.06152322130762], [116.14319183444924, 40.07271444145411]" --queryLineString "[116.14319183444924, 40.07271444145411], [116.14305232274667, 40.06231150684208], [116.16313670438304, 40.06152322130762]"
 		//--onCluster "false" --approximateQuery "false" --queryOption "17" --inputTopicName "NYCBuildingsPolygons" --queryTopicName "sampleTopic" --outputTopicName "QueryLatency" --inputFormat "GeoJSON" --dateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --queryDateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --radius "0.05" --aggregate "SUM" --wType "TIME" --wInterval "1" --wStep "1" --uniformGridSize 100 --k "10" --trajDeletionThreshold 1000 --outOfOrderAllowedLateness "1" --omegaJoinDuration "1" --gridMinX "-74.25540" --gridMaxX "-73.70007" --gridMinY "40.49843" --gridMaxY "40.91506" --trajIDSet "9211800, 9320801, 9090500, 7282400, 10390100" --queryPoint "[-74.0000, 40.72714]" --queryPolygon "[-73.98452330316861, 40.67563064195701], [-73.98776303794413, 40.671603874732455], [-73.97826680869485, 40.666980275860936], [-73.97297380718484, 40.67347172572744], [-73.98452330316861, 40.67563064195701]" --queryLineString "[-73.98452330316861, 40.67563064195701], [-73.98776303794413, 40.671603874732455], [-73.97826680869485, 40.666980275860936], [-73.97297380718484, 40.67347172572744]"
 		//--onCluster "false" --approximateQuery "false" --queryOption "17" --inputTopicName "NYCBuildingsLineStrings" --queryTopicName "sampleTopic" --outputTopicName "QueryLatency" --inputFormat "GeoJSON" --dateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --queryDateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --radius "0.05" --aggregate "SUM" --wType "TIME" --wInterval "1" --wStep "1" --uniformGridSize 100 --k "10" --trajDeletionThreshold 1000 --outOfOrderAllowedLateness "1" --omegaJoinDuration "1" --gridMinX "-74.25540" --gridMaxX "-73.70007" --gridMinY "40.49843" --gridMaxY "40.91506" --trajIDSet "9211800, 9320801, 9090500, 7282400, 10390100" --queryPoint "[-74.0000, 40.72714]" --queryPolygon "[-73.98452330316861, 40.67563064195701], [-73.98776303794413, 40.671603874732455], [-73.97826680869485, 40.666980275860936], [-73.97297380718484, 40.67347172572744], [-73.98452330316861, 40.67563064195701]" --queryLineString "[-73.98452330316861, 40.67563064195701], [-73.98776303794413, 40.671603874732455], [-73.97826680869485, 40.666980275860936], [-73.97297380718484, 40.67347172572744]"
+		//--onCluster "false" --dataset "TDriveBeijing" --queryOption "704" --inputTopicName "NYCBuildingsPolygons" --outputTopicName "outputTopic" --inputFormat "GeoJSON" --dateFormat "yyyy-MM-dd HH:mm:ss" --queryDateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --radius "0.005" --aggregate "SUM" --wType "TIME" --wInterval "10" --wStep "10" --uniformGridSize 25 --k "5" --trajDeletionThreshold 1000 --gridMinX "115.50000" --gridMaxX "117.60000" --gridMinY "39.60000" --gridMaxY "41.10000" --qGridMinX "-74.25540" --qGridMaxX "-73.70007" --qGridMinY "40.49843" --qGridMaxY "40.91506" --trajIDSet "10007, 2560, 5261, 1743, 913" --queryPoint "[-74.0000, 40.72714]" --queryPolygon "[-73.984416, 40.675882], [-73.984511, 40.675767], [-73.984719, 40.675867], [-73.984726, 40.67587], [-73.984718, 40.675881], [-73.984631, 40.675986], [-73.984416, 40.675882]" --queryLineString "[-73.984416, 40.675882], [-73.984511, 40.675767]" --outOfOrderAllowedLateness "1" --omegaJoinDuration "1"
 		//NYCBuildingsLineStrings
 		//TaxiDriveGeoJSON_Live
 		//NYCBuildingsPolygonsGeoJSON_Live
@@ -84,46 +86,47 @@ public class StreamingJob implements Serializable {
 
 		ParameterTool parameters = ParameterTool.fromArgs(args);
 
-		int queryOption = Integer.parseInt(parameters.get("queryOption"));
-		String inputTopicName = parameters.get("inputTopicName");
-		String queryTopicName = parameters.get("queryTopicName");
-		String outputTopicName = parameters.get("outputTopicName");
-		String inputFormat = parameters.get("inputFormat");
-		String dateFormatStr = parameters.get("dateFormat");
-		String queryDateFormatStr = parameters.get("queryDateFormat");
-		String aggregateFunction = parameters.get("aggregate");  // "ALL", "SUM", "AVG", "MIN", "MAX" (Default = ALL)
-		double radius = Double.parseDouble(parameters.get("radius")); // Default 10x10 Grid
-		int uniformGridSize = Integer.parseInt(parameters.get("uniformGridSize"));
-		double cellLengthMeters = Double.parseDouble(parameters.get("cellLengthMeters"));
-		int windowSize = Integer.parseInt(parameters.get("wInterval"));
-		int windowSlideStep = Integer.parseInt(parameters.get("wStep"));
-		String windowType = parameters.get("wType");
-		int k = Integer.parseInt(parameters.get("k")); // k denotes filter size in filter query
-		boolean onCluster = Boolean.parseBoolean(parameters.get("onCluster"));
-		String bootStrapServers = parameters.get("kafkaBootStrapServers");
-		boolean approximateQuery = Boolean.parseBoolean(parameters.get("approximateQuery"));
+		Params params = new Params(parameters);
+		int queryOption = params.queryOption;
+		String inputTopicName = params.inputTopicName;
+		String queryTopicName = params.queryTopicName;
+		String outputTopicName = params.outputTopicName;
+		String inputFormat = params.inputFormat;
+		String dateFormatStr = params.dateFormatStr;
+		String queryDateFormatStr = params.queryDateFormatStr;
+		String aggregateFunction = params.aggregateFunction;    // "ALL", "SUM", "AVG", "MIN", "MAX" (Default = ALL)
+		double radius = params.radius; // Default 10x10 Grid
+		int uniformGridSize = params.uniformGridSize;
+		double cellLengthMeters = params.cellLengthMeters;
+		int windowSize = params.windowSize;
+		int windowSlideStep = params.windowSlideStep;
+		String windowType = params.windowType;
+		int k = params.k; // k denotes filter size in filter query
+		boolean onCluster = params.onCluster;
+		String bootStrapServers = params.bootStrapServers;
+		boolean approximateQuery = params.approximateQuery;
 		//String dataset = parameters.get("dataset"); // TDriveBeijing, ATCShoppingMall
-		Long inactiveTrajDeletionThreshold = Long.parseLong(parameters.get("trajDeletionThreshold"));
-		int allowedLateness = Integer.parseInt(parameters.get("outOfOrderAllowedLateness"));
-		int omegaJoinDurationSeconds = Integer.parseInt(parameters.get("omegaJoinDuration"));
+		Long inactiveTrajDeletionThreshold = params.inactiveTrajDeletionThreshold;
+		int allowedLateness = params.allowedLateness;
+		int omegaJoinDurationSeconds = params.omegaJoinDurationSeconds;
 
-		double gridMinX = Double.parseDouble(parameters.get("gridMinX"));
-		double gridMaxX = Double.parseDouble(parameters.get("gridMaxX"));
-		double gridMinY = Double.parseDouble(parameters.get("gridMinY"));
-		double gridMaxY = Double.parseDouble(parameters.get("gridMaxY"));
+		double gridMinX = params.gridMinX;
+		double gridMaxX = params.gridMaxX;
+		double gridMinY = params.gridMinY;
+		double gridMaxY = params.gridMaxY;
 
-		double qGridMinX = Double.parseDouble(parameters.get("qGridMinX"));
-		double qGridMaxX = Double.parseDouble(parameters.get("qGridMaxX"));
-		double qGridMinY = Double.parseDouble(parameters.get("qGridMinY"));
-		double qGridMaxY = Double.parseDouble(parameters.get("qGridMaxY"));
+		double qGridMinX = params.qGridMinX;
+		double qGridMaxX = params.qGridMaxX;
+		double qGridMinY = params.qGridMinY;
+		double qGridMaxY = params.qGridMaxY;
 
-		String trajIDSet = parameters.get("trajIDSet");
-		List<Coordinate> queryPointCoordinates = HelperClass.getCoordinates(parameters.get("queryPoint"));
-		List<Coordinate> queryLineStringCoordinates = HelperClass.getCoordinates(parameters.get("queryLineString"));
-		List<Coordinate> queryPolygonCoordinates = HelperClass.getCoordinates(parameters.get("queryPolygon"));
+		String trajIDSet = params.trajIDSet;
+		List<Coordinate> queryPointCoordinates = params.queryPointCoordinates;
+		List<Coordinate> queryLineStringCoordinates = params.queryLineStringCoordinates;
+		List<Coordinate> queryPolygonCoordinates = params.queryPolygonCoordinates;
 
-		List<String> ordinaryStreamAttributeNames = HelperClass.getParametersArray(parameters.get("ordinaryStreamAttributes")); // default order of attributes: objectID, timestamp
-		List<String> queryStreamAttributeNames = HelperClass.getParametersArray(parameters.get("queryStreamAttributes"));
+		List<String> ordinaryStreamAttributeNames = params.ordinaryStreamAttributeNames; // default order of attributes: objectID, timestamp
+		List<String> queryStreamAttributeNames = params.queryStreamAttributeNames;
 
 		//String bootStrapServers;
 		DateFormat inputDateFormat;
@@ -212,8 +215,8 @@ public class StreamingJob implements Serializable {
 
 		// Preparing Kafka Connection to Get Stream Tuples
 		Properties kafkaProperties = new Properties();
-//		kafkaProperties.setProperty("bootstrap.servers", "localhost:9092");
-		kafkaProperties.setProperty("bootstrap.servers", bootStrapServers);
+		kafkaProperties.setProperty("bootstrap.servers", "localhost:9092");
+//		kafkaProperties.setProperty("bootstrap.servers", bootStrapServers);
 		kafkaProperties.setProperty("group.id", "messageStream");
 
 		// Defining Grid
@@ -1589,5 +1592,232 @@ public class StreamingJob implements Serializable {
 		env.execute("Geo Flink");
 	}
 
+}
 
+class Params
+{
+	int queryOption = Integer.MIN_VALUE;
+	String inputTopicName;
+	String queryTopicName;
+	String outputTopicName;
+	String inputFormat;
+	String dateFormatStr;
+	String queryDateFormatStr;
+	String aggregateFunction;  // "ALL", "SUM", "AVG", "MIN", "MAX" (Default = ALL)
+	double radius = Double.MIN_VALUE; // Default 10x10 Grid
+	int uniformGridSize = Integer.MIN_VALUE;
+	double cellLengthMeters = Double.MIN_VALUE;
+	int windowSize = Integer.MIN_VALUE;
+	int windowSlideStep = Integer.MIN_VALUE;
+	String windowType;
+	int k = Integer.MIN_VALUE; // k denotes filter size in filter query
+	boolean onCluster = false;
+	String bootStrapServers;
+	boolean approximateQuery = false;
+	Long inactiveTrajDeletionThreshold = Long.MIN_VALUE;
+	int allowedLateness = Integer.MIN_VALUE;
+	int omegaJoinDurationSeconds = Integer.MIN_VALUE;
+	double gridMinX = Double.MIN_VALUE;
+	double gridMaxX = Double.MIN_VALUE;
+	double gridMinY = Double.MIN_VALUE;
+	double gridMaxY = Double.MIN_VALUE;
+	double qGridMinX = Double.MIN_VALUE;
+	double qGridMaxX = Double.MIN_VALUE;
+	double qGridMinY = Double.MIN_VALUE;
+	double qGridMaxY = Double.MIN_VALUE;
+	String trajIDSet;
+	List<Coordinate> queryPointCoordinates = new ArrayList<Coordinate>();
+	List<Coordinate> queryLineStringCoordinates = new ArrayList<Coordinate>();
+	List<Coordinate> queryPolygonCoordinates = new ArrayList<Coordinate>();
+	List<String> ordinaryStreamAttributeNames = new ArrayList<String>(); // default order of attributes: objectID, timestamp
+	List<String> queryStreamAttributeNames = new ArrayList<String>();
+
+	Params(ParameterTool parameters) {
+		try {
+			queryOption = Integer.parseInt(parameters.get("queryOption"));
+		}
+		catch (NullPointerException e) {
+			System.out.println("queryOption is " + parameters.get("queryOption"));
+		}
+		if ((inputTopicName = parameters.get("inputTopicName")) == null) {
+			System.out.println("inputTopicName is " + parameters.get("inputTopicName"));
+			inputTopicName = "";
+		}
+		if ((queryTopicName = parameters.get("queryTopicName")) == null) {
+			System.out.println("queryTopicName is " +  parameters.get("queryTopicName"));
+			queryTopicName = "";
+		}
+		if ((inputFormat = parameters.get("inputFormat")) == null) {
+			System.out.println("inputFormat is " + parameters.get("inputFormat"));
+			inputFormat = "";
+		}
+		if ((dateFormatStr = parameters.get("dateFormat")) == null) {
+			System.out.println("dateFormat is " + parameters.get("dateFormat"));
+			dateFormatStr = "null";
+		}
+		if ((queryDateFormatStr = parameters.get("queryDateFormat")) == null) {
+			System.out.println("queryDateFormat is " + parameters.get("queryDateFormat"));
+			queryDateFormatStr = "null";
+		}
+		if ((aggregateFunction = parameters.get("aggregate")) == null) {
+			System.out.println("aggregate is " + parameters.get("aggregate"));
+			aggregateFunction = "";
+		}
+		try {
+			radius = Double.parseDouble(parameters.get("radius")); // Default 10x10 Grid
+		}
+		catch (NullPointerException e) {
+			System.out.println("radius is " + parameters.get("radius"));
+		}
+		try {
+			uniformGridSize = Integer.parseInt(parameters.get("uniformGridSize"));
+		}
+		catch (NullPointerException e) {
+			System.out.println("uniformGridSize is " + parameters.get("uniformGridSize"));
+		}
+		try {
+			cellLengthMeters = Double.parseDouble(parameters.get("cellLengthMeters"));
+		}
+		catch (NullPointerException e) {
+			System.out.println("cellLengthMeters is " + parameters.get("cellLengthMeters"));
+		}
+		try {
+			windowSize = Integer.parseInt(parameters.get("wInterval"));
+		}
+		catch (NullPointerException e) {
+			System.out.println("wInterval is " + parameters.get("wInterval"));
+		}
+		try {
+			windowSlideStep = Integer.parseInt(parameters.get("wStep"));
+		}
+		catch (NullPointerException e) {
+			System.out.println("wStep is " + parameters.get("wStep"));
+		}
+		if ((windowType = parameters.get("wType")) == null) {
+			System.out.println("wType is " + parameters.get("wType"));
+			windowType = "";
+		}
+		try {
+			k = Integer.parseInt(parameters.get("k")); // k denotes filter size in filter query
+		}
+		catch (NullPointerException e) {
+			System.out.println("k is " + parameters.get("k"));
+		}
+		try {
+			onCluster = Boolean.parseBoolean(parameters.get("onCluster"));
+		}
+		catch (NullPointerException e) {
+			System.out.println("onCluster is " + parameters.get("onCluster"));
+		}
+		if ((bootStrapServers = parameters.get("kafkaBootStrapServers")) == null) {
+			System.out.println("kafkaBootStrapServers is " + parameters.get("kafkaBootStrapServers"));
+			bootStrapServers = "";
+		}
+		try {
+			approximateQuery = Boolean.parseBoolean(parameters.get("approximateQuery"));
+		}
+		catch (NullPointerException e) {
+			System.out.println("approximateQuery is " + parameters.get("approximateQuery"));
+		}
+		try {
+			inactiveTrajDeletionThreshold = Long.parseLong(parameters.get("trajDeletionThreshold"));
+		}
+		catch (NullPointerException e) {
+			System.out.println("trajDeletionThreshold is " + parameters.get("trajDeletionThreshold"));
+		}
+		try {
+			allowedLateness = Integer.parseInt(parameters.get("outOfOrderAllowedLateness"));
+		}
+		catch (NullPointerException e) {
+			System.out.println("outOfOrderAllowedLateness is " + parameters.get("outOfOrderAllowedLateness"));
+		}
+		try {
+			omegaJoinDurationSeconds = Integer.parseInt(parameters.get("omegaJoinDuration"));
+		}
+		catch (NullPointerException e) {
+			System.out.println("omegaJoinDuration is " + parameters.get("omegaJoinDuration"));
+		}
+		try {
+			gridMinX = Double.parseDouble(parameters.get("gridMinX"));
+		}
+		catch (NullPointerException e) {
+			System.out.println("gridMinX is " + parameters.get("gridMinX"));
+		}
+		try {
+			gridMaxX = Double.parseDouble(parameters.get("gridMaxX"));
+		}
+		catch (NullPointerException e) {
+			System.out.println("gridMaxX is " + parameters.get("gridMaxX"));
+		}
+		try {
+			gridMinY = Double.parseDouble(parameters.get("gridMinY"));
+		}
+		catch (NullPointerException e) {
+			System.out.println("gridMinY is " + parameters.get("gridMinY"));
+		}
+		try {
+			gridMaxY = Double.parseDouble(parameters.get("gridMaxY"));
+		}
+		catch (NullPointerException e) {
+			System.out.println("gridMaxY is " + parameters.get("gridMaxY"));
+		}
+		try {
+			qGridMinX = Double.parseDouble(parameters.get("qGridMinX"));
+		}
+		catch (NullPointerException e) {
+			System.out.println("qGridMinX is " + parameters.get("qGridMinX"));
+		}
+		try {
+			qGridMaxX = Double.parseDouble(parameters.get("qGridMaxX"));
+		}
+		catch (NullPointerException e) {
+			System.out.println("qGridMaxX is " + parameters.get("qGridMaxX"));
+		}
+		try {
+			qGridMinY = Double.parseDouble(parameters.get("qGridMinY"));
+		}
+		catch (NullPointerException e) {
+			System.out.println("qGridMinY is " + parameters.get("qGridMinY"));
+		}
+		try {
+			qGridMaxY = Double.parseDouble(parameters.get("qGridMaxY"));
+		}
+		catch (NullPointerException e) {
+			System.out.println("qGridMaxY is " + parameters.get("qGridMaxY"));
+		}
+		if ((trajIDSet = parameters.get("trajIDSet")) == null) {
+			System.out.println("trajIDSet is " + parameters.get("trajIDSet"));
+			trajIDSet = "";
+		}
+		try {
+			queryPointCoordinates = HelperClass.getCoordinates(parameters.get("queryPoint"));
+		}
+		catch (NullPointerException e) {
+			System.out.println("queryPoint is " + parameters.get("queryPoint"));
+		}
+		try {
+			queryLineStringCoordinates = HelperClass.getCoordinates(parameters.get("queryLineString"));
+		}
+		catch (NullPointerException e) {
+			System.out.println("queryLineString is " + parameters.get("queryLineString"));
+		}
+		try {
+			queryPolygonCoordinates = HelperClass.getCoordinates(parameters.get("queryPolygon"));
+		}
+		catch (NullPointerException e) {
+			System.out.println("queryPolygon is " + parameters.get("queryPolygon"));
+		}
+		try {
+			ordinaryStreamAttributeNames = HelperClass.getParametersArray(parameters.get("ordinaryStreamAttributes")); // default order of attributes: objectID, timestamp
+		}
+		catch (NullPointerException e) {
+			System.out.println("ordinaryStreamAttributes is " + parameters.get("ordinaryStreamAttributes"));
+		}
+		try {
+			queryStreamAttributeNames = HelperClass.getParametersArray(parameters.get("queryStreamAttributes"));
+		}
+		catch (NullPointerException e) {
+			System.out.println("queryStreamAttributes is " + parameters.get("queryStreamAttributes"));
+		}
+	}
 }
