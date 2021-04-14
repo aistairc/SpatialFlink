@@ -25,8 +25,6 @@ import GeoFlink.spatialObjects.*;
 import GeoFlink.spatialOperators.*;
 import GeoFlink.spatialStreams.*;
 import GeoFlink.utils.HelperClass;
-import com.typesafe.config.ConfigException;
-import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
@@ -36,7 +34,6 @@ import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.RestOptions;
-import org.apache.flink.shaded.guava18.com.google.common.collect.Multimap;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.core.fs.Path;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -50,8 +47,6 @@ import scala.Serializable;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -70,7 +65,7 @@ public class StreamingJob implements Serializable {
 		//--onCluster "false" --approximateQuery "false" --queryOption "1" --inputTopicName "TaxiDrive17MillionGeoJSON" --queryTopicName "queryPointTopic" --outputTopicName "QueryLatency" --inputFormat "GeoJSON" --dateFormat "yyyy-MM-dd HH:mm:ss" --queryDateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --radius "0.05" --aggregate "SUM" --wType "TIME" --wInterval "5" --wStep "3" --uniformGridSize 100 --k "10" --trajDeletionThreshold 1000 --outOfOrderAllowedLateness "1" --omegaJoinDuration "1" --gridMinX "115.50000" --gridMaxX "117.60000" --gridMinY "39.60000" --gridMaxY "41.10000" --trajIDSet "9211800, 9320801, 9090500, 7282400, 10390100" --queryPoint "[116.14319183444924, 40.07271444145411]" --queryPolygon "[116.14319183444924, 40.07271444145411], [116.14305232274667, 40.06231150684208], [116.16313670438304, 40.06152322130762], [116.14319183444924, 40.07271444145411]" --queryLineString "[116.14319183444924, 40.07271444145411], [116.14305232274667, 40.06231150684208], [116.16313670438304, 40.06152322130762]"
 		//--onCluster "false" --approximateQuery "false" --queryOption "17" --inputTopicName "NYCBuildingsPolygons" --queryTopicName "sampleTopic" --outputTopicName "QueryLatency" --inputFormat "GeoJSON" --dateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --queryDateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --radius "0.05" --aggregate "SUM" --wType "TIME" --wInterval "1" --wStep "1" --uniformGridSize 100 --k "10" --trajDeletionThreshold 1000 --outOfOrderAllowedLateness "1" --omegaJoinDuration "1" --gridMinX "-74.25540" --gridMaxX "-73.70007" --gridMinY "40.49843" --gridMaxY "40.91506" --trajIDSet "9211800, 9320801, 9090500, 7282400, 10390100" --queryPoint "[-74.0000, 40.72714]" --queryPolygon "[-73.98452330316861, 40.67563064195701], [-73.98776303794413, 40.671603874732455], [-73.97826680869485, 40.666980275860936], [-73.97297380718484, 40.67347172572744], [-73.98452330316861, 40.67563064195701]" --queryLineString "[-73.98452330316861, 40.67563064195701], [-73.98776303794413, 40.671603874732455], [-73.97826680869485, 40.666980275860936], [-73.97297380718484, 40.67347172572744]"
 		//--onCluster "false" --approximateQuery "false" --queryOption "17" --inputTopicName "NYCBuildingsLineStrings" --queryTopicName "sampleTopic" --outputTopicName "QueryLatency" --inputFormat "GeoJSON" --dateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --queryDateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --radius "0.05" --aggregate "SUM" --wType "TIME" --wInterval "1" --wStep "1" --uniformGridSize 100 --k "10" --trajDeletionThreshold 1000 --outOfOrderAllowedLateness "1" --omegaJoinDuration "1" --gridMinX "-74.25540" --gridMaxX "-73.70007" --gridMinY "40.49843" --gridMaxY "40.91506" --trajIDSet "9211800, 9320801, 9090500, 7282400, 10390100" --queryPoint "[-74.0000, 40.72714]" --queryPolygon "[-73.98452330316861, 40.67563064195701], [-73.98776303794413, 40.671603874732455], [-73.97826680869485, 40.666980275860936], [-73.97297380718484, 40.67347172572744], [-73.98452330316861, 40.67563064195701]" --queryLineString "[-73.98452330316861, 40.67563064195701], [-73.98776303794413, 40.671603874732455], [-73.97826680869485, 40.666980275860936], [-73.97297380718484, 40.67347172572744]"
-		//--onCluster "false" --dataset "TDriveBeijing" --queryOption "704" --inputTopicName "NYCBuildingsPolygons" --outputTopicName "outputTopic" --inputFormat "GeoJSON" --dateFormat "yyyy-MM-dd HH:mm:ss" --queryDateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --radius "0.005" --aggregate "SUM" --wType "TIME" --wInterval "10" --wStep "10" --uniformGridSize 25 --k "5" --trajDeletionThreshold 1000 --gridMinX "115.50000" --gridMaxX "117.60000" --gridMinY "39.60000" --gridMaxY "41.10000" --qGridMinX "-74.25540" --qGridMaxX "-73.70007" --qGridMinY "40.49843" --qGridMaxY "40.91506" --trajIDSet "10007, 2560, 5261, 1743, 913" --queryPoint "[-74.0000, 40.72714]" --queryPolygon "[-73.984416, 40.675882], [-73.984511, 40.675767], [-73.984719, 40.675867], [-73.984726, 40.67587], [-73.984718, 40.675881], [-73.984631, 40.675986], [-73.984416, 40.675882]" --queryLineString "[-73.984416, 40.675882], [-73.984511, 40.675767]" --outOfOrderAllowedLateness "1" --omegaJoinDuration "1"
+		//--onCluster "false" --approximateQuery "false" --queryOption "701" --inputTopicName "NYCBuildingsPolygons" --queryTopicName "sampleTopic" --outputTopicName "outputTopic" --inputFormat "GeoJSON" --dateFormat "yyyy-MM-dd HH:mm:ss" --queryDateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --radius "0.005" --aggregate "SUM" --wType "TIME" --wInterval "10" --wStep "10" --uniformGridSize 25 --cellLengthMeters 50 --k "5" --trajDeletionThreshold 1000 --gridMinX "115.50000" --gridMaxX "117.60000" --gridMinY "39.60000" --gridMaxY "41.10000" --qGridMinX "-74.25540" --qGridMaxX "-73.70007" --qGridMinY "40.49843" --qGridMaxY "40.91506" --trajIDSet "10007, 2560, 5261, 1743, 913" --queryPoint "[-74.0000, 40.72714]" --queryPolygon "[-73.984416, 40.675882], [-73.984511, 40.675767], [-73.984719, 40.675867], [-73.984726, 40.67587], [-73.984718, 40.675881], [-73.984631, 40.675986], [-73.984416, 40.675882]" --queryLineString "[-73.984416, 40.675882], [-73.984511, 40.675767]" --outOfOrderAllowedLateness "1" --omegaJoinDuration "1" --kafkaBootStrapServers "150.82.97.204:9092"
 		//NYCBuildingsLineStrings
 		//TaxiDriveGeoJSON_Live
 		//NYCBuildingsPolygonsGeoJSON_Live
@@ -1632,7 +1627,7 @@ class Params
 	List<String> ordinaryStreamAttributeNames = new ArrayList<String>(); // default order of attributes: objectID, timestamp
 	List<String> queryStreamAttributeNames = new ArrayList<String>();
 
-	Params(ParameterTool parameters) {
+	Params(ParameterTool parameters) throws NullPointerException, IllegalArgumentException {
 		try {
 			queryOption = Integer.parseInt(parameters.get("queryOption"));
 		}
@@ -1640,28 +1635,38 @@ class Params
 			System.out.println("queryOption is " + parameters.get("queryOption"));
 		}
 		if ((inputTopicName = parameters.get("inputTopicName")) == null) {
-			System.out.println("inputTopicName is " + parameters.get("inputTopicName"));
-			inputTopicName = "";
+			throw new NullPointerException("inputTopicName is " + parameters.get("inputTopicName"));
 		}
 		if ((queryTopicName = parameters.get("queryTopicName")) == null) {
-			System.out.println("queryTopicName is " +  parameters.get("queryTopicName"));
-			queryTopicName = "";
+			throw new NullPointerException("queryTopicName is " +  parameters.get("queryTopicName"));
 		}
 		if ((inputFormat = parameters.get("inputFormat")) == null) {
-			System.out.println("inputFormat is " + parameters.get("inputFormat"));
-			inputFormat = "";
+			throw new NullPointerException("inputFormat is " + parameters.get("inputFormat"));
+		}
+		else {
+			List<String> validParam = Arrays.asList("GeoJSON", "CSV", "TSV");
+			if (!validParam.contains(inputFormat)) {
+				throw new IllegalArgumentException(
+						"inputTopicName is " + inputFormat + ". " +
+						"Valid value is \"GeoJSON\", \"CSV\" or \"TSV\".");
+			}
 		}
 		if ((dateFormatStr = parameters.get("dateFormat")) == null) {
-			System.out.println("dateFormat is " + parameters.get("dateFormat"));
-			dateFormatStr = "null";
+			throw new NullPointerException("dateFormat is " + parameters.get("dateFormat"));
 		}
 		if ((queryDateFormatStr = parameters.get("queryDateFormat")) == null) {
-			System.out.println("queryDateFormat is " + parameters.get("queryDateFormat"));
-			queryDateFormatStr = "null";
+			throw new NullPointerException("queryDateFormat is " + parameters.get("queryDateFormat"));
 		}
 		if ((aggregateFunction = parameters.get("aggregate")) == null) {
-			System.out.println("aggregate is " + parameters.get("aggregate"));
-			aggregateFunction = "";
+			throw new NullPointerException("aggregate is " + parameters.get("aggregate"));
+		}
+		else {
+			List<String> validParam = Arrays.asList("ALL", "SUM", "AVG", "MIN", "MAX");
+			if (!validParam.contains(aggregateFunction)) {
+				throw new IllegalArgumentException(
+						"aggregateFunction is " + aggregateFunction + ". " +
+								"Valid value is \"ALL\", \"SUM\", \"AVG\", \"MIN\" or \"MAX\".");
+			}
 		}
 		try {
 			radius = Double.parseDouble(parameters.get("radius")); // Default 10x10 Grid
@@ -1694,8 +1699,7 @@ class Params
 			System.out.println("wStep is " + parameters.get("wStep"));
 		}
 		if ((windowType = parameters.get("wType")) == null) {
-			System.out.println("wType is " + parameters.get("wType"));
-			windowType = "";
+			throw new NullPointerException("wType is " + parameters.get("wType"));
 		}
 		try {
 			k = Integer.parseInt(parameters.get("k")); // k denotes filter size in filter query
@@ -1710,8 +1714,7 @@ class Params
 			System.out.println("onCluster is " + parameters.get("onCluster"));
 		}
 		if ((bootStrapServers = parameters.get("kafkaBootStrapServers")) == null) {
-			System.out.println("kafkaBootStrapServers is " + parameters.get("kafkaBootStrapServers"));
-			bootStrapServers = "";
+			throw new NullPointerException("kafkaBootStrapServers is " + parameters.get("kafkaBootStrapServers"));
 		}
 		try {
 			approximateQuery = Boolean.parseBoolean(parameters.get("approximateQuery"));
@@ -1786,8 +1789,7 @@ class Params
 			System.out.println("qGridMaxY is " + parameters.get("qGridMaxY"));
 		}
 		if ((trajIDSet = parameters.get("trajIDSet")) == null) {
-			System.out.println("trajIDSet is " + parameters.get("trajIDSet"));
-			trajIDSet = "";
+			throw new NullPointerException("trajIDSet is " + parameters.get("trajIDSet"));
 		}
 		try {
 			queryPointCoordinates = HelperClass.getCoordinates(parameters.get("queryPoint"));
