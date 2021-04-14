@@ -1755,30 +1755,23 @@ class Params
 			gridMaxX = Double.parseDouble(arrayGrid[2].trim());
 			gridMaxY = Double.parseDouble(arrayGrid[3].trim());
 		}
-		try {
-			qGridMinX = Double.parseDouble(parameters.get("qGridMinX"));
+		String gridBBox2;
+		if ((gridBBox2 = parameters.get("gridBBox2")) == null) {
+			throw new NullPointerException("gridBBox2 is " + parameters.get("gridBBox2"));
 		}
-		catch (NullPointerException e) {
-			System.out.println("qGridMinX is " + parameters.get("qGridMinX"));
+		else {
+			gridBBox2 = gridBBox2.replaceAll("\\[", "").replaceAll("]", "");
+			String[] arrayGrid = gridBBox2.split(",");
+			if (arrayGrid.length != 4) {
+				throw new IllegalArgumentException(" Illegal gridBBox2 number of elements : " + gridBBox2);
+			}
+			qGridMinX = Double.parseDouble(arrayGrid[0].trim());
+			qGridMinY = Double.parseDouble(arrayGrid[1].trim());
+			qGridMaxX = Double.parseDouble(arrayGrid[2].trim());
+			qGridMaxY = Double.parseDouble(arrayGrid[3].trim());
 		}
-		try {
-			qGridMaxX = Double.parseDouble(parameters.get("qGridMaxX"));
-		}
-		catch (NullPointerException e) {
-			System.out.println("qGridMaxX is " + parameters.get("qGridMaxX"));
-		}
-		try {
-			qGridMinY = Double.parseDouble(parameters.get("qGridMinY"));
-		}
-		catch (NullPointerException e) {
-			System.out.println("qGridMinY is " + parameters.get("qGridMinY"));
-		}
-		try {
-			qGridMaxY = Double.parseDouble(parameters.get("qGridMaxY"));
-		}
-		catch (NullPointerException e) {
-			System.out.println("qGridMaxY is " + parameters.get("qGridMaxY"));
-		}
+		System.out.println(gridBBox2);
+		System.out.println(qGridMinX + ", " + qGridMinY + ", " + qGridMaxX + ", " + qGridMaxY);
 		if ((trajIDSet = parameters.get("trajIDSet")) == null) {
 			throw new NullPointerException("trajIDSet is " + parameters.get("trajIDSet"));
 		}
