@@ -1535,7 +1535,11 @@ public class StreamingJob implements Serializable {
 			case 1012: {
 				// Point stream
 				DataStream pointStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromLatest());
-				//DataStream pointStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				//DataStream pointStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).
+				//
+				//
+				//
+				// ());
 				//pointStream.print();
 				// Converting GeoJSON,CSV stream to point spatial data stream
 				DataStream<Point> spatialPointStream = Deserialization.TrajectoryStream(pointStream, inputFormat, inputDateFormat, ordinaryStreamAttributeNames.get(1), ordinaryStreamAttributeNames.get(0), uGrid);
