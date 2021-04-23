@@ -40,25 +40,24 @@ public class UniformGrid implements Serializable {
     final private int CELLINDEXSTRLENGTH = 5;
     double cellLength;
     int numGridPartitions;
-    double cellLengthMeters;
     HashSet<String> girdCellsSet = new HashSet<String>();
     //Map<String, Coordinate[]> cellBoundaries = new HashMap<>();
 
     // UTM coordinates in meters
-    public UniformGrid(double cellLengthInMeters, double minX, double maxX, double minY, double maxY){
+    public UniformGrid(double cellLength, double minX, double maxX, double minY, double maxY){
 
         this.minX = minX;     //X - East-West longitude
         this.maxX = maxX;
         this.minY = minY;     //Y - North-South latitude
         this.maxY = maxY;
 
-        this.cellLengthMeters = cellLengthInMeters;
+        this.cellLength = cellLength;
         adjustCoordinatesForSquareGrid();
 
-        double gridLengthInMeters = DistanceFunctions.getPointPointEuclideanDistance(this.minX, this.minY, this.maxX, this.minY);
+        double gridLength = DistanceFunctions.getPointPointEuclideanDistance(this.minX, this.minY, this.maxX, this.minY);
         //System.out.println("gridLengthInMeters " + gridLengthInMeters);
 
-        double numGridRows = gridLengthInMeters/cellLengthInMeters;
+        double numGridRows = gridLength/cellLength;
         //System.out.println("numGridRows" + numGridRows);
 
         if(numGridRows < 1)
@@ -66,8 +65,8 @@ public class UniformGrid implements Serializable {
         else
             this.numGridPartitions = (int)Math.ceil(numGridRows);
 
+        // Computing actual cell length after adjustCoordinatesForSquareGrid
         this.cellLength = (this.maxX - this.minX) / this.numGridPartitions;
-        //System.out.println("-> " + this.cellLength + ", " + cellLengthInMeters + ", " + this.cellLengthMeters + ", " + this.numGridPartitions);
 
         populateGridCells();
     }
@@ -82,9 +81,6 @@ public class UniformGrid implements Serializable {
         this.numGridPartitions = uniformGridRows;
 
         this.cellLength = (this.maxX - this.minX) / uniformGridRows;
-        //System.out.println("cellLength: " + cellLength);
-        this.cellLengthMeters = HelperClass.computeHaverSine(this.minX, this.minY, this.minX + cellLength, this.minY);
-
         populateGridCells();
     }
 
@@ -148,7 +144,6 @@ public class UniformGrid implements Serializable {
         return numGridPartitions;
     }
     public double getCellLength() {return cellLength;}
-    public double getCellLengthInMeters() {return cellLengthMeters;}
     public HashSet<String> getGirdCellsSet() {return girdCellsSet;}
 
     public Coordinate[] getCellMinMaxBoundary(String cellKey){
@@ -169,10 +164,6 @@ public class UniformGrid implements Serializable {
     */
     public HashSet<String> getGuaranteedNeighboringCells(double queryRadius, String queryGridCellID)
     {
-        //queryRadius = CoordinatesConversion.metersToDD(queryRadius,cellLength,cellLengthMeters); //UNCOMMENT FOR HAVERSINE (METERS)
-        //System.out.println("queryRadius in Lat/Lon: "+ queryRadius);
-        //String queryCellID = queryPoint.gridID;
-
         HashSet<String> guaranteedNeighboringCellsSet = new HashSet<String>();
         int guaranteedNeighboringLayers = getGuaranteedNeighboringLayers(queryRadius);
 
@@ -240,7 +231,6 @@ public class UniformGrid implements Serializable {
     // Return all the neighboring cells up to the given grid layer
     public HashSet<String> getNeighboringCellsByLayer(Point p, int numNeighboringLayers)
     {
-        //queryRadius = CoordinatesConversion.metersToDD(queryRadius,cellLength,cellLengthMeters); // UNCOMMENT FOR HAVERSINE (METERS)
         String givenCellID = p.gridID;
         HashSet<String> neighboringCellsSet = new HashSet<String>();
 
@@ -275,7 +265,6 @@ public class UniformGrid implements Serializable {
             return this.girdCellsSet;
         }
 
-        //queryRadius = CoordinatesConversion.metersToDD(queryRadius,cellLength,cellLengthMeters); // UNCOMMENT FOR HAVERSINE (METERS)
         String queryCellID = queryPoint.gridID;
         HashSet<String> neighboringCellsSet = new HashSet<String>();
         int numNeighboringLayers = getCandidateNeighboringLayers(queryRadius);
@@ -311,7 +300,6 @@ public class UniformGrid implements Serializable {
             return this.girdCellsSet;
         }
 
-        //queryRadius = CoordinatesConversion.metersToDD(queryRadius,cellLength,cellLengthMeters); // UNCOMMENT FOR HAVERSINE (METERS)
         String queryCellID = queryPolygon.gridID;
         HashSet<String> neighboringCellsSet = new HashSet<String>();
         int numNeighboringLayers = getCandidateNeighboringLayers(queryRadius);
@@ -348,7 +336,6 @@ public class UniformGrid implements Serializable {
             return this.girdCellsSet;
         }
 
-        //queryRadius = CoordinatesConversion.metersToDD(queryRadius,cellLength,cellLengthMeters); // UNCOMMENT FOR HAVERSINE (METERS)
         String queryCellID = lineString.gridID;
         HashSet<String> neighboringCellsSet = new HashSet<String>();
         int numNeighboringLayers = getCandidateNeighboringLayers(queryRadius);
