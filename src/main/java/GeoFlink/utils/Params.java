@@ -43,6 +43,7 @@ public class Params {
     public List<Coordinate> queryPolygonCoordinates = new ArrayList<Coordinate>();
     public List<String> ordinaryStreamAttributeNames = new ArrayList<String>(); // default order of attributes: objectID, timestamp
     public List<String> queryStreamAttributeNames = new ArrayList<String>();
+    public List<Coordinate> queryPointSetCoordinates = new ArrayList<Coordinate>();
 
     public Params(ParameterTool parameters) throws NullPointerException, IllegalArgumentException, NumberFormatException {
         try {
@@ -221,6 +222,12 @@ public class Params {
         }
         catch (NullPointerException e) {
             System.out.println("queryStreamAttributes is " + parameters.get("queryStreamAttributes"));
+        }
+        try {
+            queryPointSetCoordinates = HelperClass.getCoordinates(parameters.get("queryPointSet"));
+        }
+        catch (NullPointerException e) {
+            System.out.println("queryLineString is " + parameters.get("queryLineString"));
         }
     }
 }

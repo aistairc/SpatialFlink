@@ -66,7 +66,7 @@ public class StreamingJob implements Serializable {
 		//--onCluster "false" --approximateQuery "false" --queryOption "1" --inputTopicName "TaxiDrive17MillionGeoJSON" --queryTopicName "queryPointTopic" --outputTopicName "QueryLatency" --inputFormat "GeoJSON" --dateFormat "yyyy-MM-dd HH:mm:ss" --queryDateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --radius "0.05" --aggregate "SUM" --wType "TIME" --wInterval "5" --wStep "3" --uniformGridSize 100 --k "10" --trajDeletionThreshold 1000 --outOfOrderAllowedLateness "1" --omegaJoinDuration "1" --gridMinX "115.50000" --gridMaxX "117.60000" --gridMinY "39.60000" --gridMaxY "41.10000" --trajIDSet "9211800, 9320801, 9090500, 7282400, 10390100" --queryPoint "[116.14319183444924, 40.07271444145411]" --queryPolygon "[116.14319183444924, 40.07271444145411], [116.14305232274667, 40.06231150684208], [116.16313670438304, 40.06152322130762], [116.14319183444924, 40.07271444145411]" --queryLineString "[116.14319183444924, 40.07271444145411], [116.14305232274667, 40.06231150684208], [116.16313670438304, 40.06152322130762]"
 		//--onCluster "false" --approximateQuery "false" --queryOption "17" --inputTopicName "NYCBuildingsPolygons" --queryTopicName "sampleTopic" --outputTopicName "QueryLatency" --inputFormat "GeoJSON" --dateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --queryDateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --radius "0.05" --aggregate "SUM" --wType "TIME" --wInterval "1" --wStep "1" --uniformGridSize 100 --k "10" --trajDeletionThreshold 1000 --outOfOrderAllowedLateness "1" --omegaJoinDuration "1" --gridMinX "-74.25540" --gridMaxX "-73.70007" --gridMinY "40.49843" --gridMaxY "40.91506" --trajIDSet "9211800, 9320801, 9090500, 7282400, 10390100" --queryPoint "[-74.0000, 40.72714]" --queryPolygon "[-73.98452330316861, 40.67563064195701], [-73.98776303794413, 40.671603874732455], [-73.97826680869485, 40.666980275860936], [-73.97297380718484, 40.67347172572744], [-73.98452330316861, 40.67563064195701]" --queryLineString "[-73.98452330316861, 40.67563064195701], [-73.98776303794413, 40.671603874732455], [-73.97826680869485, 40.666980275860936], [-73.97297380718484, 40.67347172572744]"
 		//--onCluster "false" --approximateQuery "false" --queryOption "17" --inputTopicName "NYCBuildingsLineStrings" --queryTopicName "sampleTopic" --outputTopicName "QueryLatency" --inputFormat "GeoJSON" --dateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --queryDateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --radius "0.05" --aggregate "SUM" --wType "TIME" --wInterval "1" --wStep "1" --uniformGridSize 100 --k "10" --trajDeletionThreshold 1000 --outOfOrderAllowedLateness "1" --omegaJoinDuration "1" --gridMinX "-74.25540" --gridMaxX "-73.70007" --gridMinY "40.49843" --gridMaxY "40.91506" --trajIDSet "9211800, 9320801, 9090500, 7282400, 10390100" --queryPoint "[-74.0000, 40.72714]" --queryPolygon "[-73.98452330316861, 40.67563064195701], [-73.98776303794413, 40.671603874732455], [-73.97826680869485, 40.666980275860936], [-73.97297380718484, 40.67347172572744], [-73.98452330316861, 40.67563064195701]" --queryLineString "[-73.98452330316861, 40.67563064195701], [-73.98776303794413, 40.671603874732455], [-73.97826680869485, 40.666980275860936], [-73.97297380718484, 40.67347172572744]"
-		//--onCluster "false" --approximateQuery "false" --queryOption "701" --inputTopicName "NYCBuildingsPolygons" --queryTopicName "sampleTopic" --outputTopicName "outputTopic" --inputFormat "GeoJSON" --dateFormat "yyyy-MM-dd HH:mm:ss" --queryDateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --radius "0.005" --aggregate "SUM" --wType "TIME" --wInterval "10" --wStep "10" --uniformGridSize 25 --cellLengthMeters 50 --k "5" --trajDeletionThreshold 1000 --gridBBox1 "[115.50000, 39.60000, 117.60000, 40.91506]" --gridBBox2 "[-74.25540, 40.49843, -73.7000, 40.91506]" --trajIDSet "10007, 2560, 5261, 1743, 913" --queryPoint "[-74.0000, 40.72714]" --queryPolygon "[-73.984416, 40.675882], [-73.984511, 40.675767], [-73.984719, 40.675867], [-73.984726, 40.67587], [-73.984718, 40.675881], [-73.984631, 40.675986], [-73.984416, 40.675882]" --queryLineString "[-73.984416, 40.675882], [-73.984511, 40.675767]" --outOfOrderAllowedLateness "1" --omegaJoinDuration "1" --kafkaBootStrapServers "150.82.97.204:9092"
+		//--onCluster "false" --approximateQuery "false" --queryOption "701" --inputTopicName "NYCBuildingsPolygons" --queryTopicName "sampleTopic" --outputTopicName "outputTopic" --inputFormat "GeoJSON" --dateFormat "yyyy-MM-dd HH:mm:ss" --queryDateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --radius "0.005" --aggregate "SUM" --wType "TIME" --wInterval "10" --wStep "10" --uniformGridSize 25 --cellLengthMeters 50 --k "5" --trajDeletionThreshold 1000 --gridBBox1 "[115.50000, 39.60000, 117.60000, 40.91506]" --gridBBox2 "[-74.25540, 40.49843, -73.7000, 40.91506]" --trajIDSet "10007, 2560, 5261, 1743, 913" --queryPoint "[-74.0000, 40.72714]" --queryPolygon "[-73.984416, 40.675882], [-73.984511, 40.675767], [-73.984719, 40.675867], [-73.984726, 40.67587], [-73.984718, 40.675881], [-73.984631, 40.675986], [-73.984416, 40.675882]" --queryLineString "[-73.984416, 40.675882], [-73.984511, 40.675767]" --outOfOrderAllowedLateness "1" --omegaJoinDuration "1" --kafkaBootStrapServers "150.82.97.204:9092" --queryPointSet "[116.5, 40.5], [117.6, 40.5], [117.6, 41.4]" --queryPolygonSet "[[116.5, 40.5], [117.6, 40.5], [117.6, 41.4], [116.5, 41.4], [116.5, 40.5]] , [[116.5, 40.5], [117.6, 40.5], [117.6, 41.4], [116.5, 41.4], [116.5, 40.5]] , [[116.5, 40.5], [117.6, 40.5], [117.6, 41.4], [116.5, 41.4], [116.5, 40.5]]"
 		// NYCBuildingsLineStrings
 		//TaxiDriveGeoJSON_Live
 		//NYCBuildingsPolygonsGeoJSON_Live
@@ -120,6 +120,7 @@ public class StreamingJob implements Serializable {
 		List<Coordinate> queryPointCoordinates = params.queryPointCoordinates;
 		List<Coordinate> queryLineStringCoordinates = params.queryLineStringCoordinates;
 		List<Coordinate> queryPolygonCoordinates = params.queryPolygonCoordinates;
+		List<Coordinate> queryPointSetCoordinates = params.queryPointSetCoordinates;
 
 		List<String> ordinaryStreamAttributeNames = params.ordinaryStreamAttributeNames; // default order of attributes: objectID, timestamp
 		List<String> queryStreamAttributeNames = params.queryStreamAttributeNames;
@@ -260,6 +261,7 @@ public class StreamingJob implements Serializable {
 		Point qPoint;
 		Polygon queryPolygon;
 		LineString queryLineString;
+		Set<Point> pointSet = new HashSet<Point>();
 
 		if(cellLengthMeters > 0) {
 			uGrid = new UniformGrid(cellLengthMeters, gridMinX, gridMaxX, gridMinY, gridMaxY);
@@ -283,6 +285,9 @@ public class StreamingJob implements Serializable {
 
 		queryLineString = new LineString(queryLineStringCoordinates, uGrid);
 
+		for (Coordinate c : queryPointSetCoordinates) {
+			pointSet.add(new Point(c.x, c.y, uGrid));
+		}
 
 
 
