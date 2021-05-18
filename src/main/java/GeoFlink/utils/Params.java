@@ -43,6 +43,9 @@ public class Params {
     public List<Coordinate> queryPolygonCoordinates = new ArrayList<Coordinate>();
     public List<String> ordinaryStreamAttributeNames = new ArrayList<String>(); // default order of attributes: objectID, timestamp
     public List<String> queryStreamAttributeNames = new ArrayList<String>();
+    public List<List<Coordinate>> queryPointSetCoordinates = new ArrayList<>();
+    public List<List<List<Coordinate>>> queryPolygonSetCoordinates = new ArrayList<>();
+    public List<List<List<Coordinate>>> queryLineStringSetCoordinates = new ArrayList<>();
 
     public Params(ParameterTool parameters) throws NullPointerException, IllegalArgumentException, NumberFormatException {
         try {
@@ -224,6 +227,24 @@ public class Params {
         }
         catch (NullPointerException e) {
             System.out.println("queryStreamAttributes is " + parameters.get("queryStreamAttributes"));
+        }
+        try {
+            queryPointSetCoordinates = HelperClass.getListCoordinates(parameters.get("queryPointSet"));
+        }
+        catch (NullPointerException e) {
+            System.out.println("queryPointSet is " + parameters.get("queryPointSet"));
+        }
+        try {
+            queryPolygonSetCoordinates = HelperClass.getListListCoordinates(parameters.get("queryPolygonSet"));
+        }
+        catch (NullPointerException e) {
+            System.out.println("queryPolygonSet is " + parameters.get("queryPolygonSet"));
+        }
+        try {
+            queryLineStringSetCoordinates = HelperClass.getListListCoordinates(parameters.get("queryLineStringSet"));
+        }
+        catch (NullPointerException e) {
+            System.out.println("queryLineStringSet is " + parameters.get("queryLineStringSet"));
         }
     }
 }

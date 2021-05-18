@@ -160,6 +160,45 @@ public class HelperClass {
         return list;
     }
 
+    public static List<List<Coordinate>> getListCoordinates(String inputValue) {
+        //"[[116.5, 40.5], [117.6, 40.5], [117.6, 41.4]], [[117.5, 40.5], [118.6, 40.5], [118.6, 41.4]]"
+        List<List<Coordinate>> list = new ArrayList<>();
+        if (inputValue == null) {
+            return list;
+        }
+        Pattern pattern = Pattern.compile("\\[\\[(.+?)\\]\\]");
+        Matcher matcher = pattern.matcher(inputValue);
+        while (matcher.find()) {
+            try {
+                String str = "[" + matcher.group(1).trim() + "]";
+                list.add(getCoordinates(str));
+            }
+            catch (Exception e) {}
+        }
+        return list;
+    }
+
+    public static List<List<List<Coordinate>>> getListListCoordinates(String inputValue) {
+        //"[[[116.5, 40.5], [117.6, 40.5], [117.6, 41.4], [116.5, 41.4], [116.5, 40.5]]] , [[[117.5, 40.5], [118.6, 40.5], [118.6, 41.4], [117.5, 41.4], [117.5, 40.5]]] , [[[116.5, 40.5], [117.6, 40.5], [117.6, 41.4], [116.5, 41.4], [116.5, 40.5]]]"
+        List<List<List<Coordinate>>> retList = new ArrayList<>();
+        if (inputValue == null) {
+            return retList;
+        }
+        Pattern pattern = Pattern.compile("\\[\\[\\[(.+?)\\]\\]\\]");
+        Matcher matcher = pattern.matcher(inputValue);
+        while (matcher.find()) {
+            try {
+                String str = "[" + matcher.group(1).trim() + "]";
+                List<Coordinate> list = getCoordinates(str);
+                List<List<Coordinate>> listList = new ArrayList<>();
+                listList.add(list);
+                retList.add(listList);
+            }
+            catch (Exception e) {}
+        }
+        return retList;
+    }
+
     public static List<String> getParametersArray(String inputValue) {
         //"[timestamp, oID]"
         List<String> list = new ArrayList<String>();
