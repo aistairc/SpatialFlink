@@ -26,7 +26,6 @@ public class TFilterQuery implements Serializable {
     public static DataStream<Point> TIDSpatialFilterQuery(DataStream<Point> pointStream, Set<String> trajIDSet){
 
         // Spatial stream with Timestamps and Watermarks
-        // Max Allowed Lateness: windowSize
         DataStream<Point> pointStreamWithTsAndWm =
                 pointStream.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Point>(Time.seconds(0)) {
                     @Override
@@ -38,9 +37,6 @@ public class TFilterQuery implements Serializable {
         return pointStreamWithTsAndWm.filter(new FilterFunction<Point>() {
             @Override
             public boolean filter(Point point) throws Exception {
-
-                //Date date = new Date();
-                //System.out.println(date.getTime() - point.ingestionTime);
                 if (trajIDSet.size() > 0)
                     return ((trajIDSet.contains(point.objID)));
                 else

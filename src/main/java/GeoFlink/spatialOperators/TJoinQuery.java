@@ -31,7 +31,7 @@ import java.util.*;
 public class TJoinQuery implements Serializable {
 
     //--------------- Spatial Trajectory  JOIN QUERY - Real Time -----------------//
-    public static DataStream<Tuple2<Point, Point>> TSpatialJoinQuery(DataStream<Point> ordinaryPointStream, DataStream<Point> queryPointStream, double joinDistance, int omegaJoinDurationSeconds, int allowedLateness, UniformGrid uGrid) {
+    public static DataStream<Tuple2<Point, Point>> TSpatialJoinQuery(DataStream<Point> ordinaryPointStream, DataStream<Point> queryPointStream, double joinRadius, int omegaJoinDurationSeconds, int allowedLateness, UniformGrid uGrid) {
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: allowedLateness
@@ -49,9 +49,9 @@ public class TJoinQuery implements Serializable {
                     public long extractTimestamp(Point p) {
                         return p.timeStampMillisec;
                     }
-                });//;startNewChain();
+                });
 
-        DataStream<Point> replicatedQueryStream = getReplicatedQueryStream(queryStreamWithTsAndWm, joinDistance, uGrid);
+        DataStream<Point> replicatedQueryStream = getReplicatedQueryStream(queryStreamWithTsAndWm, joinRadius, uGrid);
 
         DataStream<Tuple2<Point, Point>> joinOutput = ordinaryStreamWithTsAndWm.join(replicatedQueryStream)
                 .where(new KeySelector<Point, String>() {
@@ -69,7 +69,7 @@ public class TJoinQuery implements Serializable {
                     @Override
                     public Tuple2<Point, Point> join(Point p, Point q) {
                         //System.out.println(HelperClass.getPointPointEuclideanDistance(p.point.getX(), p.point.getY(), q.point.getX(), q.point.getY()));
-                        if (DistanceFunctions.getPointPointEuclideanDistance(p.point.getX(), p.point.getY(), q.point.getX(), q.point.getY()) <= joinDistance) {
+                        if (DistanceFunctions.getPointPointEuclideanDistance(p.point.getX(), p.point.getY(), q.point.getX(), q.point.getY()) <= joinRadius) {
                             return Tuple2.of(p, q);
                         } else {
                             return Tuple2.of(null, null);
@@ -387,8 +387,7 @@ public class TJoinQuery implements Serializable {
     }
 
     //--------------- Spatial Trajectory  JOIN QUERY - Naive -----------------//
-    public static DataStream<Tuple2<Point, Point>> TSpatialJoinQuery(DataStream<Point> ordinaryPointStream, DataStream<Point> queryPointStream, double joinDistance, int omegaJoinDurationSeconds, int allowedLateness) {
-
+    public static DataStream<Tuple2<Point, Point>> TSpatialJoinQuery(DataStream<Point> ordinaryPointStream, DataStream<Point> queryPointStream, double joinRadius, int omegaJoinDurationSeconds, int allowedLateness) {
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: windowSize
@@ -396,7 +395,6 @@ public class TJoinQuery implements Serializable {
                 ordinaryPointStream.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Point>(Time.seconds(allowedLateness)) {
                     @Override
                     public long extractTimestamp(Point p) {
-
                         return p.timeStampMillisec;
                     }
                 });
@@ -425,7 +423,7 @@ public class TJoinQuery implements Serializable {
                     @Override
                     public Tuple2<Point, Point> join(Point p, Point q) {
                         //System.out.println(HelperClass.getPointPointEuclideanDistance(p.point.getX(), p.point.getY(), q.point.getX(), q.point.getY()));
-                        if (DistanceFunctions.getPointPointEuclideanDistance(p.point.getX(), p.point.getY(), q.point.getX(), q.point.getY()) <= joinDistance) {
+                        if (DistanceFunctions.getPointPointEuclideanDistance(p.point.getX(), p.point.getY(), q.point.getX(), q.point.getY()) <= joinRadius) {
                             return Tuple2.of(p, q);
                         } else {
                             return Tuple2.of(null, null);
@@ -437,6 +435,8 @@ public class TJoinQuery implements Serializable {
                         return (value.f1 != null); // removing null results
                     }
                 });
+
+        //return joinOutput;
 
         // Join Output may contain multiple and/or null results
         // To generate output corresponding to latest timestamp of each trajectory, divide the tuples with respect to trajectory id rather than grid id as we are interested in one output per trajectory rather than one output per cell

@@ -78,6 +78,8 @@ public class StreamingJob implements Serializable {
 		//--onCluster "false" --approximateQuery "false" --queryOption "106" --inputTopicName "TaxiDrive17MillionGeoJSON" --queryTopicName "NYCBuildingsPolygonsGeoJSON_Live" --outputTopicName "Latency8" --inputFormat "GeoJSON" --dateFormat "yyyy-MM-dd HH:mm:ss" --queryDateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --radius "0.05" --aggregate "SUM" --wType "TIME" --wInterval "5" --wStep "3" --uniformGridSize 100 --k "10" --trajDeletionThreshold 1000 --outOfOrderAllowedLateness "1" --omegaJoinDuration "1" --gridMinX "115.50000" --gridMaxX "117.60000" --gridMinY "39.60000" --gridMaxY "41.10000" --qGridMinX "-74.25540" --qGridMaxX "-73.70007" --qGridMinY "40.49843" --qGridMaxY "40.91506" --trajIDSet "9211800, 9320801, 9090500, 7282400, 10390100" --queryPoint "[116.14319183444924, 40.07271444145411]" --queryPolygon "[116.14319183444924, 40.07271444145411], [116.14305232274667, 40.06231150684208], [116.16313670438304, 40.06152322130762], [116.14319183444924, 40.07271444145411]" --queryLineString "[116.14319183444924, 40.07271444145411], [116.14305232274667, 40.06231150684208], [116.16313670438304, 40.06152322130762]"
 		//--onCluster "false" --approximateQuery "false" --queryOption "137" --inputTopicName "NYCBuildingsLineStrings" --queryTopicName "NYCBuildingsPolygonsGeoJSON_Live" --outputTopicName "QueryLatency" --inputFormat "GeoJSON" --dateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --queryDateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --radius "0.05" --aggregate "SUM" --wType "TIME" --wInterval "1" --wStep "1" --uniformGridSize 100 --k "10" --trajDeletionThreshold 1000 --outOfOrderAllowedLateness "1" --omegaJoinDuration "1" --gridMinX "-74.25540" --gridMaxX "-73.70007" --gridMinY "40.49843" --gridMaxY "40.91506" --qGridMinX "-74.25540" --qGridMaxX "-73.70007" --qGridMinY "40.49843" --qGridMaxY "40.91506" --trajIDSet "9211800, 9320801, 9090500, 7282400, 10390100" --queryPoint "[-74.0000, 40.72714]" --queryPolygon "[-73.98452330316861, 40.67563064195701], [-73.98776303794413, 40.671603874732455], [-73.97826680869485, 40.666980275860936], [-73.97297380718484, 40.67347172572744], [-73.98452330316861, 40.67563064195701]" --queryLineString "[-73.98452330316861, 40.67563064195701], [-73.98776303794413, 40.671603874732455], [-73.97826680869485, 40.666980275860936], [-73.97297380718484, 40.67347172572744]"
 		//--onCluster "false" --kafkaBootStrapServers "150.82.97.204:9092" --approximateQuery "false" --queryOption "1012" --inputTopicName "TaxiDriveGeoJSON_Live" --queryTopicName "Beijing_Polygons_Live" --outputTopicName "QueryLatency" --inputFormat "GeoJSON" --dateFormat "yyyy-MM-dd HH:mm:ss" --queryDateFormat "yyyy-MM-dd HH:mm:ss" --ordinaryStreamAttributes "[oID, timestamp]" --queryStreamAttributes "[doitt_id, lstmoddate]" --radius "0.05" --aggregate "SUM" --wType "TIME" --wInterval "3" --wStep "3" --uniformGridSize 100 --cellLengthMeters 50 --k "10" --trajDeletionThreshold 1000 --outOfOrderAllowedLateness "1" --omegaJoinDuration "1" --gridMinX "115.50000" --gridMaxX "117.60000" --gridMinY "39.60000" --gridMaxY "40.91506" --qGridMinX "115.50000" --qGridMaxX "117.60000" --qGridMinY "39.60000" --qGridMaxY "41.10000" --trajIDSet "9211800, 9320801, 9090500, 7282400, 10390100" --queryPoint "[-74.0000, 40.72714]" --queryPolygon "[-73.98452330316861, 40.67563064195701], [-73.98776303794413, 40.671603874732455], [-73.97826680869485, 40.666980275860936], [-73.97297380718484, 40.67347172572744], [-73.98452330316861, 40.67563064195701]" --queryLineString "[-73.98452330316861, 40.67563064195701], [-73.98776303794413, 40.671603874732455], [-73.97826680869485, 40.666980275860936], [-73.97297380718484, 40.67347172572744]"
+
+
 		
 
 		ParameterTool parameters = ParameterTool.fromArgs(args);
@@ -172,11 +174,6 @@ public class StreamingJob implements Serializable {
 		//env.setStreamTimeCharacteristic(TimeCharacteristic.ProcessingTime);
 		env.setParallelism(30);
 
-		double minX;
-		double maxX;
-		double minY;
-		double maxY;
-
 		/*
 		// Boundaries for Taxi Drive dataset
 		double minX = 115.50000;     //X - East-West longitude
@@ -211,8 +208,8 @@ public class StreamingJob implements Serializable {
 
 		// Preparing Kafka Connection to Get Stream Tuples
 		Properties kafkaProperties = new Properties();
-		kafkaProperties.setProperty("bootstrap.servers", "localhost:9092");
-//		kafkaProperties.setProperty("bootstrap.servers", bootStrapServers);
+		//kafkaProperties.setProperty("bootstrap.servers", "localhost:9092");
+		kafkaProperties.setProperty("bootstrap.servers", bootStrapServers);
 		kafkaProperties.setProperty("group.id", "messageStream");
 
 		// Defining Grid
@@ -269,8 +266,6 @@ public class StreamingJob implements Serializable {
 			qGrid = new UniformGrid(uniformGridSize, qGridMinX, qGridMaxX, qGridMinY, qGridMaxY);
 		}
 
-
-
 		String[] trajID = trajIDSet.split("\\s*,\\s*");
 		trajIDs = Stream.of(trajID).collect(Collectors.toSet());
 
@@ -279,12 +274,10 @@ public class StreamingJob implements Serializable {
 		List<List<Coordinate>> listCoordinatePolygon = new ArrayList<List<Coordinate>>();
 		listCoordinatePolygon.add(queryPolygonCoordinates);
 		queryPolygon = new Polygon(listCoordinatePolygon, uGrid);
+
 		polygonSet = Stream.of(queryPolygon).collect(Collectors.toSet());
 
 		queryLineString = new LineString(queryLineStringCoordinates, uGrid);
-
-
-
 
 		/*
 		if(dataset.equals("TDriveBeijing")) {
@@ -1104,9 +1097,10 @@ public class StreamingJob implements Serializable {
 				 */
 			case 201:{ // TFilterQuery Real-time
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, "timestamp", "oID", uGrid);
+				//spatialTrajectoryStream.print();
 				DataStream<Point> outputStream = TFilterQuery.TIDSpatialFilterQuery(spatialTrajectoryStream, trajIDs);
 				//outputStream.print();
-				outputStream.addSink(new FlinkKafkaProducer<>(outputTopicName, new HelperClass.LatencySinkPoint(queryOption, outputTopicName), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				//outputStream.addSink(new FlinkKafkaProducer<>(outputTopicName, new HelperClass.LatencySinkPoint(queryOption, outputTopicName), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
 			case 202:{ // TFilterQuery Windowed
@@ -1116,12 +1110,12 @@ public class StreamingJob implements Serializable {
 			}
 			case 203:{ // TRangeQuery Real-time
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, "timestamp", "oID", uGrid);
+				//spatialTrajectoryStream.print();
 				DataStream<Point> outputStream = TRangeQuery.TSpatialRangeQuery(spatialTrajectoryStream, polygonSet);
 				//Naive
 				//DataStream<Point> outputStream = TRangeQuery.TSpatialRangeQuery(polygonSet, spatialTrajectoryStream);
-
 				//outputStream.print();
-				outputStream.addSink(new FlinkKafkaProducer<>(outputTopicName, new HelperClass.LatencySinkPoint(queryOption, outputTopicName), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				//outputStream.addSink(new FlinkKafkaProducer<>(outputTopicName, new HelperClass.LatencySinkPoint(queryOption, outputTopicName), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
 			case 204:{ // TRangeQuery Windowed
@@ -1165,7 +1159,7 @@ public class StreamingJob implements Serializable {
 				//TJoinQuery.TSpatialJoinQuery(spatialTrajectoryStream, radius, omegaJoinDurationSeconds, allowedLateness, uGrid);//.print();
 
 				// Naive
-				//TJoinQuery.TSpatialJoinQuery(spatialTrajectoryStream, spatialQueryStream, radius, windowSize);
+				//TJoinQuery.TSpatialJoinQuery(spatialTrajectoryStream, spatialQueryStream, radius, omegaJoinDurationSeconds, allowedLateness);
 
 				break;
 			}

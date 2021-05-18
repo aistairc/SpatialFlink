@@ -4,6 +4,7 @@ import GeoFlink.spatialObjects.LineString;
 import GeoFlink.spatialObjects.Point;
 import GeoFlink.spatialObjects.Polygon;
 import GeoFlink.utils.HelperClass;
+import com.sun.xml.internal.bind.v2.TODO;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.JoinFunction;
 import org.apache.flink.api.common.functions.RichFlatMapFunction;
@@ -29,12 +30,6 @@ public class TRangeQuery implements Serializable {
     //--------------- TSpatialRangeQuery Naive -----------------//
     public static DataStream<Point> TSpatialRangeQuery(Set<Polygon> polygonSet, DataStream<Point> pointStream){
 
-        HashSet<String> polygonsGridCellIDs = new HashSet<>();
-        // Making an integrated set of all the polygon's grid cell IDs
-        for (Polygon poly: polygonSet) {
-            polygonsGridCellIDs.addAll(poly.gridIDsSet);
-        }
-
         // Perform keyBy to logically distribute streams by trajectoryID and then check if a point lies within a polygon or nor
         DataStream<Point> keyedStream =  pointStream.keyBy(new KeySelector<Point, String>() {
             @Override
@@ -45,7 +40,7 @@ public class TRangeQuery implements Serializable {
             @Override
             public boolean filter(Point p) throws Exception {
                 for (Polygon poly: polygonSet) {
-                    if (poly.polygon.contains(p.point.getEnvelope())) // Polygon contains the point
+                    if (poly.polygon.contains(p.point)) // Polygon contains the point
                         return true;
                 }
                 return false; // Polygon does not contain the point
@@ -65,6 +60,7 @@ public class TRangeQuery implements Serializable {
             polygonsGridCellIDs.addAll(poly.gridIDsSet);
         }
 
+        //System.out.println("polygonsGridCellIDs " + polygonsGridCellIDs);
         // Filtering based on grid-cell ID
         DataStream<Point> filteredStream = pointStream.filter(new FilterFunction<Point>() {
             @Override
@@ -73,7 +69,7 @@ public class TRangeQuery implements Serializable {
             }
         });
 
-        // Perform keyBy to logically distribute streams by trajectoryID and then check if a point lies within a polygon or nor
+        // Perform keyBy to logically distribute streams by trajectoryID and then check if a point lies within a polygon or not
         return filteredStream.keyBy(new KeySelector<Point, String>() {
             @Override
             public String getKey(Point p) throws Exception {
@@ -82,6 +78,9 @@ public class TRangeQuery implements Serializable {
         }).filter(new FilterFunction<Point>() {
             @Override
             public boolean filter(Point p) throws Exception {
+
+                //TODO: Filter based on guaranteed and candidate neighbors
+
                 for (Polygon poly: polygonSet) {
                     if (poly.polygon.contains(p.point.getEnvelope())) // Polygon contains the point
                         return true;

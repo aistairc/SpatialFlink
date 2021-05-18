@@ -57,6 +57,9 @@ public class Params {
         if ((queryTopicName = parameters.get("queryTopicName")) == null) {
             throw new NullPointerException("queryTopicName is " +  parameters.get("queryTopicName"));
         }
+        if ((outputTopicName = parameters.get("outputTopicName")) == null) {
+            throw new NullPointerException("outputTopicName is " +  parameters.get("outputTopicName"));
+        }
         if ((inputFormat = parameters.get("inputFormat")) == null) {
             throw new NullPointerException("inputFormat is " + parameters.get("inputFormat"));
         }
@@ -64,7 +67,7 @@ public class Params {
             List<String> validParam = Arrays.asList("GeoJSON", "CSV", "TSV");
             if (!validParam.contains(inputFormat)) {
                 throw new IllegalArgumentException(
-                        "inputTopicName is " + inputFormat + ". " +
+                        "inputFormat is " + inputFormat + ". " +
                                 "Valid value is \"GeoJSON\", \"CSV\" or \"TSV\".");
             }
         }
@@ -187,8 +190,8 @@ public class Params {
             qGridMaxX = Double.parseDouble(arrayGrid[2].trim());
             qGridMaxY = Double.parseDouble(arrayGrid[3].trim());
         }
-        System.out.println(gridBBox2);
-        System.out.println(qGridMinX + ", " + qGridMinY + ", " + qGridMaxX + ", " + qGridMaxY);
+        //System.out.println(gridBBox2);
+        //System.out.println(qGridMinX + ", " + qGridMinY + ", " + qGridMaxX + ", " + qGridMaxY);
         if ((trajIDSet = parameters.get("trajIDSet")) == null) {
             throw new NullPointerException("trajIDSet is " + parameters.get("trajIDSet"));
         }
