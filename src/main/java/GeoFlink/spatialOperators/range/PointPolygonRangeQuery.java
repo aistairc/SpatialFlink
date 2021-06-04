@@ -21,7 +21,7 @@ import java.util.Set;
 
 public class PointPolygonRangeQuery extends RangeQuery<Point, Polygon> {
     //--------------- Real-time - POLYGON - POINT -----------------//
-    public DataStream<Point> realtimeQuery(DataStream<Point> pointStream, Polygon queryPolygon, double queryRadius, UniformGrid uGrid, boolean approximateQuery){
+    public DataStream<Point> realTime(DataStream<Point> pointStream, Polygon queryPolygon, double queryRadius, UniformGrid uGrid, boolean approximateQuery){
 
         Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPolygon);
         Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryPolygon, guaranteedNeighboringCells);
@@ -65,7 +65,7 @@ public class PointPolygonRangeQuery extends RangeQuery<Point, Polygon> {
     }
 
     //--------------- Window-based - POLYGON - POINT -----------------//
-    public DataStream<Point> windowQuery(DataStream<Point> pointStream, Polygon queryPolygon, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery){
+    public DataStream<Point> windowBased(DataStream<Point> pointStream, Polygon queryPolygon, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery){
 
         Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPolygon);
         Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryPolygon, guaranteedNeighboringCells);

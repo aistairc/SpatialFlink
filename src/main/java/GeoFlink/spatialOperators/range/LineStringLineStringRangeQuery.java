@@ -2,7 +2,6 @@ package GeoFlink.spatialOperators.range;
 
 import GeoFlink.spatialIndices.UniformGrid;
 import GeoFlink.spatialObjects.LineString;
-import GeoFlink.spatialObjects.Point;
 import GeoFlink.utils.DistanceFunctions;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.java.functions.KeySelector;
@@ -14,20 +13,19 @@ import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 
-import java.io.Serializable;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class LineStringLineStringRangeQuery extends RangeQuery<LineString, LineString> {
     //--------------- Real-time - LINESTRING - LINESTRING -----------------//
-    public DataStream<LineString> realtimeQuery(DataStream<LineString> lineStringStream, LineString queryLineString, double queryRadius, UniformGrid uGrid, boolean approximateQuery) {
+    public DataStream<LineString> realTime(DataStream<LineString> lineStringStream, LineString queryLineString, double queryRadius, UniformGrid uGrid, boolean approximateQuery) {
 
         Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryLineString);
         Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryLineString, guaranteedNeighboringCells);
         Set<String> neighboringCells = Stream.concat(guaranteedNeighboringCells.stream(),candidateNeighboringCells.stream()).collect(Collectors.toSet());
 
-        DataStream<LineString> filteredLineStrings = lineStringStream.flatMap(new RangeQuery.cellBasedLineStringFlatMap(neighboringCells)).startNewChain();
+        DataStream<LineString> filteredLineStrings = lineStringStream.flatMap(new CellBasedLineStringFlatMap(neighboringCells)).startNewChain();
 
         DataStream<LineString> rangeQueryNeighbours = filteredLineStrings.keyBy(new KeySelector<LineString, String>() {
             @Override
@@ -69,7 +67,7 @@ public class LineStringLineStringRangeQuery extends RangeQuery<LineString, LineS
     }
 
     //--------------- WINDOW-based - LINESTRING - LINESTRING -----------------//
-    public DataStream<LineString> windowQuery(DataStream<LineString> lineStringStream, LineString queryLineString, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery) {
+    public DataStream<LineString> windowBased(DataStream<LineString> lineStringStream, LineString queryLineString, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery) {
 
         Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryLineString);
         Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryLineString, guaranteedNeighboringCells);
@@ -83,7 +81,7 @@ public class LineStringLineStringRangeQuery extends RangeQuery<LineString, LineS
                     }
                 }).startNewChain();
 
-        DataStream<LineString> filteredLineStrings = streamWithTsAndWm.flatMap(new RangeQuery.cellBasedLineStringFlatMap(neighboringCells));
+        DataStream<LineString> filteredLineStrings = streamWithTsAndWm.flatMap(new CellBasedLineStringFlatMap(neighboringCells));
 
         DataStream<LineString> rangeQueryNeighbours = filteredLineStrings.keyBy(new KeySelector<LineString, String>() {
             @Override

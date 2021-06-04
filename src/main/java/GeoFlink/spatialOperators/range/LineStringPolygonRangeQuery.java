@@ -20,13 +20,13 @@ import java.util.stream.Stream;
 
 public class LineStringPolygonRangeQuery extends RangeQuery<LineString, Polygon> {
     //--------------- Real-time - LINESTRING - POLYGON -----------------//
-    public DataStream<LineString> realtimeQuery(DataStream<LineString> lineStringStream, Polygon queryPolygon, double queryRadius, UniformGrid uGrid, boolean approximateQuery) {
+    public DataStream<LineString> realTime(DataStream<LineString> lineStringStream, Polygon queryPolygon, double queryRadius, UniformGrid uGrid, boolean approximateQuery) {
 
         Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPolygon);
         Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryPolygon, guaranteedNeighboringCells);
         Set<String> neighboringCells = Stream.concat(guaranteedNeighboringCells.stream(),candidateNeighboringCells.stream()).collect(Collectors.toSet());
 
-        DataStream<LineString> filteredLineStrings = lineStringStream.flatMap(new RangeQuery.cellBasedLineStringFlatMap(neighboringCells)).startNewChain();
+        DataStream<LineString> filteredLineStrings = lineStringStream.flatMap(new CellBasedLineStringFlatMap(neighboringCells)).startNewChain();
 
         DataStream<LineString> rangeQueryNeighbours = filteredLineStrings.keyBy(new KeySelector<LineString, String>() {
             @Override
@@ -68,7 +68,7 @@ public class LineStringPolygonRangeQuery extends RangeQuery<LineString, Polygon>
     }
 
     //--------------- WINDOW-based - LINESTRING - POLYGON -----------------//
-    public DataStream<LineString> windowQuery(DataStream<LineString> lineStringStream, Polygon queryPolygon, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery) {
+    public DataStream<LineString> windowBased(DataStream<LineString> lineStringStream, Polygon queryPolygon, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery) {
 
         Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPolygon);
         Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryPolygon, guaranteedNeighboringCells);
@@ -82,7 +82,7 @@ public class LineStringPolygonRangeQuery extends RangeQuery<LineString, Polygon>
                     }
                 }).startNewChain();
 
-        DataStream<LineString> filteredLineStrings = streamWithTsAndWm.flatMap(new RangeQuery.cellBasedLineStringFlatMap(neighboringCells));
+        DataStream<LineString> filteredLineStrings = streamWithTsAndWm.flatMap(new CellBasedLineStringFlatMap(neighboringCells));
 
         DataStream<LineString> rangeQueryNeighbours = filteredLineStrings.keyBy(new KeySelector<LineString, String>() {
             @Override

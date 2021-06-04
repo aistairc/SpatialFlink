@@ -20,7 +20,7 @@ import java.util.stream.Stream;
 
 public class PolygonPolygonRangeQuery extends RangeQuery<Polygon, Polygon> {
     //--------------- Real-time - POLYGON - POLYGON -----------------//
-    public DataStream<Polygon> realtimeQuery(DataStream<Polygon> polygonStream, Polygon queryPolygon, double queryRadius, UniformGrid uGrid, boolean approximateQuery) {
+    public DataStream<Polygon> realTime(DataStream<Polygon> polygonStream, Polygon queryPolygon, double queryRadius, UniformGrid uGrid, boolean approximateQuery) {
 
         Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPolygon);
         Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryPolygon, guaranteedNeighboringCells);
@@ -70,7 +70,7 @@ public class PolygonPolygonRangeQuery extends RangeQuery<Polygon, Polygon> {
     }
 
     //--------------- WINDOW-based - POLYGON - POLYGON -----------------//
-    public DataStream<Polygon> windowQuery(DataStream<Polygon> polygonStream, Polygon queryPolygon, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery) {
+    public DataStream<Polygon> windowBased(DataStream<Polygon> polygonStream, Polygon queryPolygon, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery) {
 
         Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPolygon);
         Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryPolygon, guaranteedNeighboringCells);

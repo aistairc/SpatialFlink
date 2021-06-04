@@ -50,21 +50,21 @@ import java.util.stream.Stream;
 
 public abstract class RangeQuery<T extends SpatialObject, K extends SpatialObject> implements Serializable {
     //--------------- Real-time - T - K -----------------//
-    public abstract DataStream<T> realtimeQuery(DataStream<T> stream, K obj, double queryRadius, UniformGrid uGrid, boolean approximateQuery);
+    public abstract DataStream<T> realTime(DataStream<T> stream, K obj, double queryRadius, UniformGrid uGrid, boolean approximateQuery);
 
     //--------------- Window-based - T - K -----------------//
-    public abstract DataStream<T> windowQuery(DataStream <T> stream, K obj,
-                                     double queryRadius, UniformGrid uGrid, int windowSize, int slideStep, int allowedLateness,
-                                     boolean approximateQuery);
+    public abstract DataStream<T> windowBased(DataStream <T> stream, K obj,
+                                              double queryRadius, UniformGrid uGrid, int windowSize, int slideStep, int allowedLateness,
+                                              boolean approximateQuery);
 
-    public static class polygonTrigger extends Trigger<Polygon, TimeWindow> {
+    public static class PolygonTrigger extends Trigger<Polygon, TimeWindow> {
 
         private int slideStep;
         ValueStateDescriptor<Boolean> firstWindowDesc = new ValueStateDescriptor<Boolean>("isFirstWindow", Boolean.class);
 
         //ctor
-        public polygonTrigger(){}
-        public polygonTrigger(int slideStep){
+        public PolygonTrigger(){}
+        public PolygonTrigger(int slideStep){
             this.slideStep = slideStep;
         }
 
@@ -113,12 +113,12 @@ public abstract class RangeQuery<T extends SpatialObject, K extends SpatialObjec
     }
 
     // Misc Classes
-    public static class getCellsFilteredByLayer extends RichFilterFunction<Tuple2<String, Integer>>
+    public static class GetCellsFilteredByLayer extends RichFilterFunction<Tuple2<String, Integer>>
     {
         private final HashSet<String> CellIDs; // CellIDs are input parameters
 
         //ctor
-        public getCellsFilteredByLayer(HashSet<String> CellIDs)
+        public GetCellsFilteredByLayer(HashSet<String> CellIDs)
         {
             this.CellIDs = CellIDs;
         }
@@ -130,13 +130,13 @@ public abstract class RangeQuery<T extends SpatialObject, K extends SpatialObjec
         }
     }
 
-    public static class cellBasedLineStringFlatMap implements FlatMapFunction<LineString, LineString>{
+    public static class CellBasedLineStringFlatMap implements FlatMapFunction<LineString, LineString>{
 
         Set<String> neighboringCells = new HashSet<String>();
 
         //ctor
-        public cellBasedLineStringFlatMap() {}
-        public cellBasedLineStringFlatMap(Set<String> neighboringCells) {
+        public CellBasedLineStringFlatMap() {}
+        public CellBasedLineStringFlatMap(Set<String> neighboringCells) {
             this.neighboringCells = neighboringCells;
         }
 

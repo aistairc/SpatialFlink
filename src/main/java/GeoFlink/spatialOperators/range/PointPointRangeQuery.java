@@ -28,7 +28,7 @@ import java.util.Set;
 
 public class PointPointRangeQuery extends RangeQuery<Point, Point> {
     //--------------- Real-time - POINT - POINT -----------------//
-    public DataStream<Point> realtimeQuery(DataStream<Point> pointStream, Point queryPoint, double queryRadius, UniformGrid uGrid, boolean approximateQuery) {
+    public DataStream<Point> realTime(DataStream<Point> pointStream, Point queryPoint, double queryRadius, UniformGrid uGrid, boolean approximateQuery) {
 
         Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint.gridID);
         Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryPoint.gridID, guaranteedNeighboringCells);
@@ -73,7 +73,7 @@ public class PointPointRangeQuery extends RangeQuery<Point, Point> {
         return rangeQueryNeighbours;
     }
 
-    public DataStream<Point> windowQuery(DataStream<Point> pointStream, Point queryPoint, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery) {
+    public DataStream<Point> windowBased(DataStream<Point> pointStream, Point queryPoint, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery) {
 
         Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint.gridID);
         Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryPoint.gridID, guaranteedNeighboringCells);

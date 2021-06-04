@@ -26,13 +26,13 @@ import java.util.Set;
 
 public class LineStringPointRangeQuery extends RangeQuery<LineString, Point> {
     //--------------- Real-time - POINT - LineString -----------------//
-    public DataStream<LineString> realtimeQuery(DataStream<LineString> lineStringStream, Point queryPoint, double queryRadius, UniformGrid uGrid, boolean approximateQuery) {
+    public DataStream<LineString> realTime(DataStream<LineString> lineStringStream, Point queryPoint, double queryRadius, UniformGrid uGrid, boolean approximateQuery) {
 
         Set<String> neighboringCells = uGrid.getNeighboringCells(queryRadius, queryPoint);
         Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint.gridID);
 
         // Filtering out the linestrings which lie greater than queryRadius of the query point
-        DataStream<LineString> filteredLineStrings = lineStringStream.flatMap(new RangeQuery.cellBasedLineStringFlatMap(neighboringCells)).startNewChain();
+        DataStream<LineString> filteredLineStrings = lineStringStream.flatMap(new CellBasedLineStringFlatMap(neighboringCells)).startNewChain();
 
         DataStream<LineString> rangeQueryNeighbours = filteredLineStrings.keyBy(new KeySelector<LineString, String>() {
             @Override
@@ -75,7 +75,7 @@ public class LineStringPointRangeQuery extends RangeQuery<LineString, Point> {
     }
 
     //--------------- Window-based - POINT - LineString -----------------//
-    public DataStream<LineString> windowQuery(DataStream<LineString> lineStringStream, Point queryPoint, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery) {
+    public DataStream<LineString> windowBased(DataStream<LineString> lineStringStream, Point queryPoint, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery) {
 
         Set<String> neighboringCells = uGrid.getNeighboringCells(queryRadius, queryPoint);
         Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint.gridID);
@@ -89,7 +89,7 @@ public class LineStringPointRangeQuery extends RangeQuery<LineString, Point> {
                 }).startNewChain();
 
         // Filtering out the linestrings which lie greater than queryRadius of the query point
-        DataStream<LineString> filteredLineStrings = streamWithTsAndWm.flatMap(new RangeQuery.cellBasedLineStringFlatMap(neighboringCells));
+        DataStream<LineString> filteredLineStrings = streamWithTsAndWm.flatMap(new CellBasedLineStringFlatMap(neighboringCells));
 
         DataStream<LineString> rangeQueryNeighbours = filteredLineStrings.keyBy(new KeySelector<LineString, String>() {
             @Override
@@ -147,7 +147,7 @@ public class LineStringPointRangeQuery extends RangeQuery<LineString, Point> {
                 }).startNewChain();
 
         // Filtering out the linestrings which lie greater than queryRadius of the query point
-        DataStream<LineString> filteredLineStrings = streamWithTsAndWm.flatMap(new RangeQuery.cellBasedLineStringFlatMap(neighboringCells));
+        DataStream<LineString> filteredLineStrings = streamWithTsAndWm.flatMap(new CellBasedLineStringFlatMap(neighboringCells));
 
         DataStream<LineString> rangeQueryNeighbours = filteredLineStrings.keyBy(new KeySelector<LineString, String>() {
             @Override

@@ -19,7 +19,7 @@ import java.util.Set;
 
 public class PointLineStringRangeQuery extends RangeQuery<Point, LineString> {
     //--------------- Real-time - LINESTRING - POINT -----------------//
-    public DataStream<Point> realtimeQuery(DataStream<Point> pointStream, LineString queryLineString, double queryRadius, UniformGrid uGrid, boolean approximateQuery){
+    public DataStream<Point> realTime(DataStream<Point> pointStream, LineString queryLineString, double queryRadius, UniformGrid uGrid, boolean approximateQuery){
 
         Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryLineString);
         Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryLineString, guaranteedNeighboringCells);
@@ -61,7 +61,7 @@ public class PointLineStringRangeQuery extends RangeQuery<Point, LineString> {
     }
 
     //--------------- Window-based - LINESTRING - POINT -----------------//
-    public DataStream<Point> windowQuery(DataStream<Point> pointStream, LineString queryLineString, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery){
+    public DataStream<Point> windowBased(DataStream<Point> pointStream, LineString queryLineString, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery){
 
         Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryLineString);
         Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryLineString, guaranteedNeighboringCells);

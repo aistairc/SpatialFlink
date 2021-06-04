@@ -21,14 +21,13 @@ import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
 public class PolygonPointRangeQuery extends RangeQuery<Polygon, Point> {
     //--------------- Real-time - POINT - POLYGON -----------------//
-    public DataStream<Polygon> realtimeQuery(DataStream<Polygon> polygonStream, Point queryPoint, double queryRadius, UniformGrid uGrid, boolean approximateQuery) {
+    public DataStream<Polygon> realTime(DataStream<Polygon> polygonStream, Point queryPoint, double queryRadius, UniformGrid uGrid, boolean approximateQuery) {
 
         Set<String> neighboringCells = uGrid.getNeighboringCells(queryRadius, queryPoint);
         Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint.gridID);
@@ -80,7 +79,7 @@ public class PolygonPointRangeQuery extends RangeQuery<Polygon, Point> {
     }
 
     //--------------- Window-based - POINT - POLYGON -----------------//
-    public DataStream<Polygon> windowQuery(DataStream<Polygon> polygonStream, Point queryPoint, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery) {
+    public DataStream<Polygon> windowBased(DataStream<Polygon> polygonStream, Point queryPoint, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery) {
 
         Set<String> neighboringCells = uGrid.getNeighboringCells(queryRadius, queryPoint);
         Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint.gridID);
@@ -166,7 +165,7 @@ public class PolygonPointRangeQuery extends RangeQuery<Polygon, Point> {
                 return poly.gridID;
             }
         }).window(SlidingEventTimeWindows.of(Time.seconds(windowSize), Time.seconds(slideStep)))
-                .trigger(new RangeQuery.polygonTrigger(slideStep))
+                .trigger(new PolygonTrigger(slideStep))
                 .apply(new RichWindowFunction<Polygon, Polygon, String, TimeWindow>() {
 
                     /**
