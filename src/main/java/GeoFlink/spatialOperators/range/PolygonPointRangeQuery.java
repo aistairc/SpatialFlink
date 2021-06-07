@@ -1,8 +1,11 @@
 package GeoFlink.spatialOperators.range;
 
+import GeoFlink.spatialIndices.SpatialIndex;
 import GeoFlink.spatialIndices.UniformGrid;
 import GeoFlink.spatialObjects.Point;
 import GeoFlink.spatialObjects.Polygon;
+import GeoFlink.spatialOperators.QueryConfiguration;
+import GeoFlink.spatialOperators.QueryType;
 import GeoFlink.utils.DistanceFunctions;
 import GeoFlink.utils.HelperClass;
 import org.apache.flink.api.common.functions.FlatMapFunction;
@@ -26,125 +29,143 @@ import java.util.List;
 import java.util.Set;
 
 public class PolygonPointRangeQuery extends RangeQuery<Polygon, Point> {
-    //--------------- Real-time - POINT - POLYGON -----------------//
-    public DataStream<Polygon> realTime(DataStream<Polygon> polygonStream, Point queryPoint, double queryRadius, UniformGrid uGrid, boolean approximateQuery) {
-
-        Set<String> neighboringCells = uGrid.getNeighboringCells(queryRadius, queryPoint);
-        Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint.gridID);
-
-        // Filtering out the polygons which lie greater than queryRadius of the query point
-        DataStream<Polygon> filteredPolygons = polygonStream.flatMap(new HelperClass.cellBasedPolygonFlatMap(neighboringCells)).startNewChain();
-
-        DataStream<Polygon> rangeQueryNeighbours = filteredPolygons.keyBy(new KeySelector<Polygon, String>() {
-            @Override
-            public String getKey(Polygon poly) throws Exception {
-                return poly.gridID;
-            }
-        }).flatMap(new FlatMapFunction<Polygon, Polygon>() {
-            @Override
-            public void flatMap(Polygon poly, Collector<Polygon> collector) throws Exception {
-
-                //System.out.println(poly);
-
-                int cellIDCounter = 0;
-                for(String polyGridID: poly.gridIDsSet) {
-
-                    if (guaranteedNeighboringCells.contains(polyGridID)) { // guaranteed neighbors
-                        cellIDCounter++;
-                        // If all the polygon bbox cells are guaranteed neighbors (GNs) then the polygon is GN
-                        if(cellIDCounter == poly.gridIDsSet.size()){
-                            collector.collect(poly);
-                        }
-                    }
-                    else { // candidate neighbors
-
-                        Double distance;
-                        if(approximateQuery) {
-                            distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(queryPoint, poly);
-                        }else{
-                            distance = DistanceFunctions.getDistance(queryPoint, poly);
-                        }
-
-                        if (distance <= queryRadius){
-                            collector.collect(poly);
-                        }
-                        break;
-                    }
-                }
-
-            }
-        }).name("Real-time - POINT - POLYGON");
-
-        return rangeQueryNeighbours;
+    public PolygonPointRangeQuery(QueryConfiguration conf, SpatialIndex index) {
+        super.initializeRangeQuery(conf, index);
     }
 
-    //--------------- Window-based - POINT - POLYGON -----------------//
-    public DataStream<Polygon> windowBased(DataStream<Polygon> polygonStream, Point queryPoint, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery) {
+    public DataStream<Polygon> run(DataStream<Polygon> polygonStream, Point queryPoint, double queryRadius) {
+        boolean approximateQuery = this.getQueryConfiguration().isApproximateQuery();
+        int allowedLateness = this.getQueryConfiguration().getAllowedLateness();
 
-        Set<String> neighboringCells = uGrid.getNeighboringCells(queryRadius, queryPoint);
-        Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint.gridID);
+        UniformGrid uGrid = (UniformGrid) this.getSpatialIndex();
+        //--------------- Real-time - POINT - POLYGON -----------------//
+        if (this.getQueryConfiguration().getQueryType() == QueryType.RealTime) {
+            Set<String> neighboringCells = uGrid.getNeighboringCells(queryRadius, queryPoint);
+            Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint.gridID);
 
-        DataStream<Polygon> streamWithTsAndWm =
-                polygonStream.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Polygon>(Time.seconds(allowedLateness)) {
-                    @Override
-                    public long extractTimestamp(Polygon p) {
-                        //System.out.println("timeStampMillisec " + p.timeStampMillisec);
-                        return p.timeStampMillisec;
+            // Filtering out the polygons which lie greater than queryRadius of the query point
+            DataStream<Polygon> filteredPolygons = polygonStream.flatMap(new HelperClass.cellBasedPolygonFlatMap(neighboringCells)).startNewChain();
+
+            DataStream<Polygon> rangeQueryNeighbours = filteredPolygons.keyBy(new KeySelector<Polygon, String>() {
+                @Override
+                public String getKey(Polygon poly) throws Exception {
+                    return poly.gridID;
+                }
+            }).flatMap(new FlatMapFunction<Polygon, Polygon>() {
+                @Override
+                public void flatMap(Polygon poly, Collector<Polygon> collector) throws Exception {
+
+                    //System.out.println(poly);
+
+                    int cellIDCounter = 0;
+                    for(String polyGridID: poly.gridIDsSet) {
+
+                        if (guaranteedNeighboringCells.contains(polyGridID)) { // guaranteed neighbors
+                            cellIDCounter++;
+                            // If all the polygon bbox cells are guaranteed neighbors (GNs) then the polygon is GN
+                            if(cellIDCounter == poly.gridIDsSet.size()){
+                                collector.collect(poly);
+                            }
+                        }
+                        else { // candidate neighbors
+
+                            Double distance;
+                            if(approximateQuery) {
+                                distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(queryPoint, poly);
+                            }else{
+                                distance = DistanceFunctions.getDistance(queryPoint, poly);
+                            }
+
+                            if (distance <= queryRadius){
+                                collector.collect(poly);
+                            }
+                            break;
+                        }
                     }
-                }).startNewChain();
 
-        // Filtering out the polygons which lie greater than queryRadius of the query point
-        DataStream<Polygon> filteredPolygons = streamWithTsAndWm.flatMap(new HelperClass.cellBasedPolygonFlatMap(neighboringCells));
+                }
+            }).name("Real-time - POINT - POLYGON");
 
-        DataStream<Polygon> rangeQueryNeighbours = filteredPolygons.keyBy(new KeySelector<Polygon, String>() {
-            @Override
-            public String getKey(Polygon poly) throws Exception {
-                return poly.gridID;
-            }
-        }).window(SlidingEventTimeWindows.of(Time.seconds(windowSize), Time.seconds(slideStep)))
-                .apply(new WindowFunction<Polygon, Polygon, String, TimeWindow>() {
-                    @Override
-                    public void apply(String gridID, TimeWindow timeWindow, Iterable<Polygon> pointIterator, Collector<Polygon> neighbors) throws Exception {
-                        for (Polygon poly : pointIterator) {
-                            int cellIDCounter = 0;
-                            for(String polyGridID: poly.gridIDsSet) {
+            return rangeQueryNeighbours;
+        }
+        //--------------- Window-based - POINT - POLYGON -----------------//
+        else if (this.getQueryConfiguration().getQueryType() == QueryType.WindowBased) {
+            int windowSize = this.getQueryConfiguration().getWindowSize();
+            int slideStep = this.getQueryConfiguration().getSlideStep();
 
-                                if (guaranteedNeighboringCells.contains(polyGridID)) { // guaranteed neighbors
-                                    cellIDCounter++;
-                                    // If all the polygon bbox cells are guaranteed neighbors (GNs) then the polygon is GN
-                                    if(cellIDCounter == poly.gridIDsSet.size()){
-                                        neighbors.collect(poly);
+            Set<String> neighboringCells = uGrid.getNeighboringCells(queryRadius, queryPoint);
+            Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint.gridID);
+
+            DataStream<Polygon> streamWithTsAndWm =
+                    polygonStream.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Polygon>(Time.seconds(allowedLateness)) {
+                        @Override
+                        public long extractTimestamp(Polygon p) {
+                            //System.out.println("timeStampMillisec " + p.timeStampMillisec);
+                            return p.timeStampMillisec;
+                        }
+                    }).startNewChain();
+
+            // Filtering out the polygons which lie greater than queryRadius of the query point
+            DataStream<Polygon> filteredPolygons = streamWithTsAndWm.flatMap(new HelperClass.cellBasedPolygonFlatMap(neighboringCells));
+
+            DataStream<Polygon> rangeQueryNeighbours = filteredPolygons.keyBy(new KeySelector<Polygon, String>() {
+                @Override
+                public String getKey(Polygon poly) throws Exception {
+                    return poly.gridID;
+                }
+            }).window(SlidingEventTimeWindows.of(Time.seconds(windowSize), Time.seconds(slideStep)))
+                    .apply(new WindowFunction<Polygon, Polygon, String, TimeWindow>() {
+                        @Override
+                        public void apply(String gridID, TimeWindow timeWindow, Iterable<Polygon> pointIterator, Collector<Polygon> neighbors) throws Exception {
+                            for (Polygon poly : pointIterator) {
+                                int cellIDCounter = 0;
+                                for(String polyGridID: poly.gridIDsSet) {
+
+                                    if (guaranteedNeighboringCells.contains(polyGridID)) { // guaranteed neighbors
+                                        cellIDCounter++;
+                                        // If all the polygon bbox cells are guaranteed neighbors (GNs) then the polygon is GN
+                                        if(cellIDCounter == poly.gridIDsSet.size()){
+                                            neighbors.collect(poly);
+                                        }
                                     }
-                                }
-                                else { // candidate neighbors
+                                    else { // candidate neighbors
 
-                                    Double distance;
-                                    if(approximateQuery) {
-                                        distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(queryPoint, poly);
-                                    }else{
-                                        //distance = HelperClass.getPointPolygonMinEuclideanDistance(queryPoint, poly);
-                                        //System.out.println("HelperClass Dist: " + distance);
-                                        // https://locationtech.github.io/jts/javadoc/ (Euclidean Distance)
-                                        //distance = poly.polygon.distance(queryPoint.point);
-                                        distance = DistanceFunctions.getDistance(queryPoint, poly);
-                                        //System.out.println("LocationTech Dist: " + distance);
-                                    }
+                                        Double distance;
+                                        if(approximateQuery) {
+                                            distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(queryPoint, poly);
+                                        }else{
+                                            //distance = HelperClass.getPointPolygonMinEuclideanDistance(queryPoint, poly);
+                                            //System.out.println("HelperClass Dist: " + distance);
+                                            // https://locationtech.github.io/jts/javadoc/ (Euclidean Distance)
+                                            //distance = poly.polygon.distance(queryPoint.point);
+                                            distance = DistanceFunctions.getDistance(queryPoint, poly);
+                                            //System.out.println("LocationTech Dist: " + distance);
+                                        }
 
-                                    if (distance <= queryRadius){
-                                        neighbors.collect(poly);
+                                        if (distance <= queryRadius){
+                                            neighbors.collect(poly);
+                                        }
+                                        break;
                                     }
-                                    break;
                                 }
                             }
                         }
-                    }
-                }).name("Window-based - POINT - POLYGON");
+                    }).name("Window-based - POINT - POLYGON");
 
-        return rangeQueryNeighbours;
+            return rangeQueryNeighbours;
+        } else {
+            throw new IllegalArgumentException("Not yet support");
+        }
     }
 
     //--------------- Window-based - POINT - POLYGON - Incremental -----------------//
-    public DataStream<Polygon> queryIncremental(DataStream<Polygon> polygonStream, Point queryPoint, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery) {
+    public DataStream<Polygon> queryIncremental(DataStream<Polygon> polygonStream, Point queryPoint, double queryRadius) {
+        boolean approximateQuery = this.getQueryConfiguration().isApproximateQuery();
+        int allowedLateness = this.getQueryConfiguration().getAllowedLateness();
+        int windowSize = this.getQueryConfiguration().getWindowSize();
+        int slideStep = this.getQueryConfiguration().getSlideStep();
+
+        UniformGrid uGrid = (UniformGrid) this.getSpatialIndex();
 
         Set<String> neighboringCells = uGrid.getNeighboringCells(queryRadius, queryPoint);
         Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint.gridID);

@@ -16,46 +16,49 @@ limitations under the License.
 
 package GeoFlink.spatialOperators.range;
 
-import GeoFlink.spatialIndices.UniformGrid;
+import GeoFlink.spatialIndices.SpatialIndex;
 import GeoFlink.spatialObjects.LineString;
-import GeoFlink.spatialObjects.Point;
 import GeoFlink.spatialObjects.Polygon;
 import GeoFlink.spatialObjects.SpatialObject;
-import GeoFlink.utils.DistanceFunctions;
-import GeoFlink.utils.HelperClass;
+import GeoFlink.spatialOperators.QueryConfiguration;
 import org.apache.flink.api.common.functions.*;
 import org.apache.flink.api.common.state.*;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.typeutils.PojoTypeInfo;
-import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrdernessTimestampExtractor;
-import org.apache.flink.streaming.api.functions.windowing.RichWindowFunction;
-import org.apache.flink.streaming.api.functions.windowing.WindowFunction;
-import org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindows;
-import org.apache.flink.streaming.api.windowing.assigners.SlidingProcessingTimeWindows;
-import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.triggers.Trigger;
 import org.apache.flink.streaming.api.windowing.triggers.TriggerResult;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
-import org.apache.flink.util.OutputTag;
 
 import java.io.Serializable;
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public abstract class RangeQuery<T extends SpatialObject, K extends SpatialObject> implements Serializable {
-    //--------------- Real-time - T - K -----------------//
-    public abstract DataStream<T> realTime(DataStream<T> stream, K obj, double queryRadius, UniformGrid uGrid, boolean approximateQuery);
+    private QueryConfiguration queryConfiguration;
+    private SpatialIndex spatialIndex;
 
-    //--------------- Window-based - T - K -----------------//
-    public abstract DataStream<T> windowBased(DataStream <T> stream, K obj,
-                                              double queryRadius, UniformGrid uGrid, int windowSize, int slideStep, int allowedLateness,
-                                              boolean approximateQuery);
+    public QueryConfiguration getQueryConfiguration() {
+        return queryConfiguration;
+    }
+
+    public void setQueryConfiguration(QueryConfiguration queryConfiguration) {
+        this.queryConfiguration = queryConfiguration;
+    }
+
+    public SpatialIndex getSpatialIndex() {
+        return spatialIndex;
+    }
+
+    public void setSpatialIndex(SpatialIndex spatialIndex) {
+        this.spatialIndex = spatialIndex;
+    }
+
+    public void initializeRangeQuery(QueryConfiguration conf, SpatialIndex index){
+        this.setQueryConfiguration(conf);
+        this.setSpatialIndex(index);
+    }
+
+    public abstract DataStream<T> run(DataStream<T> stream, K obj, double queryRadius);
 
     public static class PolygonTrigger extends Trigger<Polygon, TimeWindow> {
 

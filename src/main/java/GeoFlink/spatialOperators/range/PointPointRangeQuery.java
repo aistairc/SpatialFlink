@@ -1,7 +1,10 @@
 package GeoFlink.spatialOperators.range;
 
+import GeoFlink.spatialIndices.SpatialIndex;
 import GeoFlink.spatialIndices.UniformGrid;
 import GeoFlink.spatialObjects.Point;
+import GeoFlink.spatialOperators.QueryConfiguration;
+import GeoFlink.spatialOperators.QueryType;
 import GeoFlink.utils.DistanceFunctions;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.FlatMapFunction;
@@ -21,112 +24,134 @@ import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
 public class PointPointRangeQuery extends RangeQuery<Point, Point> {
     //--------------- Real-time - POINT - POINT -----------------//
-    public DataStream<Point> realTime(DataStream<Point> pointStream, Point queryPoint, double queryRadius, UniformGrid uGrid, boolean approximateQuery) {
-
-        Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint.gridID);
-        Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryPoint.gridID, guaranteedNeighboringCells);
-
-        //pointStream.print();
-        DataStream<Point> filteredPoints = pointStream.filter(new FilterFunction<Point>() {
-            @Override
-            public boolean filter(Point point) throws Exception {
-                return ((candidateNeighboringCells.contains(point.gridID)) || (guaranteedNeighboringCells.contains(point.gridID)));
-            }
-        }).startNewChain();
-
-
-        DataStream<Point> rangeQueryNeighbours = filteredPoints.keyBy(new KeySelector<Point, String>() {
-            @Override
-            public String getKey(Point p) throws Exception {
-                return p.gridID;
-            }
-        }).flatMap(new FlatMapFunction<Point, Point>() {
-            @Override
-            public void flatMap(Point point, Collector<Point> collector) throws Exception {
-
-                if (guaranteedNeighboringCells.contains(point.gridID)) {
-                    collector.collect(point);
-                }
-                else {
-
-                    if(approximateQuery) { // all the candidate neighbors are sent to output
-                        collector.collect(point);
-                    }else{
-                        Double distance = DistanceFunctions.getDistance(queryPoint, point);
-
-                        if (distance <= queryRadius){
-                            collector.collect(point);
-                        }
-                    }
-
-                }
-            }
-        }).name("Real-time - POINT - POINT");
-
-        return rangeQueryNeighbours;
+    public PointPointRangeQuery(QueryConfiguration conf, SpatialIndex index){
+        super.initializeRangeQuery(conf, index);
     }
 
-    public DataStream<Point> windowBased(DataStream<Point> pointStream, Point queryPoint, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery) {
+    public DataStream<Point> run(DataStream<Point> pointStream, Point queryPoint, double queryRadius) {
+        boolean approximateQuery = this.getQueryConfiguration().isApproximateQuery();
+        int allowedLateness = this.getQueryConfiguration().getAllowedLateness();
 
-        Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint.gridID);
-        Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryPoint.gridID, guaranteedNeighboringCells);
+        UniformGrid uGrid = (UniformGrid) this.getSpatialIndex();
 
-        DataStream<Point> pointStreamWithTsAndWm =
-                pointStream.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Point>(Time.seconds(allowedLateness)) {
-                    @Override
-                    public long extractTimestamp(Point p) {
-                        return p.timeStampMillisec;
+        //--------------- Real-time - POINT - POINT -----------------//
+        if(this.getQueryConfiguration().getQueryType() == QueryType.RealTime)
+        {
+            Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint.gridID);
+            Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryPoint.gridID, guaranteedNeighboringCells);
+
+            //pointStream.print();
+            DataStream<Point> filteredPoints = pointStream.filter(new FilterFunction<Point>() {
+                @Override
+                public boolean filter(Point point) throws Exception {
+                    return ((candidateNeighboringCells.contains(point.gridID)) || (guaranteedNeighboringCells.contains(point.gridID)));
+                }
+            }).startNewChain();
+
+
+            DataStream<Point> rangeQueryNeighbours = filteredPoints.keyBy(new KeySelector<Point, String>() {
+                @Override
+                public String getKey(Point p) throws Exception {
+                    return p.gridID;
+                }
+            }).flatMap(new FlatMapFunction<Point, Point>() {
+                @Override
+                public void flatMap(Point point, Collector<Point> collector) throws Exception {
+
+                    if (guaranteedNeighboringCells.contains(point.gridID)) {
+                        collector.collect(point);
+                    } else {
+
+                        if (approximateQuery) { // all the candidate neighbors are sent to output
+                            collector.collect(point);
+                        } else {
+                            Double distance = DistanceFunctions.getDistance(queryPoint, point);
+
+                            if (distance <= queryRadius) {
+                                collector.collect(point);
+                            }
+                        }
+
                     }
-                }).startNewChain();
+                }
+            }).name("Real-time - POINT - POINT");
 
-        DataStream<Point> filteredPoints = pointStreamWithTsAndWm.filter(new FilterFunction<Point>() {
-            @Override
-            public boolean filter(Point point) throws Exception {
-                return ((candidateNeighboringCells.contains(point.gridID)) || (guaranteedNeighboringCells.contains(point.gridID)));
-            }
-        });
+            return rangeQueryNeighbours;
+        }
 
         //--------------- Window-based - POINT - POINT -----------------//
-        DataStream<Point> rangeQueryNeighbours = filteredPoints.keyBy(new KeySelector<Point, String>() {
-            @Override
-            public String getKey(Point p) throws Exception {
-                return p.gridID;
-            }
-        }).window(SlidingProcessingTimeWindows.of(Time.seconds(windowSize), Time.seconds(slideStep)))
-                .apply(new WindowFunction<Point, Point, String, TimeWindow>() {
-                    @Override
-                    public void apply(String gridID, TimeWindow timeWindow, Iterable<Point> pointIterator, Collector<Point> neighbors) throws Exception {
-                        for (Point point : pointIterator) {
-                            if (guaranteedNeighboringCells.contains(point.gridID))
-                                neighbors.collect(point);
-                            else {
+        else if(this.getQueryConfiguration().getQueryType() == QueryType.WindowBased)
+        {
+            int windowSize = this.getQueryConfiguration().getWindowSize();
+            int slideStep = this.getQueryConfiguration().getSlideStep();
 
-                                if(approximateQuery) { // all the candidate neighbors are sent to output
+            Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint.gridID);
+            Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryPoint.gridID, guaranteedNeighboringCells);
+
+            DataStream<Point> pointStreamWithTsAndWm =
+                    pointStream.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Point>(Time.seconds(allowedLateness)) {
+                        @Override
+                        public long extractTimestamp(Point p) {
+                            return p.timeStampMillisec;
+                        }
+                    }).startNewChain();
+
+            DataStream<Point> filteredPoints = pointStreamWithTsAndWm.filter(new FilterFunction<Point>() {
+                @Override
+                public boolean filter(Point point) throws Exception {
+                    return ((candidateNeighboringCells.contains(point.gridID)) || (guaranteedNeighboringCells.contains(point.gridID)));
+                }
+            });
+
+            //--------------- Window-based - POINT - POINT -----------------//
+            DataStream<Point> rangeQueryNeighbours = filteredPoints.keyBy(new KeySelector<Point, String>() {
+                @Override
+                public String getKey(Point p) throws Exception {
+                    return p.gridID;
+                }
+            }).window(SlidingProcessingTimeWindows.of(Time.seconds(windowSize), Time.seconds(slideStep)))
+                    .apply(new WindowFunction<Point, Point, String, TimeWindow>() {
+                        @Override
+                        public void apply(String gridID, TimeWindow timeWindow, Iterable<Point> pointIterator, Collector<Point> neighbors) throws Exception {
+                            for (Point point : pointIterator) {
+                                if (guaranteedNeighboringCells.contains(point.gridID))
                                     neighbors.collect(point);
-                                }else{
-                                    Double distance = DistanceFunctions.getDistance(queryPoint, point);
+                                else {
 
-                                    if (distance <= queryRadius){
+                                    if(approximateQuery) { // all the candidate neighbors are sent to output
                                         neighbors.collect(point);
+                                    }else{
+                                        Double distance = DistanceFunctions.getDistance(queryPoint, point);
+
+                                        if (distance <= queryRadius){
+                                            neighbors.collect(point);
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
-                }).name("Window-based - POINT - POINT");
+                    }).name("Window-based - POINT - POINT");
 
-        return rangeQueryNeighbours;
+            return rangeQueryNeighbours;
+        }else{
+            throw new IllegalArgumentException("Not yet support");
+        }
     }
 
     //--------------- Window-based - POINT - POINT -----------------//
-    public DataStream<Point> queryIncremental(DataStream<Point> pointStream, Point queryPoint, double queryRadius, UniformGrid uGrid, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery){
+    public DataStream<Point> queryIncremental(DataStream<Point> pointStream, Point queryPoint, double queryRadius){
+        boolean approximateQuery = this.getQueryConfiguration().isApproximateQuery();
+        int allowedLateness = this.getQueryConfiguration().getAllowedLateness();
+        int windowSize = this.getQueryConfiguration().getWindowSize();
+        int slideStep = this.getQueryConfiguration().getSlideStep();
+
+        UniformGrid uGrid = (UniformGrid) this.getSpatialIndex();
 
         Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint.gridID);
         Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryPoint.gridID, guaranteedNeighboringCells);
