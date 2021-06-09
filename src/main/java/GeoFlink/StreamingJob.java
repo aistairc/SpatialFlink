@@ -429,6 +429,7 @@ public class StreamingJob implements Serializable {
 		//DataStream<Point> spatialTrajectoryStream = SpatialStream.TrajectoryStream(inputStream, inputFormat, inputDateFormat, uGrid);
 		QueryConfiguration realtimeConf = new QueryConfiguration(QueryType.RealTime);
 		realtimeConf.setApproximateQuery(approximateQuery);
+		realtimeConf.setWindowSize(windowSize);
 
 		QueryConfiguration windowConf = new QueryConfiguration(QueryType.WindowBased);
 		windowConf.setApproximateQuery(approximateQuery);
