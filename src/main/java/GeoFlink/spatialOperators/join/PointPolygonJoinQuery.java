@@ -51,75 +51,31 @@ public class PointPolygonJoinQuery extends JoinQuery<Point, Polygon> {
         }
     }
 
-    public DataStream<Long> pointJoinQueryLatency(DataStream<Point> ordinaryPointStream, DataStream<Polygon> queryPolygonStream, double queryRadius){
+    public DataStream<Long> runLatency(DataStream<Point> ordinaryPointStream, DataStream<Polygon> queryPolygonStream, double queryRadius) {
         boolean approximateQuery = this.getQueryConfiguration().isApproximateQuery();
         int allowedLateness = this.getQueryConfiguration().getAllowedLateness();
 
         UniformGrid uGrid = (UniformGrid) this.getSpatialIndex1();
         UniformGrid qGrid = (UniformGrid) this.getSpatialIndex2();
 
-        int windowSize = this.getQueryConfiguration().getWindowSize();
-        int slideStep = this.getQueryConfiguration().getSlideStep();
+        //--------------- Real-time - POINT - POLYGON -----------------//
+        if(this.getQueryConfiguration().getQueryType() == QueryType.RealTime)
+        {
+            int omegaJoinDurationSeconds = this.getQueryConfiguration().getWindowSize();
+            return commonLatency(ordinaryPointStream, queryPolygonStream, uGrid, qGrid, queryRadius, omegaJoinDurationSeconds, omegaJoinDurationSeconds, allowedLateness, approximateQuery);
+        }
 
-        // Spatial stream with Timestamps and Watermarks
-        // Max Allowed Lateness: allowedLateness
-        DataStream<Point> pointStreamWithTsAndWm =
-                ordinaryPointStream.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Point>(Time.seconds(allowedLateness)) {
-                    @Override
-                    public long extractTimestamp(Point p) {
-                        return p.timeStampMillisec;
-                    }
-                }).startNewChain();
+        //--------------- Window-based - POINT - POLYGON -----------------//
+        else if(this.getQueryConfiguration().getQueryType() == QueryType.WindowBased)
+        {
+            int windowSize = this.getQueryConfiguration().getWindowSize();
+            int slideStep = this.getQueryConfiguration().getSlideStep();
+            return commonLatency(ordinaryPointStream, queryPolygonStream, uGrid, qGrid, queryRadius, windowSize, slideStep, allowedLateness, approximateQuery);
+        }
 
-        DataStream<Polygon> replicatedQueryStream = JoinQuery.getReplicatedPolygonQueryStream(queryPolygonStream, queryRadius, qGrid);
-
-        // Spatial stream with Timestamps and Watermarks
-        // Max Allowed Lateness: allowedLateness
-        DataStream<Polygon> replicatedQueryStreamWithTsAndWm =
-                replicatedQueryStream.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Polygon>(Time.seconds(allowedLateness)) {
-                    @Override
-                    public long extractTimestamp(Polygon p) {
-                        return p.timeStampMillisec;
-                    }
-                }).startNewChain();
-
-        DataStream<Long> joinOutput = pointStreamWithTsAndWm.join(replicatedQueryStreamWithTsAndWm)
-                .where(new KeySelector<Point, String>() {
-                    @Override
-                    public String getKey(Point p) throws Exception {
-                        return p.gridID;
-                    }
-                }).equalTo(new KeySelector<Polygon, String>() {
-                    @Override
-                    public String getKey(Polygon q) throws Exception {
-                        return q.gridID;
-                    }
-                }).window(SlidingProcessingTimeWindows.of(Time.seconds(windowSize), Time.seconds(slideStep)))
-                .apply(new JoinFunction<Point, Polygon, Long>() {
-                    @Override
-                    public Long join(Point p, Polygon q) {
-
-                        if (approximateQuery) { // all the candidate neighbors are sent to output
-                            Date date = new Date();
-                            Long latency = date.getTime() -  p.timeStampMillisec;
-                            return latency;
-                        } else {
-
-                            if (DistanceFunctions.getDistance(p, q) <= queryRadius) {
-                                Date date = new Date();
-                                Long latency = date.getTime() -  p.timeStampMillisec;
-                                return latency;
-                            }
-                            else{
-                                Date date = new Date();
-                                Long latency = date.getTime() -  p.timeStampMillisec;
-                                return latency;
-                            }
-                        }
-                    }
-                });
-
-        return joinOutput;
+        else{
+            throw new IllegalArgumentException("Not yet support");
+        }
     }
 
     // REAL-TIME
@@ -246,5 +202,69 @@ public class PointPolygonJoinQuery extends JoinQuery<Point, Polygon> {
                 return value.f1 != null;
             }
         });
+    }
+
+    // REAL-TIME / WINDOW BASED
+    private DataStream<Long> commonLatency(DataStream<Point> ordinaryPointStream, DataStream<Polygon> queryPolygonStream, UniformGrid uGrid, UniformGrid qGrid, double queryRadius, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery){
+
+        // Spatial stream with Timestamps and Watermarks
+        // Max Allowed Lateness: allowedLateness
+        DataStream<Point> pointStreamWithTsAndWm =
+                ordinaryPointStream.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Point>(Time.seconds(allowedLateness)) {
+                    @Override
+                    public long extractTimestamp(Point p) {
+                        return p.timeStampMillisec;
+                    }
+                }).startNewChain();
+
+        DataStream<Polygon> replicatedQueryStream = JoinQuery.getReplicatedPolygonQueryStream(queryPolygonStream, queryRadius, qGrid);
+
+        // Spatial stream with Timestamps and Watermarks
+        // Max Allowed Lateness: allowedLateness
+        DataStream<Polygon> replicatedQueryStreamWithTsAndWm =
+                replicatedQueryStream.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Polygon>(Time.seconds(allowedLateness)) {
+                    @Override
+                    public long extractTimestamp(Polygon p) {
+                        return p.timeStampMillisec;
+                    }
+                }).startNewChain();
+
+        DataStream<Long> joinOutput = pointStreamWithTsAndWm.join(replicatedQueryStreamWithTsAndWm)
+                .where(new KeySelector<Point, String>() {
+                    @Override
+                    public String getKey(Point p) throws Exception {
+                        return p.gridID;
+                    }
+                }).equalTo(new KeySelector<Polygon, String>() {
+                    @Override
+                    public String getKey(Polygon q) throws Exception {
+                        return q.gridID;
+                    }
+                }).window(SlidingProcessingTimeWindows.of(Time.seconds(windowSize), Time.seconds(slideStep)))
+                .apply(new JoinFunction<Point, Polygon, Long>() {
+                    @Override
+                    public Long join(Point p, Polygon q) {
+
+                        if (approximateQuery) { // all the candidate neighbors are sent to output
+                            Date date = new Date();
+                            Long latency = date.getTime() -  p.timeStampMillisec;
+                            return latency;
+                        } else {
+
+                            if (DistanceFunctions.getDistance(p, q) <= queryRadius) {
+                                Date date = new Date();
+                                Long latency = date.getTime() -  p.timeStampMillisec;
+                                return latency;
+                            }
+                            else{
+                                Date date = new Date();
+                                Long latency = date.getTime() -  p.timeStampMillisec;
+                                return latency;
+                            }
+                        }
+                    }
+                });
+
+        return joinOutput;
     }
 }
