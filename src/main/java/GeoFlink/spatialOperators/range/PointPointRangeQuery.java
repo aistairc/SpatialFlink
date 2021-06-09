@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Set;
 
 public class PointPointRangeQuery extends RangeQuery<Point, Point> {
-    //--------------- Real-time - POINT - POINT -----------------//
     public PointPointRangeQuery(QueryConfiguration conf, SpatialIndex index){
         super.initializeRangeQuery(conf, index);
     }
