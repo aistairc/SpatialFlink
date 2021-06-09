@@ -29,7 +29,7 @@ import java.util.stream.Stream;
 
 public class PolygonLineStringKNNQuery extends KNNQuery<Polygon, LineString> {
     public PolygonLineStringKNNQuery(QueryConfiguration conf, SpatialIndex index, Integer k) {
-        super.initializeRangeQuery(conf, index, k);
+        super.initializeKNNQuery(conf, index, k);
     }
 
     public DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Polygon, Double>>>> run(DataStream<Polygon> polygonStream, LineString queryLineString, double queryRadius) throws IOException {

@@ -28,7 +28,7 @@ import java.util.stream.Stream;
 
 public class LineStringLineStringKNNQuery extends KNNQuery<LineString, LineString> {
     public LineStringLineStringKNNQuery(QueryConfiguration conf, SpatialIndex index, Integer k) {
-        super.initializeRangeQuery(conf, index, k);
+        super.initializeKNNQuery(conf, index, k);
     }
 
     public DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<LineString, Double>>>> run(DataStream<LineString> lineStringStream, LineString queryLineString, double queryRadius) throws IOException {

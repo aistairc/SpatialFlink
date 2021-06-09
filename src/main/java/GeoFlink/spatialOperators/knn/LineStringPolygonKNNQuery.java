@@ -3,7 +3,6 @@ package GeoFlink.spatialOperators.knn;
 import GeoFlink.spatialIndices.SpatialIndex;
 import GeoFlink.spatialIndices.UniformGrid;
 import GeoFlink.spatialObjects.LineString;
-import GeoFlink.spatialObjects.Point;
 import GeoFlink.spatialObjects.Polygon;
 import GeoFlink.spatialOperators.QueryConfiguration;
 import GeoFlink.spatialOperators.QueryType;
@@ -30,7 +29,7 @@ import java.util.stream.Stream;
 
 public class LineStringPolygonKNNQuery extends KNNQuery<LineString, Polygon> {
     public LineStringPolygonKNNQuery(QueryConfiguration conf, SpatialIndex index, Integer k) {
-        super.initializeRangeQuery(conf, index, k);
+        super.initializeKNNQuery(conf, index, k);
     }
 
     public DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<LineString, Double>>>> run(DataStream<LineString> lineStringStream, Polygon queryPolygon, double queryRadius) throws IOException {

@@ -26,7 +26,7 @@ import java.util.Set;
 
 public class PointPointKNNQuery extends KNNQuery<Point, Point> {
     public PointPointKNNQuery(QueryConfiguration conf, SpatialIndex index, Integer k) {
-        super.initializeRangeQuery(conf, index, k);
+        super.initializeKNNQuery(conf, index, k);
     }
 
     public DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> run(DataStream<Point> pointStream, Point queryPoint, double queryRadius) throws IOException {

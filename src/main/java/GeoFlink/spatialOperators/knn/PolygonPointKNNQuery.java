@@ -2,7 +2,6 @@ package GeoFlink.spatialOperators.knn;
 
 import GeoFlink.spatialIndices.SpatialIndex;
 import GeoFlink.spatialIndices.UniformGrid;
-import GeoFlink.spatialObjects.LineString;
 import GeoFlink.spatialObjects.Point;
 import GeoFlink.spatialObjects.Polygon;
 import GeoFlink.spatialOperators.QueryConfiguration;
@@ -28,7 +27,7 @@ import java.util.Set;
 
 public class PolygonPointKNNQuery extends KNNQuery<Polygon, Point> {
     public PolygonPointKNNQuery(QueryConfiguration conf, SpatialIndex index, Integer k) {
-        super.initializeRangeQuery(conf, index, k);
+        super.initializeKNNQuery(conf, index, k);
     }
 
     public DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Polygon, Double>>>> run(DataStream<Polygon> polygonStream, Point queryPoint, double queryRadius) throws IOException {

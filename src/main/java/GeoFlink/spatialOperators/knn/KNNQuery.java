@@ -49,7 +49,7 @@ public abstract class KNNQuery<T extends SpatialObject, K extends SpatialObject>
         this.k = k;
     }
 
-    public void initializeRangeQuery(QueryConfiguration conf, SpatialIndex index, Integer k){
+    public void initializeKNNQuery(QueryConfiguration conf, SpatialIndex index, Integer k){
         this.setQueryConfiguration(conf);
         this.setSpatialIndex(index);
         this.setK(k);
