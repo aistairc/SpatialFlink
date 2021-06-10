@@ -29,6 +29,7 @@ import GeoFlink.spatialOperators.range.*;
 import GeoFlink.spatialOperators.tJoin.PointPointTJoinQuery;
 import GeoFlink.spatialOperators.tKnn.PointPointTKNNQuery;
 import GeoFlink.spatialOperators.tRange.PointPolygonTRangeQuery;
+import GeoFlink.spatialOperators.tRange.TRangeQuery;
 import GeoFlink.spatialStreams.*;
 import GeoFlink.utils.HelperClass;
 import GeoFlink.utils.Params;
@@ -1150,7 +1151,7 @@ public class StreamingJob implements Serializable {
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, "timestamp", "oID", uGrid);
 				DataStream<Point> outputStream = (DataStream<Point>)new PointPolygonTRangeQuery(realtimeConf).run(spatialTrajectoryStream, polygonSet);
 				//Naive
-				//DataStream<Point> outputStream = new PolygonPointTRangeQuery(realtimeConf).runNative(polygonSet, spatialTrajectoryStream);
+				//DataStream<Point> outputStream = TRangeQuery.realTimeNaive(polygonSet, spatialTrajectoryStream);
 
 				//outputStream.print();
 				outputStream.addSink(new FlinkKafkaProducer<>(outputTopicName, new HelperClass.LatencySinkPoint(queryOption, outputTopicName), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
