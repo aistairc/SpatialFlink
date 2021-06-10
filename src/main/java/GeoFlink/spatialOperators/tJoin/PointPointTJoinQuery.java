@@ -1,4 +1,4 @@
-package GeoFlink.spatialOperators.tjoin;
+package GeoFlink.spatialOperators.tJoin;
 
 import GeoFlink.spatialIndices.SpatialIndex;
 import GeoFlink.spatialIndices.UniformGrid;

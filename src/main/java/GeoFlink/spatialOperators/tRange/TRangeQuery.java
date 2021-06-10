@@ -1,4 +1,4 @@
-package GeoFlink.spatialOperators.trange;
+package GeoFlink.spatialOperators.tRange;
 
 import GeoFlink.spatialObjects.SpatialObject;
 import GeoFlink.spatialOperators.QueryConfiguration;
@@ -7,7 +7,7 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import java.io.Serializable;
 import java.util.Set;
 
-public abstract class TRangeQuery<T extends SpatialObject, S extends SpatialObject, K extends SpatialObject> implements Serializable {
+public abstract class TRangeQuery<T extends SpatialObject, K extends SpatialObject> implements Serializable {
     private QueryConfiguration queryConfiguration;
 
     public QueryConfiguration getQueryConfiguration() {
@@ -22,5 +22,5 @@ public abstract class TRangeQuery<T extends SpatialObject, S extends SpatialObje
         this.setQueryConfiguration(conf);
     }
 
-    public abstract DataStream<T> run(DataStream<S> ordinaryStream, Set<K> objSet);
+    public abstract Object run(DataStream<T> ordinaryStream, Set<K> objSet);
 }

@@ -1,4 +1,4 @@
-package GeoFlink.spatialOperators.tjoin;
+package GeoFlink.spatialOperators.tJoin;
 
 import GeoFlink.spatialIndices.SpatialIndex;
 import GeoFlink.spatialIndices.UniformGrid;
@@ -9,19 +9,16 @@ import GeoFlink.spatialOperators.QueryConfiguration;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.functions.windowing.RichWindowFunction;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 import org.locationtech.jts.geom.Coordinate;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.PriorityQueue;
 
 public abstract class TJoinQuery<T extends SpatialObject, K extends SpatialObject> implements Serializable {
     private QueryConfiguration queryConfiguration;

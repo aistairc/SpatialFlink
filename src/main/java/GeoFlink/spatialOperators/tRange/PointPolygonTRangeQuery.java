@@ -1,14 +1,14 @@
-package GeoFlink.spatialOperators.trange;
+package GeoFlink.spatialOperators.tRange;
 
 import GeoFlink.spatialObjects.LineString;
 import GeoFlink.spatialObjects.Point;
 import GeoFlink.spatialObjects.Polygon;
+import GeoFlink.spatialObjects.SpatialObject;
 import GeoFlink.spatialOperators.QueryConfiguration;
 import GeoFlink.spatialOperators.QueryType;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.JoinFunction;
 import org.apache.flink.api.java.functions.KeySelector;
-import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrdernessTimestampExtractor;
 import org.apache.flink.streaming.api.functions.windowing.WindowFunction;
@@ -23,20 +23,20 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-public class LineStringPointPolygonTRangeQuery extends TRangeQuery<LineString, Point, Polygon> {
-    public LineStringPointPolygonTRangeQuery(QueryConfiguration conf) {
+public class PointPolygonTRangeQuery extends TRangeQuery<Point, Polygon> {
+    public PointPolygonTRangeQuery(QueryConfiguration conf) {
         super.initializeTRangeQuery(conf);
     }
 
-    public DataStream<LineString> run(DataStream<Point> pointStream, Set<Polygon> polygonSet) {
+    public Object run(DataStream<Point> pointStream, Set<Polygon> polygonSet) {
         int allowedLateness = this.getQueryConfiguration().getAllowedLateness();
 
-        //--------------- Real-time - POINT - POINT - POLYGON -----------------//
+        //--------------- Real-time - POINT - POLYGON -----------------//
         if (this.getQueryConfiguration().getQueryType() == QueryType.RealTime) {
-            throw new IllegalArgumentException("Not yet support");
+            return realTime(pointStream, polygonSet);
         }
 
-        //--------------- Window-based - LINESTRING - POINT - POLYGON -----------------//
+        //--------------- Window-based - POINT - POLYGON -----------------//
         else if(this.getQueryConfiguration().getQueryType() == QueryType.WindowBased) {
             int windowSize = this.getQueryConfiguration().getWindowSize();
             int windowSlideStep = this.getQueryConfiguration().getSlideStep();
@@ -46,6 +46,41 @@ public class LineStringPointPolygonTRangeQuery extends TRangeQuery<LineString, P
         else {
             throw new IllegalArgumentException("Not yet support");
         }
+    }
+
+    // REAL-TIME
+    private DataStream<Point> realTime(DataStream<Point> pointStream, Set<Polygon> polygonSet) {
+
+        HashSet<String> polygonsGridCellIDs = new HashSet<>();
+        // Making an integrated set of all the polygon's grid cell IDs
+        for (Polygon poly : polygonSet) {
+            polygonsGridCellIDs.addAll(poly.gridIDsSet);
+        }
+
+        // Filtering based on grid-cell ID
+        DataStream<Point> filteredStream = pointStream.filter(new FilterFunction<Point>() {
+            @Override
+            public boolean filter(Point p) throws Exception {
+                return ((polygonsGridCellIDs.contains(p.gridID)));
+            }
+        });
+
+        // Perform keyBy to logically distribute streams by trajectoryID and then check if a point lies within a polygon or nor
+        return filteredStream.keyBy(new KeySelector<Point, String>() {
+            @Override
+            public String getKey(Point p) throws Exception {
+                return p.objID;
+            }
+        }).filter(new FilterFunction<Point>() {
+            @Override
+            public boolean filter(Point p) throws Exception {
+                for (Polygon poly : polygonSet) {
+                    if (poly.polygon.contains(p.point.getEnvelope())) // Polygon contains the point
+                        return true;
+                }
+                return false; // Polygon does not contain the point
+            }
+        });
     }
 
     // WINDOW BASED

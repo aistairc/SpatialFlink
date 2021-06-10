@@ -26,11 +26,10 @@ import GeoFlink.spatialOperators.*;
 import GeoFlink.spatialOperators.join.*;
 import GeoFlink.spatialOperators.knn.*;
 import GeoFlink.spatialOperators.range.*;
-import GeoFlink.spatialOperators.tjoin.PointPointTJoinQuery;
-import GeoFlink.spatialOperators.tknn.LineStringPointPointTKNNQuery;
-import GeoFlink.spatialOperators.tknn.PointPointPointTKNNQuery;
-import GeoFlink.spatialOperators.trange.LineStringPointPolygonTRangeQuery;
-import GeoFlink.spatialOperators.trange.PointPointPolygonTRangeQuery;
+import GeoFlink.spatialOperators.tJoin.PointPointTJoinQuery;
+import GeoFlink.spatialOperators.tKnn.LineStringPointPointTKNNQuery;
+import GeoFlink.spatialOperators.tKnn.PointPointPointTKNNQuery;
+import GeoFlink.spatialOperators.tRange.PointPolygonTRangeQuery;
 import GeoFlink.spatialStreams.*;
 import GeoFlink.utils.HelperClass;
 import GeoFlink.utils.Params;
@@ -1150,7 +1149,7 @@ public class StreamingJob implements Serializable {
 			}
 			case 203:{ // TRangeQuery Real-time
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, "timestamp", "oID", uGrid);
-				DataStream<Point> outputStream = new PointPointPolygonTRangeQuery(realtimeConf).run(spatialTrajectoryStream, polygonSet);
+				DataStream<Point> outputStream = (DataStream<Point>)new PointPolygonTRangeQuery(realtimeConf).run(spatialTrajectoryStream, polygonSet);
 				//Naive
 				//DataStream<Point> outputStream = new PointPolygonPointTRangeQuery(realtimeConf).runNative(polygonSet, spatialTrajectoryStream);
 
@@ -1160,7 +1159,7 @@ public class StreamingJob implements Serializable {
 			}
 			case 204:{ // TRangeQuery Windowed
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, "timestamp", "oID", uGrid);
-				new LineStringPointPolygonTRangeQuery(windowConf).run(spatialTrajectoryStream, polygonSet);//.print();
+				new PointPolygonTRangeQuery(windowConf).run(spatialTrajectoryStream, polygonSet);//.print();
 				break;
 			}
 			case 205:{ // TStatsQuery Real-time
