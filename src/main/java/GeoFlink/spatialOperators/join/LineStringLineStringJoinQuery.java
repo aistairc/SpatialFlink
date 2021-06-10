@@ -30,21 +30,19 @@ public class LineStringLineStringJoinQuery extends JoinQuery<LineString, LineStr
         UniformGrid qGrid = (UniformGrid) this.getSpatialIndex2();
 
         //--------------- Real-time - LINESTRING - LINESTRING -----------------//
-        if(this.getQueryConfiguration().getQueryType() == QueryType.RealTime)
-        {
+        if(this.getQueryConfiguration().getQueryType() == QueryType.RealTime) {
             int omegaJoinDurationSeconds = this.getQueryConfiguration().getWindowSize();
             return realTime(lineStringStream, queryStream, queryRadius, uGrid, qGrid, omegaJoinDurationSeconds, allowedLateness, approximateQuery);
         }
 
         //--------------- Window-based - LINESTRING - LINESTRING -----------------//
-        else if(this.getQueryConfiguration().getQueryType() == QueryType.WindowBased)
-        {
+        else if(this.getQueryConfiguration().getQueryType() == QueryType.WindowBased) {
             int windowSize = this.getQueryConfiguration().getWindowSize();
             int slideStep = this.getQueryConfiguration().getSlideStep();
             return windowBased(lineStringStream, queryStream, queryRadius, uGrid, qGrid, windowSize, slideStep, allowedLateness, approximateQuery);
         }
 
-        else{
+        else {
             throw new IllegalArgumentException("Not yet support");
         }
     }

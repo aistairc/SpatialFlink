@@ -23,7 +23,6 @@ import java.util.Set;
 public abstract class KNNQuery<T extends SpatialObject, K extends SpatialObject> implements Serializable {
     private QueryConfiguration queryConfiguration;
     private SpatialIndex spatialIndex;
-    private Integer k;
 
     public QueryConfiguration getQueryConfiguration() {
         return queryConfiguration;
@@ -49,7 +48,7 @@ public abstract class KNNQuery<T extends SpatialObject, K extends SpatialObject>
     public abstract DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<T, Double>>>> run(DataStream<T> ordinaryStream, K obj, double queryRadius, Integer k) throws IOException;
 
     // Returns Tuple3<Long, Long, PriorityQueue<Tuple2<LineString, Double>>>
-    public static class kNNWinAllEvaluationLineStringStream implements AllWindowFunction<PriorityQueue<Tuple2<LineString, Double>>, Tuple3<Long, Long, PriorityQueue<Tuple2<LineString, Double>>>, TimeWindow> {
+    protected class kNNWinAllEvaluationLineStringStream implements AllWindowFunction<PriorityQueue<Tuple2<LineString, Double>>, Tuple3<Long, Long, PriorityQueue<Tuple2<LineString, Double>>>, TimeWindow> {
 
         //ctor
         public kNNWinAllEvaluationLineStringStream() {
@@ -125,7 +124,7 @@ public abstract class KNNQuery<T extends SpatialObject, K extends SpatialObject>
 
 
     // Returns Tuple3<Long, Long, PriorityQueue<Tuple2<Polygon, Double>>>
-    public static class kNNWinAllEvaluationPolygonStream implements AllWindowFunction  <PriorityQueue<Tuple2<Polygon, Double>>, Tuple3<Long, Long, PriorityQueue<Tuple2<Polygon, Double>>>, TimeWindow> {
+    protected class kNNWinAllEvaluationPolygonStream implements AllWindowFunction  <PriorityQueue<Tuple2<Polygon, Double>>, Tuple3<Long, Long, PriorityQueue<Tuple2<Polygon, Double>>>, TimeWindow> {
 
         Integer k;
 
@@ -199,7 +198,7 @@ public abstract class KNNQuery<T extends SpatialObject, K extends SpatialObject>
     }
 
     // Returns Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>
-    public static class kNNWinAllEvaluationPointStream implements AllWindowFunction  <PriorityQueue<Tuple2<Point, Double>>, Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>, TimeWindow> {
+    protected class kNNWinAllEvaluationPointStream implements AllWindowFunction  <PriorityQueue<Tuple2<Point, Double>>, Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>, TimeWindow> {
 
         //ctor
         public kNNWinAllEvaluationPointStream(){}

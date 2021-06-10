@@ -31,21 +31,19 @@ public class PolygonLineStringJoinQuery extends JoinQuery<Polygon, LineString> {
         UniformGrid qGrid = (UniformGrid) this.getSpatialIndex2();
 
         //--------------- Real-time - POLYGON - LINESTRING -----------------//
-        if(this.getQueryConfiguration().getQueryType() == QueryType.RealTime)
-        {
+        if(this.getQueryConfiguration().getQueryType() == QueryType.RealTime) {
             int omegaJoinDurationSeconds = this.getQueryConfiguration().getWindowSize();
             return realTime(polygonStream, queryStream, queryRadius, uGrid, qGrid, omegaJoinDurationSeconds, allowedLateness, approximateQuery);
         }
 
         //--------------- Window-based - POLYGON - LINESTRING -----------------//
-        else if(this.getQueryConfiguration().getQueryType() == QueryType.WindowBased)
-        {
+        else if(this.getQueryConfiguration().getQueryType() == QueryType.WindowBased) {
             int windowSize = this.getQueryConfiguration().getWindowSize();
             int slideStep = this.getQueryConfiguration().getSlideStep();
             return windowBased(polygonStream, queryStream, queryRadius, uGrid, qGrid, windowSize, slideStep, allowedLateness, approximateQuery);
         }
 
-        else{
+        else {
             throw new IllegalArgumentException("Not yet support");
         }
     }

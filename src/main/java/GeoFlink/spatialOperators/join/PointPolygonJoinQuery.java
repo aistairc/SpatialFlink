@@ -32,21 +32,19 @@ public class PointPolygonJoinQuery extends JoinQuery<Point, Polygon> {
         UniformGrid qGrid = (UniformGrid) this.getSpatialIndex2();
 
         //--------------- Real-time - POINT - POLYGON -----------------//
-        if(this.getQueryConfiguration().getQueryType() == QueryType.RealTime)
-        {
+        if(this.getQueryConfiguration().getQueryType() == QueryType.RealTime) {
             int omegaJoinDurationSeconds = this.getQueryConfiguration().getWindowSize();
             return realTime(ordinaryPointStream, queryPolygonStream, uGrid, qGrid, queryRadius, omegaJoinDurationSeconds, allowedLateness, approximateQuery);
         }
 
         //--------------- Window-based - POINT - POLYGON -----------------//
-        else if(this.getQueryConfiguration().getQueryType() == QueryType.WindowBased)
-        {
+        else if(this.getQueryConfiguration().getQueryType() == QueryType.WindowBased) {
             int windowSize = this.getQueryConfiguration().getWindowSize();
             int slideStep = this.getQueryConfiguration().getSlideStep();
             return windowBased(ordinaryPointStream, queryPolygonStream, uGrid, qGrid, queryRadius, windowSize, slideStep, allowedLateness, approximateQuery);
         }
 
-        else{
+        else {
             throw new IllegalArgumentException("Not yet support");
         }
     }

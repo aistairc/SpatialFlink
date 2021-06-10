@@ -60,7 +60,7 @@ public abstract class RangeQuery<T extends SpatialObject, K extends SpatialObjec
 
     public abstract DataStream<T> run(DataStream<T> stream, K obj, double queryRadius);
 
-    public static class PolygonTrigger extends Trigger<Polygon, TimeWindow> {
+    protected class PolygonTrigger extends Trigger<Polygon, TimeWindow> {
 
         private int slideStep;
         ValueStateDescriptor<Boolean> firstWindowDesc = new ValueStateDescriptor<Boolean>("isFirstWindow", Boolean.class);
@@ -116,7 +116,7 @@ public abstract class RangeQuery<T extends SpatialObject, K extends SpatialObjec
     }
 
     // Misc Classes
-    public static class GetCellsFilteredByLayer extends RichFilterFunction<Tuple2<String, Integer>>
+    protected class GetCellsFilteredByLayer extends RichFilterFunction<Tuple2<String, Integer>>
     {
         private final HashSet<String> CellIDs; // CellIDs are input parameters
 
@@ -133,7 +133,7 @@ public abstract class RangeQuery<T extends SpatialObject, K extends SpatialObjec
         }
     }
 
-    public static class CellBasedLineStringFlatMap implements FlatMapFunction<LineString, LineString>{
+    protected class CellBasedLineStringFlatMap implements FlatMapFunction<LineString, LineString>{
 
         Set<String> neighboringCells = new HashSet<String>();
 
