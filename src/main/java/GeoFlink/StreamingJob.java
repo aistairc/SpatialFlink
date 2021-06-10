@@ -27,8 +27,7 @@ import GeoFlink.spatialOperators.join.*;
 import GeoFlink.spatialOperators.knn.*;
 import GeoFlink.spatialOperators.range.*;
 import GeoFlink.spatialOperators.tJoin.PointPointTJoinQuery;
-import GeoFlink.spatialOperators.tKnn.LineStringPointPointTKNNQuery;
-import GeoFlink.spatialOperators.tKnn.PointPointPointTKNNQuery;
+import GeoFlink.spatialOperators.tKnn.PointPointTKNNQuery;
 import GeoFlink.spatialOperators.tRange.PointPolygonTRangeQuery;
 import GeoFlink.spatialStreams.*;
 import GeoFlink.utils.HelperClass;
@@ -1151,7 +1150,7 @@ public class StreamingJob implements Serializable {
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, "timestamp", "oID", uGrid);
 				DataStream<Point> outputStream = (DataStream<Point>)new PointPolygonTRangeQuery(realtimeConf).run(spatialTrajectoryStream, polygonSet);
 				//Naive
-				//DataStream<Point> outputStream = new PointPolygonPointTRangeQuery(realtimeConf).runNative(polygonSet, spatialTrajectoryStream);
+				//DataStream<Point> outputStream = new PolygonPointTRangeQuery(realtimeConf).runNative(polygonSet, spatialTrajectoryStream);
 
 				//outputStream.print();
 				outputStream.addSink(new FlinkKafkaProducer<>(outputTopicName, new HelperClass.LatencySinkPoint(queryOption, outputTopicName), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
@@ -1221,16 +1220,16 @@ public class StreamingJob implements Serializable {
 				//System.out.println("qPoint " + qPoint);
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, "timestamp", "oID", uGrid);
 				//Real-time kNN
-				new PointPointPointTKNNQuery(realtimeConf, uGrid).run(spatialTrajectoryStream, qPoint, radius, k); //.print();
+				new PointPointTKNNQuery(realtimeConf, uGrid).run(spatialTrajectoryStream, qPoint, radius, k); //.print();
 				// Naive
-				//new LineStringPointPointTKNNQuery(windowConf, uGrid).runNative(spatialTrajectoryStream, qPoint, radius, k);
+				//new PointPointTKNNQuery(windowConf, uGrid).runNative(spatialTrajectoryStream, qPoint, radius, k);
 
 				break;
 			}
 			case 212:{ // TSpatialKNNQuery Windowed
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, "timestamp", "oID", uGrid);
 				//Window-based kNN
-				new LineStringPointPointTKNNQuery(windowConf, uGrid).run(spatialTrajectoryStream, qPoint, radius, k);
+				new PointPointTKNNQuery(windowConf, uGrid).run(spatialTrajectoryStream, qPoint, radius, k);
 
 				break;
 			}

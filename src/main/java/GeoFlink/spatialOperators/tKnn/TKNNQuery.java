@@ -15,7 +15,7 @@ import org.apache.flink.util.Collector;
 import java.io.Serializable;
 import java.util.*;
 
-public abstract class TKNNQuery<T extends SpatialObject, S extends SpatialObject, K extends SpatialObject> implements Serializable {
+public abstract class TKNNQuery<T extends SpatialObject, K extends SpatialObject> implements Serializable {
     private QueryConfiguration queryConfiguration;
     private SpatialIndex spatialIndex;
 
@@ -40,7 +40,7 @@ public abstract class TKNNQuery<T extends SpatialObject, S extends SpatialObject
         this.setSpatialIndex(index);
     }
 
-    public abstract DataStream<Tuple2<T, Double>> run(DataStream<S> ordinaryStream, K obj, double queryRadius, Integer k);
+    public abstract Object run(DataStream<T> ordinaryStream, K obj, double queryRadius, Integer k);
 
     // Returns Tuple2<String, Double>
     protected class kNNEvaluationWindowed implements WindowFunction<Point, Tuple2<String, Double>, String, TimeWindow> {

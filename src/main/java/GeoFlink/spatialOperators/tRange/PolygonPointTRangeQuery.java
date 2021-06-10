@@ -11,8 +11,8 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import java.util.HashSet;
 import java.util.Set;
 
-public class PointPolygonPointTRangeQuery extends TRangeQuery<Polygon, Point> {
-    public PointPolygonPointTRangeQuery(QueryConfiguration conf) {
+public class PolygonPointTRangeQuery extends TRangeQuery<Polygon, Point> {
+    public PolygonPointTRangeQuery(QueryConfiguration conf) {
         super.initializeTRangeQuery(conf);
     }
 
