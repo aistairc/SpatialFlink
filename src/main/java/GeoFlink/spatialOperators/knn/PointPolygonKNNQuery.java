@@ -27,16 +27,15 @@ import java.util.PriorityQueue;
 import java.util.Set;
 
 public class PointPolygonKNNQuery extends KNNQuery<Point, Polygon> {
-    public PointPolygonKNNQuery(QueryConfiguration conf, SpatialIndex index, Integer k) {
-        super.initializeKNNQuery(conf, index, k);
+    public PointPolygonKNNQuery(QueryConfiguration conf, SpatialIndex index) {
+        super.initializeKNNQuery(conf, index);
     }
 
-    public DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> run(DataStream<Point> pointStream, Polygon queryPolygon, double queryRadius) throws IOException {
+    public DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> run(DataStream<Point> pointStream, Polygon queryPolygon, double queryRadius, Integer k) throws IOException {
         boolean approximateQuery = this.getQueryConfiguration().isApproximateQuery();
         int allowedLateness = this.getQueryConfiguration().getAllowedLateness();
 
         UniformGrid uGrid = (UniformGrid) this.getSpatialIndex();
-        Integer k = this.getK();
 
         //--------------- Real-time - POINT - POLYGON -----------------//
         if (this.getQueryConfiguration().getQueryType() == QueryType.RealTime) {
@@ -56,12 +55,11 @@ public class PointPolygonKNNQuery extends KNNQuery<Point, Polygon> {
         }
     }
 
-    public DataStream<Long> runLatency(DataStream<Point> pointStream, Polygon queryPolygon, double queryRadius) throws IOException {
+    public DataStream<Long> runLatency(DataStream<Point> pointStream, Polygon queryPolygon, double queryRadius, Integer k) throws IOException {
         boolean approximateQuery = this.getQueryConfiguration().isApproximateQuery();
         int allowedLateness = this.getQueryConfiguration().getAllowedLateness();
 
         UniformGrid uGrid = (UniformGrid) this.getSpatialIndex();
-        Integer k = this.getK();
 
         //--------------- Real-time - POINT - POLYGON -----------------//
         if (this.getQueryConfiguration().getQueryType() == QueryType.RealTime) {

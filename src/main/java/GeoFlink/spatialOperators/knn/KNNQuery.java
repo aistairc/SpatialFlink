@@ -41,21 +41,12 @@ public abstract class KNNQuery<T extends SpatialObject, K extends SpatialObject>
         this.spatialIndex = spatialIndex;
     }
 
-    public Integer getK() {
-        return k;
-    }
-
-    public void setK(Integer k) {
-        this.k = k;
-    }
-
-    public void initializeKNNQuery(QueryConfiguration conf, SpatialIndex index, Integer k){
+    public void initializeKNNQuery(QueryConfiguration conf, SpatialIndex index){
         this.setQueryConfiguration(conf);
         this.setSpatialIndex(index);
-        this.setK(k);
     }
 
-    public abstract DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<T, Double>>>> run(DataStream<T> ordinaryStream, K obj, double queryRadius) throws IOException;
+    public abstract DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<T, Double>>>> run(DataStream<T> ordinaryStream, K obj, double queryRadius, Integer k) throws IOException;
 
     // Returns Tuple3<Long, Long, PriorityQueue<Tuple2<LineString, Double>>>
     public static class kNNWinAllEvaluationLineStringStream implements AllWindowFunction<PriorityQueue<Tuple2<LineString, Double>>, Tuple3<Long, Long, PriorityQueue<Tuple2<LineString, Double>>>, TimeWindow> {

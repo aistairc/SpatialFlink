@@ -26,16 +26,15 @@ import java.util.PriorityQueue;
 import java.util.Set;
 
 public class PointLineStringKNNQuery extends KNNQuery<Point, LineString> {
-    public PointLineStringKNNQuery(QueryConfiguration conf, SpatialIndex index, Integer k) {
-        super.initializeKNNQuery(conf, index, k);
+    public PointLineStringKNNQuery(QueryConfiguration conf, SpatialIndex index) {
+        super.initializeKNNQuery(conf, index);
     }
 
-    public DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> run(DataStream<Point> pointStream, LineString queryLineString, double queryRadius) throws IOException {
+    public DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> run(DataStream<Point> pointStream, LineString queryLineString, double queryRadius, Integer k) throws IOException {
         boolean approximateQuery = this.getQueryConfiguration().isApproximateQuery();
         int allowedLateness = this.getQueryConfiguration().getAllowedLateness();
 
         UniformGrid uGrid = (UniformGrid) this.getSpatialIndex();
-        Integer k = this.getK();
 
         //--------------- Real-time - POINT - LINESTRING -----------------//
         if (this.getQueryConfiguration().getQueryType() == QueryType.RealTime) {

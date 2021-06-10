@@ -28,16 +28,15 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class PolygonLineStringKNNQuery extends KNNQuery<Polygon, LineString> {
-    public PolygonLineStringKNNQuery(QueryConfiguration conf, SpatialIndex index, Integer k) {
-        super.initializeKNNQuery(conf, index, k);
+    public PolygonLineStringKNNQuery(QueryConfiguration conf, SpatialIndex index) {
+        super.initializeKNNQuery(conf, index);
     }
 
-    public DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Polygon, Double>>>> run(DataStream<Polygon> polygonStream, LineString queryLineString, double queryRadius) throws IOException {
+    public DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Polygon, Double>>>> run(DataStream<Polygon> polygonStream, LineString queryLineString, double queryRadius, Integer k) throws IOException {
         boolean approximateQuery = this.getQueryConfiguration().isApproximateQuery();
         int allowedLateness = this.getQueryConfiguration().getAllowedLateness();
 
         UniformGrid uGrid = (UniformGrid) this.getSpatialIndex();
-        Integer k = this.getK();
 
         //--------------- Real-time - POLYGON - LINESTRING -----------------//
         if (this.getQueryConfiguration().getQueryType() == QueryType.RealTime) {
