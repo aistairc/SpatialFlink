@@ -40,7 +40,7 @@ public abstract class TKNNQuery<T extends SpatialObject, K extends SpatialObject
         this.setSpatialIndex(index);
     }
 
-    public abstract Object run(DataStream<T> ordinaryStream, K obj, double queryRadius, Integer k);
+    public abstract DataStream<?> run(DataStream<T> ordinaryStream, K obj, double queryRadius, Integer k);
 
     // Returns Tuple2<String, Double>
     protected class kNNEvaluationWindowed implements WindowFunction<Point, Tuple2<String, Double>, String, TimeWindow> {

@@ -28,7 +28,7 @@ public class PointPointTJoinQuery extends TJoinQuery<Point, Point> {
         super.initializeKNNQuery(conf, index);
     }
 
-    public Object run(DataStream<Point> ordinaryPointStream, DataStream<Point> queryPointStream, double joinDistance) {
+    public DataStream<?> run(DataStream<Point> ordinaryPointStream, DataStream<Point> queryPointStream, double joinDistance) {
         int allowedLateness = this.getQueryConfiguration().getAllowedLateness();
         int omegaJoinDurationSeconds = this.getQueryConfiguration().getWindowSize();
 

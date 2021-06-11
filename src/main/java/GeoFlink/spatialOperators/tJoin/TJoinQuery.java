@@ -50,7 +50,7 @@ public abstract class TJoinQuery<T extends SpatialObject, K extends SpatialObjec
         this.setSpatialIndex(index);
     }
 
-    public abstract Object run(DataStream<K> ordinaryStream, DataStream<K> queryStream, double joinDistance);
+    public abstract DataStream<?> run(DataStream<K> ordinaryStream, DataStream<K> queryStream, double joinDistance);
 
     public static DataStream<Tuple2<Point, Point>> TSpatialJoinQuery(DataStream<Point> ordinaryPointStream, DataStream<Point> queryPointStream, double joinDistance, int omegaJoinDurationSeconds, int allowedLateness) {
 

@@ -19,7 +19,7 @@ public class PointTStatsQuery extends TStatsQuery<Point> {
         super.initializeKNNQuery(conf);
     }
 
-    public Object run(DataStream<Point> pointStream, Set<String> trajIDSet) {
+    public DataStream<?> run(DataStream<Point> pointStream, Set<String> trajIDSet) {
 
         //--------------- Real-time - POINT -----------------//
         if (this.getQueryConfiguration().getQueryType() == QueryType.RealTime) {

@@ -35,7 +35,7 @@ public abstract class TStatsQuery<T extends SpatialObject> implements Serializab
         this.setQueryConfiguration(conf);
     }
 
-    public abstract Object run(DataStream<T> stream, Set<String> trajIDSet);
+    public abstract DataStream<?> run(DataStream<T> stream, Set<String> trajIDSet);
 
     // User Defined Classes
     // Update/Output is generated only when the current tuple timestamp is different from previous tuple

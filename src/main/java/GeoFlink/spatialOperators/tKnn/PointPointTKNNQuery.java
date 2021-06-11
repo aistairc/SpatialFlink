@@ -31,7 +31,7 @@ public class PointPointTKNNQuery extends TKNNQuery<Point, Point> {
         super.initializeTKNNQuery(conf, index);
     }
 
-    public Object run(DataStream<Point> pointStream, Point queryPoint, double queryRadius, Integer k) {
+    public DataStream<?> run(DataStream<Point> pointStream, Point queryPoint, double queryRadius, Integer k) {
         int allowedLateness = this.getQueryConfiguration().getAllowedLateness();
 
         UniformGrid uGrid = (UniformGrid) this.getSpatialIndex();

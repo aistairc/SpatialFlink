@@ -20,7 +20,7 @@ public class PointTAggregateQuery extends TAggregateQuery<Point> {
         super.initializeKNNQuery(conf);
     }
 
-    public Object run(DataStream<Point> pointStream, String aggregateFunction, String windowType, Long inactiveTrajDeletionThreshold) {
+    public DataStream<?> run(DataStream<Point> pointStream, String aggregateFunction, String windowType, Long inactiveTrajDeletionThreshold) {
         boolean approximateQuery = this.getQueryConfiguration().isApproximateQuery();
         int allowedLateness = this.getQueryConfiguration().getAllowedLateness();
 

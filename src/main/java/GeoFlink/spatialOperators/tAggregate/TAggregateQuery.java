@@ -37,7 +37,7 @@ public abstract class TAggregateQuery<T extends SpatialObject> implements Serial
         this.setQueryConfiguration(conf);
     }
 
-    public abstract Object run(DataStream<T> stream, String aggregateFunction, String windowType, Long inactiveTrajDeletionThreshold);
+    public abstract DataStream<?> run(DataStream<T> stream, String aggregateFunction, String windowType, Long inactiveTrajDeletionThreshold);
 
     // User Defined Classes
     // Key selector
