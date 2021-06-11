@@ -23,6 +23,7 @@ import GeoFlink.apps.CheckIn;
 import GeoFlink.spatialIndices.UniformGrid;
 import GeoFlink.spatialObjects.*;
 import GeoFlink.spatialOperators.*;
+import GeoFlink.spatialOperators.tJoin.TJoinQuery;
 import GeoFlink.spatialOperators.tStats.PointTStatsQuery;
 import GeoFlink.spatialOperators.join.*;
 import GeoFlink.spatialOperators.knn.*;
@@ -1200,7 +1201,7 @@ public class StreamingJob implements Serializable {
 				//new PointPointTJoinQuery(realtimeConf, uGrid).runSingle(spatialTrajectoryStream, radius);//.print();
 
 				// Naive
-				//TJoinQuery.TSpatialJoinQuery(spatialTrajectoryStream, spatialQueryStream, radius, windowSize);
+				//TJoinQuery.TSpatialJoinQuery(spatialTrajectoryStream, spatialQueryStream, radius, windowSize, allowedLateness);
 
 				break;
 			}

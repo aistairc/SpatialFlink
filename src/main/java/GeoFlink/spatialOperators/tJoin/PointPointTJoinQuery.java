@@ -2,6 +2,7 @@ package GeoFlink.spatialOperators.tJoin;
 
 import GeoFlink.spatialIndices.SpatialIndex;
 import GeoFlink.spatialIndices.UniformGrid;
+import GeoFlink.spatialObjects.LineString;
 import GeoFlink.spatialObjects.Point;
 import GeoFlink.spatialOperators.QueryConfiguration;
 import GeoFlink.spatialOperators.QueryType;
@@ -27,7 +28,7 @@ public class PointPointTJoinQuery extends TJoinQuery<Point, Point> {
         super.initializeKNNQuery(conf, index);
     }
 
-    public DataStream<Tuple2<Point, Point>> run(DataStream<Point> ordinaryPointStream, DataStream<Point> queryPointStream, double joinDistance) {
+    public Object run(DataStream<Point> ordinaryPointStream, DataStream<Point> queryPointStream, double joinDistance) {
         int allowedLateness = this.getQueryConfiguration().getAllowedLateness();
         int omegaJoinDurationSeconds = this.getQueryConfiguration().getWindowSize();
 
@@ -40,7 +41,9 @@ public class PointPointTJoinQuery extends TJoinQuery<Point, Point> {
 
         //--------------- Window-based - LINESTRING - POLYGON -----------------//
         else if (this.getQueryConfiguration().getQueryType() == QueryType.WindowBased) {
-            return windowBased(ordinaryPointStream, queryPointStream, joinDistance, omegaJoinDurationSeconds, allowedLateness);
+            int windowSize = this.getQueryConfiguration().getWindowSize();
+            int slideStep  = this.getQueryConfiguration().getSlideStep();
+            return windowBased(ordinaryPointStream, queryPointStream, joinDistance, windowSize, slideStep, allowedLateness, uGrid);
         }
 
         else {
@@ -171,8 +174,7 @@ public class PointPointTJoinQuery extends TJoinQuery<Point, Point> {
     }
 
     // WINDOW BASED
-    private DataStream<Tuple2<Point, Point>> windowBased(DataStream<Point> ordinaryPointStream, DataStream<Point> queryPointStream, double joinDistance, int omegaJoinDurationSeconds, int allowedLateness) {
-
+    private DataStream<Tuple2<LineString, LineString>> windowBased(DataStream<Point> ordinaryPointStream, DataStream<Point> queryPointStream, double joinDistance, int windowSize, int slideStep, int allowedLateness, UniformGrid uGrid) {
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: windowSize
@@ -180,7 +182,6 @@ public class PointPointTJoinQuery extends TJoinQuery<Point, Point> {
                 ordinaryPointStream.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Point>(Time.seconds(allowedLateness)) {
                     @Override
                     public long extractTimestamp(Point p) {
-
                         return p.timeStampMillisec;
                     }
                 });
@@ -193,18 +194,28 @@ public class PointPointTJoinQuery extends TJoinQuery<Point, Point> {
                     }
                 });
 
-        DataStream<Tuple2<Point, Point>> joinOutput = ordinaryStreamWithTsAndWm.join(queryStreamWithTsAndWm)
+        // Generation of ordinary stream trajectories
+        DataStream<LineString> ordinaryStreamTrajectories = ordinaryStreamWithTsAndWm.keyBy(new TJoinQuery.trajIDKeySelector())
+                .window(SlidingProcessingTimeWindows.of(Time.seconds(windowSize), Time.seconds(slideStep))).apply(new TJoinQuery.GenerateWindowedTrajectory());
+
+        // Generation of query stream trajectories
+        DataStream<LineString> queryStreamTrajectories = queryStreamWithTsAndWm.keyBy(new TJoinQuery.trajIDKeySelector())
+                .window(SlidingProcessingTimeWindows.of(Time.seconds(windowSize), Time.seconds(slideStep))).apply(new TJoinQuery.GenerateWindowedTrajectory());
+
+        DataStream<Point> replicatedQueryStream = getReplicatedQueryStream(queryStreamWithTsAndWm, joinDistance, uGrid);
+
+        DataStream<Tuple2<Point, Point>> joinOutput = ordinaryStreamWithTsAndWm.join(replicatedQueryStream)
                 .where(new KeySelector<Point, String>() {
                     @Override
                     public String getKey(Point p) throws Exception {
-                        return "1";
+                        return p.gridID;
                     }
                 }).equalTo(new KeySelector<Point, String>() {
                     @Override
                     public String getKey(Point q) throws Exception {
-                        return "1";
+                        return q.gridID;
                     }
-                }).window(TumblingProcessingTimeWindows.of(Time.seconds(omegaJoinDurationSeconds)))
+                }).window(SlidingProcessingTimeWindows.of(Time.seconds(windowSize), Time.seconds(slideStep)))
                 .apply(new JoinFunction<Point, Point, Tuple2<Point,Point>>() {
                     @Override
                     public Tuple2<Point, Point> join(Point p, Point q) {
@@ -222,14 +233,16 @@ public class PointPointTJoinQuery extends TJoinQuery<Point, Point> {
                     }
                 });
 
+
+
         // Join Output may contain multiple and/or null results
         // To generate output corresponding to latest timestamp of each trajectory, divide the tuples with respect to trajectory id rather than grid id as we are interested in one output per trajectory rather than one output per cell
-        DataStream<Tuple2<Point, Point>> joinFilteredOutput = joinOutput.keyBy(new KeySelector<Tuple2<Point, Point>, String>() {  // Logic to remove multiple result per window, by returning only the latest result corresponding to a trajectory
+        DataStream<Tuple2<Point, Point>> joinedFilteredOutput = joinOutput.keyBy(new KeySelector<Tuple2<Point, Point>, String>() {  // Logic to remove multiple result per window, by returning only the latest result corresponding to a trajectory
             @Override
             public String getKey(Tuple2<Point, Point> e) throws Exception {
                 return e.f0.objID; // keyBy Trajectory ID
             }
-        }).window(TumblingProcessingTimeWindows.of(Time.seconds(omegaJoinDurationSeconds))).apply(new WindowFunction<Tuple2<Point, Point>, Tuple2<Point, Point>, String, TimeWindow>() {
+        }).window(SlidingProcessingTimeWindows.of(Time.seconds(windowSize), Time.seconds(slideStep))).apply(new WindowFunction<Tuple2<Point, Point>, Tuple2<Point, Point>, String, TimeWindow>() {
             @Override
             public void apply(String key, TimeWindow window, Iterable<Tuple2<Point, Point>> input, Collector<Tuple2<Point, Point>> out) throws Exception {
 
@@ -237,33 +250,85 @@ public class PointPointTJoinQuery extends TJoinQuery<Point, Point> {
                 // a) First element is guaranteed to be the same with the objID as "key" of apply function, as keyBy objID is used
                 // b) Find duplicates in the tuple's second element creating a set and an array
 
-                HashMap<String, Point> secondIDPoint = new HashMap<>();
+                HashMap<String, Point> secondIDPointMap = new HashMap<>();
                 Point firstPoint = null;
+                Boolean firstPointSet = false;
 
                 for (Tuple2<Point, Point> e :input) {
 
-                    Point existingPoint = secondIDPoint.get(e.f1.objID);
+                    // Setting the first pair point, if not already set
+                    if(!firstPointSet){
+                        firstPoint = e.f0;
+                        firstPointSet = true;
+                    }
 
+                    Point existingPoint = secondIDPointMap.get(e.f1.objID);
                     if(existingPoint != null){     // If element is already in the set
                         Long oldTimestamp = existingPoint.timeStampMillisec;
                         if(e.f1.timeStampMillisec > oldTimestamp){ // if new timestamp is larger, replace the old element with new
-                            secondIDPoint.replace(e.f1.objID, e.f1);
+                            secondIDPointMap.replace(e.f1.objID, e.f1);
                         }
                     }
                     else { // insert new element if does not exist
-                        secondIDPoint.put(e.f1.objID, e.f1);
-                        firstPoint = e.f0;
+                        secondIDPointMap.put(e.f1.objID, e.f1);
                     }
                 }
 
                 // Collecting output
-                for (Map.Entry<String, Point> entry : secondIDPoint.entrySet()){
+                for (Map.Entry<String, Point> entry : secondIDPointMap.entrySet()){
                     out.collect(Tuple2.of(firstPoint, entry.getValue()));
                 }
             }
         });
 
-        return joinFilteredOutput;
+        //joinedFilteredOutput.print();
+
+        // Converting point to trajectories
+        DataStream<Tuple2<LineString, Point>> joinedLineStringPointOutput = joinedFilteredOutput.join(ordinaryStreamTrajectories).where(new KeySelector<Tuple2<Point, Point>, String>() {
+            @Override
+            public String getKey(Tuple2<Point, Point> e) throws Exception {
+                return e.f0.objID;
+            }
+        }).equalTo(new KeySelector<LineString, String>() {
+            @Override
+            public String getKey(LineString ls) throws Exception {
+                return ls.objID;
+            }
+        }).window(SlidingProcessingTimeWindows.of(Time.seconds(windowSize), Time.seconds(slideStep)))
+                .apply(new JoinFunction<Tuple2<Point, Point>, LineString, Tuple2<LineString, Point>>() {
+                    @Override
+                    public Tuple2<LineString, Point> join(Tuple2<Point, Point> pointPointTuple, LineString ls) throws Exception {
+                        return Tuple2.of(ls, pointPointTuple.f1);
+                    }}).filter(new FilterFunction<Tuple2<LineString, Point>>() {
+                    @Override
+                    public boolean filter(Tuple2<LineString, Point> lineStringPointTuple2) throws Exception {
+                        return (lineStringPointTuple2.f0 != null); // removing null results
+                    }
+                });
+
+
+        // Converting point to trajectories
+        return joinedLineStringPointOutput.join(queryStreamTrajectories).where(new KeySelector<Tuple2<LineString, Point>, String>() {
+            @Override
+            public String getKey(Tuple2<LineString, Point> e) throws Exception {
+                return e.f1.objID;
+            }
+        }).equalTo(new KeySelector<LineString, String>() {
+            @Override
+            public String getKey(LineString ls) throws Exception {
+                return ls.objID;
+            }
+        }).window(SlidingProcessingTimeWindows.of(Time.seconds(windowSize), Time.seconds(slideStep)))
+                .apply(new JoinFunction<Tuple2<LineString, Point>, LineString, Tuple2<LineString, LineString>>() {
+                    @Override
+                    public Tuple2<LineString, LineString> join(Tuple2<LineString, Point> pointPointTuple, LineString ls) throws Exception {
+                        return Tuple2.of(pointPointTuple.f0, ls);
+                    }}).filter(new FilterFunction<Tuple2<LineString, LineString>>() {
+                    @Override
+                    public boolean filter(Tuple2<LineString, LineString> lineStringPointTuple2) throws Exception {
+                        return (lineStringPointTuple2.f1 != null); // removing null results
+                    }
+                });
     }
 
     // Single
