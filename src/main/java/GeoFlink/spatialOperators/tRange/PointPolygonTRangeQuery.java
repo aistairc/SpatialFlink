@@ -28,7 +28,7 @@ public class PointPolygonTRangeQuery extends TRangeQuery<Point, Polygon> {
         super.initializeTRangeQuery(conf);
     }
 
-    public Object run(DataStream<Point> pointStream, Set<Polygon> polygonSet) {
+    public DataStream<? extends SpatialObject> run(DataStream<Point> pointStream, Set<Polygon> polygonSet) {
         int allowedLateness = this.getQueryConfiguration().getAllowedLateness();
 
         //--------------- Real-time - POINT - POLYGON -----------------//

@@ -27,7 +27,7 @@ public abstract class TRangeQuery<T extends SpatialObject, K extends SpatialObje
         this.setQueryConfiguration(conf);
     }
 
-    public abstract Object run(DataStream<T> ordinaryStream, Set<K> objSet);
+    public abstract DataStream<? extends SpatialObject> run(DataStream<T> ordinaryStream, Set<K> objSet);
 
     public static DataStream<Point> realTimeNaive(Set<Polygon> polygonSet, DataStream<Point> pointStream){
 

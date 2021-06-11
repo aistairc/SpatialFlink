@@ -1,15 +1,12 @@
 package GeoFlink.spatialOperators.tFilter;
 
-import GeoFlink.spatialIndices.SpatialIndex;
-import GeoFlink.spatialIndices.UniformGrid;
+import GeoFlink.spatialObjects.SpatialObject;
 import GeoFlink.spatialObjects.LineString;
 import GeoFlink.spatialObjects.Point;
 import GeoFlink.spatialOperators.QueryConfiguration;
 import GeoFlink.spatialOperators.QueryType;
-import GeoFlink.spatialOperators.tJoin.TJoinQuery;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.java.functions.KeySelector;
-import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrdernessTimestampExtractor;
 import org.apache.flink.streaming.api.functions.windowing.WindowFunction;
@@ -28,7 +25,7 @@ public class PointTFilterQuery extends TFilterQuery<Point> {
         super.initializeKNNQuery(conf);
     }
 
-    public Object run(DataStream<Point> pointStream, Set<String> trajIDSet) {
+    public DataStream<? extends SpatialObject> run(DataStream<Point> pointStream, Set<String> trajIDSet) {
 
         //--------------- Real-time - POINT -----------------//
         if (this.getQueryConfiguration().getQueryType() == QueryType.RealTime) {

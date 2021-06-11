@@ -22,5 +22,5 @@ public abstract class TFilterQuery<T extends SpatialObject> implements Serializa
         this.setQueryConfiguration(conf);
     }
 
-    public abstract Object run(DataStream<T> stream, Set<String> trajIDSet);
+    public abstract DataStream<? extends SpatialObject> run(DataStream<T> stream, Set<String> trajIDSet);
 }
