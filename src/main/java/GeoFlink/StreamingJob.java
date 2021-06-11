@@ -23,13 +23,15 @@ import GeoFlink.apps.CheckIn;
 import GeoFlink.spatialIndices.UniformGrid;
 import GeoFlink.spatialObjects.*;
 import GeoFlink.spatialOperators.*;
+import GeoFlink.spatialOperators.tStats.PointTStatsQuery;
 import GeoFlink.spatialOperators.join.*;
 import GeoFlink.spatialOperators.knn.*;
 import GeoFlink.spatialOperators.range.*;
+import GeoFlink.spatialOperators.tAggregate.PointTAggregateQuery;
+import GeoFlink.spatialOperators.tFilter.PointTFilterQuery;
 import GeoFlink.spatialOperators.tJoin.PointPointTJoinQuery;
 import GeoFlink.spatialOperators.tKnn.PointPointTKNNQuery;
 import GeoFlink.spatialOperators.tRange.PointPolygonTRangeQuery;
-import GeoFlink.spatialOperators.tRange.TRangeQuery;
 import GeoFlink.spatialStreams.*;
 import GeoFlink.utils.HelperClass;
 import GeoFlink.utils.Params;
@@ -1137,14 +1139,14 @@ public class StreamingJob implements Serializable {
 				 */
 			case 201:{ // TFilterQuery Real-time
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, "timestamp", "oID", uGrid);
-				DataStream<Point> outputStream = TFilterQuery.TIDSpatialFilterQuery(spatialTrajectoryStream, trajIDs);
+				DataStream<Point> outputStream = (DataStream<Point>)new PointTFilterQuery(realtimeConf).run(spatialTrajectoryStream, trajIDs);
 				//outputStream.print();
 				outputStream.addSink(new FlinkKafkaProducer<>(outputTopicName, new HelperClass.LatencySinkPoint(queryOption, outputTopicName), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
 			case 202:{ // TFilterQuery Windowed
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, "timestamp", "oID", uGrid);
-				TFilterQuery.TIDSpatialFilterQuery(spatialTrajectoryStream, trajIDs, windowSize, windowSlideStep);
+				new PointTFilterQuery(windowConf).run(spatialTrajectoryStream, trajIDs);
 				break;
 			}
 			case 203:{ // TRangeQuery Real-time
@@ -1162,28 +1164,28 @@ public class StreamingJob implements Serializable {
 				new PointPolygonTRangeQuery(windowConf).run(spatialTrajectoryStream, polygonSet);//.print();
 				break;
 			}
-			case 205:{ // TStatsQuery Real-time
+			case 205:{ // TStatsQuery_ Real-time
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, "timestamp", "oID", uGrid);
-				DataStream<Tuple5<String, Double, Long, Double, Long>> outputStream = TStatsQuery.TSpatialStatsQuery(spatialTrajectoryStream, trajIDs);
+				DataStream<Tuple5<String, Double, Long, Double, Long>> outputStream = (DataStream<Tuple5<String, Double, Long, Double, Long>>)new PointTStatsQuery(realtimeConf).run(spatialTrajectoryStream, trajIDs);
 				//outputStream.print();
 				outputStream.addSink(new FlinkKafkaProducer<>(outputTopicName, new HelperClass.LatencySinkTuple5(queryOption, outputTopicName), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
-			case 206:{ // TStatsQuery Windowed
+			case 206:{ // TStatsQuery_ Windowed
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, "timestamp", "oID", uGrid);
-				TStatsQuery.TSpatialStatsQuery(spatialTrajectoryStream, trajIDs, windowSize, windowSlideStep);
+				new PointTStatsQuery(windowConf).run(spatialTrajectoryStream, trajIDs);
 				break;
 			}
 			case 207:{ // TSpatialHeatmapAggregateQuery Real-time
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, "timestamp", "oID", uGrid);
-				DataStream<Tuple4<String, Integer, HashMap<String, Long>, Long>> outputStream = TAggregateQuery.TSpatialHeatmapAggregateQuery(spatialTrajectoryStream, aggregateFunction, inactiveTrajDeletionThreshold);
+				DataStream<Tuple4<String, Integer, HashMap<String, Long>, Long>> outputStream = (DataStream<Tuple4<String, Integer, HashMap<String, Long>, Long>>)new PointTAggregateQuery(realtimeConf).run(spatialTrajectoryStream, aggregateFunction, "", inactiveTrajDeletionThreshold);
 				//outputStream.print();
 				outputStream.addSink(new FlinkKafkaProducer<>(outputTopicName, new HelperClass.LatencySinkTuple4(queryOption, outputTopicName), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
 			case 208:{ // TAggregateQuery Windowed
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, "timestamp", "oID", uGrid);
-				TAggregateQuery.TSpatialHeatmapAggregateQuery(spatialTrajectoryStream, aggregateFunction, windowType, windowSize, windowSlideStep);
+				new PointTAggregateQuery(windowConf).run(spatialTrajectoryStream, aggregateFunction, windowType, Long.valueOf(0));
 				break;
 			}
 			case 209:{ // TSpatialJoinQuery Real-time
@@ -1530,8 +1532,8 @@ public class StreamingJob implements Serializable {
 				//TFilterQuery.TIDSpatialFilterQuery(ds, trajIDs, 1, 1).print();
 				//TRangeQuery.TSpatialRangeQuery(ds, polygonSet).print();
 				//TRangeQuery.TSpatialRangeQuery(ds, polygonSet, 1, 1).print();
-				//TStatsQuery.TSpatialStatsQuery(ds, trajIDs).print();
-				//TStatsQuery.TSpatialStatsQuery(ds, trajIDs, 5, 1).print();
+				//TStatsQuery_.TSpatialStatsQuery(ds, trajIDs).print();
+				//TStatsQuery_.TSpatialStatsQuery(ds, trajIDs, 5, 1).print();
 				//TAggregateQuery.TSpatialHeatmapAggregateQuery(ds, "MAX").print();
 				//TAggregateQuery.TSpatialHeatmapAggregateQuery(ds, "MAX", "TIME", 5, 5).print();
 				//TJoinQuery.TSpatialJoinQuery(ds,ds,1,1,uGrid).print();

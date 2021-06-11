@@ -170,7 +170,7 @@ public class PointPointTJoinQuery extends TJoinQuery<Point, Point> {
         return joinFilteredOutput;
     }
 
-    // Native
+    // WINDOW BASED
     private DataStream<Tuple2<Point, Point>> windowBased(DataStream<Point> ordinaryPointStream, DataStream<Point> queryPointStream, double joinDistance, int omegaJoinDurationSeconds, int allowedLateness) {
 
 

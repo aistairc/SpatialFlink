@@ -32,12 +32,12 @@ public class LineStringPointTJoinQuery extends TJoinQuery<LineString, Point> {
 
         UniformGrid uGrid = (UniformGrid) this.getSpatialIndex();
 
-        //--------------- Real-time - LINESTRING - POLYGON -----------------//
+        //--------------- Real-time - POINT - POINT -----------------//
         if (this.getQueryConfiguration().getQueryType() == QueryType.RealTime) {
             throw new IllegalArgumentException("Not yet support");
         }
 
-        //--------------- Window-based - LINESTRING - POLYGON -----------------//
+        //--------------- Window-based - POINT - POINT -----------------//
         else if (this.getQueryConfiguration().getQueryType() == QueryType.WindowBased) {
             int windowSize = this.getQueryConfiguration().getWindowSize();
             int slideStep  = this.getQueryConfiguration().getSlideStep();

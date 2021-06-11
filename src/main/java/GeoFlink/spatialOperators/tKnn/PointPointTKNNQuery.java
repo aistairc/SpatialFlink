@@ -36,13 +36,13 @@ public class PointPointTKNNQuery extends TKNNQuery<Point, Point> {
 
         UniformGrid uGrid = (UniformGrid) this.getSpatialIndex();
 
-        //--------------- Real-time - LINESTRING - POLYGON -----------------//
+        //--------------- Real-time - POINT - POINT -----------------//
         if (this.getQueryConfiguration().getQueryType() == QueryType.RealTime) {
             int omegaJoinDurationSeconds = this.getQueryConfiguration().getWindowSize();
             return realtime(pointStream, queryPoint, queryRadius, k, omegaJoinDurationSeconds, allowedLateness, uGrid);
         }
 
-        //--------------- Window-based - LINESTRING - POLYGON -----------------//
+        //--------------- Window-based - POINT - POINT -----------------//
         else if (this.getQueryConfiguration().getQueryType() == QueryType.WindowBased) {
             int windowSize = this.getQueryConfiguration().getWindowSize();
             int windowSlideStep = this.getQueryConfiguration().getSlideStep();
