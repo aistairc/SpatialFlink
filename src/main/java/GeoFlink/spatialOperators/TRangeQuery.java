@@ -4,7 +4,7 @@ import GeoFlink.spatialObjects.LineString;
 import GeoFlink.spatialObjects.Point;
 import GeoFlink.spatialObjects.Polygon;
 import GeoFlink.utils.HelperClass;
-import com.sun.xml.internal.bind.v2.TODO;
+//import com.sun.xml.internal.bind.v2.TODO;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.JoinFunction;
 import org.apache.flink.api.common.functions.RichFlatMapFunction;
@@ -45,7 +45,7 @@ public class TRangeQuery implements Serializable {
                 }
                 return false; // Polygon does not contain the point
             }
-        });
+        }).startNewChain();
 
         return keyedStream;
     }
@@ -78,9 +78,7 @@ public class TRangeQuery implements Serializable {
         }).filter(new FilterFunction<Point>() {
             @Override
             public boolean filter(Point p) throws Exception {
-
                 //TODO: Filter based on guaranteed and candidate neighbors
-
                 for (Polygon poly: polygonSet) {
                     if (poly.polygon.contains(p.point.getEnvelope())) // Polygon contains the point
                         return true;

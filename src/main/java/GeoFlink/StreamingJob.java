@@ -79,9 +79,6 @@ public class StreamingJob implements Serializable {
 		//--onCluster "false" --approximateQuery "false" --queryOption "137" --inputTopicName "NYCBuildingsLineStrings" --queryTopicName "NYCBuildingsPolygonsGeoJSON_Live" --outputTopicName "QueryLatency" --inputFormat "GeoJSON" --dateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --queryDateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --radius "0.05" --aggregate "SUM" --wType "TIME" --wInterval "1" --wStep "1" --uniformGridSize 100 --k "10" --trajDeletionThreshold 1000 --outOfOrderAllowedLateness "1" --omegaJoinDuration "1" --gridMinX "-74.25540" --gridMaxX "-73.70007" --gridMinY "40.49843" --gridMaxY "40.91506" --qGridMinX "-74.25540" --qGridMaxX "-73.70007" --qGridMinY "40.49843" --qGridMaxY "40.91506" --trajIDSet "9211800, 9320801, 9090500, 7282400, 10390100" --queryPoint "[-74.0000, 40.72714]" --queryPolygon "[-73.98452330316861, 40.67563064195701], [-73.98776303794413, 40.671603874732455], [-73.97826680869485, 40.666980275860936], [-73.97297380718484, 40.67347172572744], [-73.98452330316861, 40.67563064195701]" --queryLineString "[-73.98452330316861, 40.67563064195701], [-73.98776303794413, 40.671603874732455], [-73.97826680869485, 40.666980275860936], [-73.97297380718484, 40.67347172572744]"
 		//--onCluster "false" --kafkaBootStrapServers "150.82.97.204:9092" --approximateQuery "false" --queryOption "1012" --inputTopicName "TaxiDriveGeoJSON_Live" --queryTopicName "Beijing_Polygons_Live" --outputTopicName "QueryLatency" --inputFormat "GeoJSON" --dateFormat "yyyy-MM-dd HH:mm:ss" --queryDateFormat "yyyy-MM-dd HH:mm:ss" --ordinaryStreamAttributes "[oID, timestamp]" --queryStreamAttributes "[doitt_id, lstmoddate]" --radius "0.05" --aggregate "SUM" --wType "TIME" --wInterval "3" --wStep "3" --uniformGridSize 100 --cellLengthMeters 50 --k "10" --trajDeletionThreshold 1000 --outOfOrderAllowedLateness "1" --omegaJoinDuration "1" --gridMinX "115.50000" --gridMaxX "117.60000" --gridMinY "39.60000" --gridMaxY "40.91506" --qGridMinX "115.50000" --qGridMaxX "117.60000" --qGridMinY "39.60000" --qGridMaxY "41.10000" --trajIDSet "9211800, 9320801, 9090500, 7282400, 10390100" --queryPoint "[-74.0000, 40.72714]" --queryPolygon "[-73.98452330316861, 40.67563064195701], [-73.98776303794413, 40.671603874732455], [-73.97826680869485, 40.666980275860936], [-73.97297380718484, 40.67347172572744], [-73.98452330316861, 40.67563064195701]" --queryLineString "[-73.98452330316861, 40.67563064195701], [-73.98776303794413, 40.671603874732455], [-73.97826680869485, 40.666980275860936], [-73.97297380718484, 40.67347172572744]"
 
-
-		
-
 		ParameterTool parameters = ParameterTool.fromArgs(args);
 
 		Params params = new Params(parameters);
@@ -1126,13 +1123,107 @@ public class StreamingJob implements Serializable {
 				break;
 			}
 			case 203:{ // TRangeQuery Real-time
+				// Generating random polygons for testing
+				int gridSize = 100; // 25, 50, 100
+				int numPolygons = 100;
+				Set<Polygon> qPolygonSet = new HashSet<>();
+
+				double polyLength1 = (117.6 - 115.5)/gridSize;
+				double polyLength2 = (41.1 - 39.6)/gridSize;
+				double polyLength;
+				if(polyLength2 < polyLength1)
+					polyLength = polyLength2;
+				else
+					polyLength = polyLength1;
+
+				for (double i = 115.5; i < 117.6; i+= polyLength) {
+					if(qPolygonSet.size() >= numPolygons)
+						break;
+
+					for (double j = 39.6; j < 41.1; j+= polyLength) {
+
+						List<Coordinate> qPolygonCoordinates = new ArrayList<Coordinate>();
+
+						qPolygonCoordinates.add(new Coordinate(i, j));
+						qPolygonCoordinates.add(new Coordinate(i + polyLength, j));
+						qPolygonCoordinates.add(new Coordinate(i + polyLength, j + polyLength));
+						qPolygonCoordinates.add(new Coordinate(i, j + polyLength));
+						qPolygonCoordinates.add(new Coordinate(i, j));
+
+						List<List<Coordinate>> innerList = new ArrayList<List<Coordinate>>();
+						innerList.add(qPolygonCoordinates);
+						Polygon qPolygon = new Polygon(innerList, uGrid);
+						qPolygonSet.add(qPolygon);
+					}
+				}
+
+
+				/*
+				for (int i = 0; i < numPolygons; i++) {
+					List<Coordinate> qPolygonCoordinates = new ArrayList<Coordinate>();
+					for (int j = 0; j < 4; j++) {
+						double x = 115.5 + (Math.random() * (117.6 - 115.5));
+						double y = 39.6 + (Math.random() * (41.1 - 39.6));
+						qPolygonCoordinates.add(new Coordinate(x, y));
+					}
+					qPolygonCoordinates.add(qPolygonCoordinates.get(0));
+					List<List<Coordinate>> innerList = new ArrayList<List<Coordinate>>();
+					innerList.add(qPolygonCoordinates);
+					Polygon qPolygon = new Polygon(innerList, uGrid);
+					qPolygonSet.add(qPolygon);
+				}
+				 */
+				System.out.println(qPolygonSet);
+				System.out.println(qPolygonSet.size());
+
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, "timestamp", "oID", uGrid);
 				//spatialTrajectoryStream.print();
-				DataStream<Point> outputStream = TRangeQuery.TSpatialRangeQuery(spatialTrajectoryStream, polygonSet);
+				DataStream<Point> outputStream = TRangeQuery.TSpatialRangeQuery(spatialTrajectoryStream, qPolygonSet);
 				//Naive
 				//DataStream<Point> outputStream = TRangeQuery.TSpatialRangeQuery(polygonSet, spatialTrajectoryStream);
 				//outputStream.print();
 				//outputStream.addSink(new FlinkKafkaProducer<>(outputTopicName, new HelperClass.LatencySinkPoint(queryOption, outputTopicName), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				break;
+			}
+			case 2030:{ // TRangeQuery Real-time Naive
+
+				// Generating random polygons for testing
+				int gridSize = 100; // 25, 50, 100
+				int numPolygons = 100;
+				Set<Polygon> qPolygonSet = new HashSet<>();
+
+				double polyLength1 = (117.6 - 115.5)/gridSize;
+				double polyLength2 = (41.1 - 39.6)/gridSize;
+				double polyLength;
+				if(polyLength2 < polyLength1)
+					polyLength = polyLength2;
+				else
+					polyLength = polyLength1;
+
+				for (double i = 115.5; i < 117.6; i+= polyLength) {
+					if(qPolygonSet.size() >= numPolygons)
+						break;
+
+					for (double j = 39.6; j < 41.1; j+= polyLength) {
+
+						List<Coordinate> qPolygonCoordinates = new ArrayList<Coordinate>();
+
+						qPolygonCoordinates.add(new Coordinate(i, j));
+						qPolygonCoordinates.add(new Coordinate(i + polyLength, j));
+						qPolygonCoordinates.add(new Coordinate(i + polyLength, j + polyLength));
+						qPolygonCoordinates.add(new Coordinate(i, j + polyLength));
+						qPolygonCoordinates.add(new Coordinate(i, j));
+
+						List<List<Coordinate>> innerList = new ArrayList<List<Coordinate>>();
+						innerList.add(qPolygonCoordinates);
+						Polygon qPolygon = new Polygon(innerList, uGrid);
+						qPolygonSet.add(qPolygon);
+					}
+				}
+
+				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, "timestamp", "oID", uGrid);
+				//Naive
+				DataStream<Point> outputStream = TRangeQuery.TSpatialRangeQuery(qPolygonSet, spatialTrajectoryStream);
 				break;
 			}
 			case 204:{ // TRangeQuery Windowed
