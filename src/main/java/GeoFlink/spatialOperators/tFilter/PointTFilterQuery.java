@@ -1,31 +1,56 @@
-package GeoFlink.spatialOperators;
+//package GeoFlink.spatialOperators;
+
+package GeoFlink.spatialOperators.tFilter;
+
+import GeoFlink.spatialObjects.SpatialObject;
 import GeoFlink.spatialObjects.LineString;
 import GeoFlink.spatialObjects.Point;
+import GeoFlink.spatialOperators.QueryConfiguration;
+import GeoFlink.spatialOperators.QueryType;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.java.functions.KeySelector;
-import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrdernessTimestampExtractor;
 import org.apache.flink.streaming.api.functions.windowing.WindowFunction;
-import org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.assigners.SlidingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 import org.locationtech.jts.geom.Coordinate;
 
-import java.io.Serializable;
-import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-public class TFilterQuery implements Serializable {
+public class PointTFilterQuery extends TFilterQuery<Point> {
+    public PointTFilterQuery(QueryConfiguration conf) {
+        super.initializeKNNQuery(conf);
+    }
 
-    //--------------- TrajIDFilter QUERY - Real Time -----------------//
-    public static DataStream<Point> TIDSpatialFilterQuery(DataStream<Point> pointStream, Set<String> trajIDSet){
+    public DataStream<? extends SpatialObject> run(DataStream<Point> pointStream, Set<String> trajIDSet) {
+
+        //--------------- Real-time - POINT -----------------//
+        if (this.getQueryConfiguration().getQueryType() == QueryType.RealTime) {
+            return realTime(pointStream, trajIDSet);
+        }
+
+        //--------------- Window-based - POINT -----------------//
+        else if (this.getQueryConfiguration().getQueryType() == QueryType.WindowBased) {
+            int windowSize = this.getQueryConfiguration().getWindowSize();
+            int windowSlideStep = this.getQueryConfiguration().getSlideStep();
+            return windowBased(pointStream, trajIDSet, windowSize, windowSlideStep);
+        }
+
+        else {
+            throw new IllegalArgumentException("Not yet support");
+        }
+    }
+
+    // REAL-TIME
+    private DataStream<Point> realTime(DataStream<Point> pointStream, Set<String> trajIDSet){
 
         // Spatial stream with Timestamps and Watermarks
+        // Max Allowed Lateness: windowSize
         DataStream<Point> pointStreamWithTsAndWm =
                 pointStream.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Point>(Time.seconds(0)) {
                     @Override
@@ -37,6 +62,9 @@ public class TFilterQuery implements Serializable {
         return pointStreamWithTsAndWm.filter(new FilterFunction<Point>() {
             @Override
             public boolean filter(Point point) throws Exception {
+
+                //Date date = new Date();
+                //System.out.println(date.getTime() - point.ingestionTime);
                 if (trajIDSet.size() > 0)
                     return ((trajIDSet.contains(point.objID)));
                 else
@@ -45,8 +73,8 @@ public class TFilterQuery implements Serializable {
         }).name("TrajIDFilterQuery");
     }
 
-    //--------------- TrajIDFilter QUERY - Window-based -----------------//
-    public static DataStream<LineString> TIDSpatialFilterQuery(DataStream<Point> pointStream, Set<String> trajIDSet, int windowSize, int windowSlideStep){
+    // WINDOW BASED
+    private DataStream<LineString> windowBased(DataStream<Point> pointStream, Set<String> trajIDSet, int windowSize, int windowSlideStep){
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: windowSize
