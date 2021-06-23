@@ -24,6 +24,7 @@ import GeoFlink.spatialIndices.UniformGrid;
 import GeoFlink.spatialObjects.*;
 import GeoFlink.spatialOperators.*;
 import GeoFlink.spatialOperators.tJoin.TJoinQuery;
+import GeoFlink.spatialOperators.tKnn.TKNNQuery;
 import GeoFlink.spatialOperators.tRange.TRangeQuery;
 import GeoFlink.spatialOperators.tStats.PointTStatsQuery;
 import GeoFlink.spatialOperators.join.*;
@@ -1147,108 +1148,20 @@ public class StreamingJob implements Serializable {
 				break;
 			}
 			case 203:{ // TRangeQuery Real-time
-				// Generating random polygons for testing
-				int gridSize = 100; // 25, 50, 100
-				int numPolygons = 100;
-				Set<Polygon> qPolygonSet = new HashSet<>();
-
-				double polyLength1 = (117.6 - 115.5)/gridSize;
-				double polyLength2 = (41.1 - 39.6)/gridSize;
-				double polyLength;
-				if(polyLength2 < polyLength1)
-					polyLength = polyLength2;
-				else
-					polyLength = polyLength1;
-
-				for (double i = 115.5; i < 117.6; i+= polyLength) {
-					if(qPolygonSet.size() >= numPolygons)
-						break;
-
-					for (double j = 39.6; j < 41.1; j+= polyLength) {
-
-						List<Coordinate> qPolygonCoordinates = new ArrayList<Coordinate>();
-
-						qPolygonCoordinates.add(new Coordinate(i, j));
-						qPolygonCoordinates.add(new Coordinate(i + polyLength, j));
-						qPolygonCoordinates.add(new Coordinate(i + polyLength, j + polyLength));
-						qPolygonCoordinates.add(new Coordinate(i, j + polyLength));
-						qPolygonCoordinates.add(new Coordinate(i, j));
-
-						List<List<Coordinate>> innerList = new ArrayList<List<Coordinate>>();
-						innerList.add(qPolygonCoordinates);
-						Polygon qPolygon = new Polygon(innerList, uGrid);
-						qPolygonSet.add(qPolygon);
-					}
-				}
-
-
-				/*
-				for (int i = 0; i < numPolygons; i++) {
-					List<Coordinate> qPolygonCoordinates = new ArrayList<Coordinate>();
-					for (int j = 0; j < 4; j++) {
-						double x = 115.5 + (Math.random() * (117.6 - 115.5));
-						double y = 39.6 + (Math.random() * (41.1 - 39.6));
-						qPolygonCoordinates.add(new Coordinate(x, y));
-					}
-					qPolygonCoordinates.add(qPolygonCoordinates.get(0));
-					List<List<Coordinate>> innerList = new ArrayList<List<Coordinate>>();
-					innerList.add(qPolygonCoordinates);
-					Polygon qPolygon = new Polygon(innerList, uGrid);
-					qPolygonSet.add(qPolygon);
-				}
-				 */
-				System.out.println(qPolygonSet);
-				System.out.println(qPolygonSet.size());
-
+				//System.out.println(qPolygonSet);
+				//System.out.println(qPolygonSet.size());
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, "timestamp", "oID", uGrid);
-
+				polygonSet = HelperClass.generateQueryPolygons(k, uGrid);
 				DataStream<Point> outputStream = (DataStream<Point>)new PointPolygonTRangeQuery(realtimeConf).run(spatialTrajectoryStream, polygonSet);
-				//Naive
-				//DataStream<Point> outputStream = TRangeQuery.realTimeNaive(polygonSet, spatialTrajectoryStream);
-
 				//outputStream.print();
 				//outputStream.addSink(new FlinkKafkaProducer<>(outputTopicName, new HelperClass.LatencySinkPoint(queryOption, outputTopicName), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
 			case 2030:{ // TRangeQuery Real-time Naive
-
-				// Generating random polygons for testing
-				int gridSize = 100; // 25, 50, 100
-				int numPolygons = 100;
-				Set<Polygon> qPolygonSet = new HashSet<>();
-
-				double polyLength1 = (117.6 - 115.5)/gridSize;
-				double polyLength2 = (41.1 - 39.6)/gridSize;
-				double polyLength;
-				if(polyLength2 < polyLength1)
-					polyLength = polyLength2;
-				else
-					polyLength = polyLength1;
-
-				for (double i = 115.5; i < 117.6; i+= polyLength) {
-					if(qPolygonSet.size() >= numPolygons)
-						break;
-
-					for (double j = 39.6; j < 41.1; j+= polyLength) {
-
-						List<Coordinate> qPolygonCoordinates = new ArrayList<Coordinate>();
-
-						qPolygonCoordinates.add(new Coordinate(i, j));
-						qPolygonCoordinates.add(new Coordinate(i + polyLength, j));
-						qPolygonCoordinates.add(new Coordinate(i + polyLength, j + polyLength));
-						qPolygonCoordinates.add(new Coordinate(i, j + polyLength));
-						qPolygonCoordinates.add(new Coordinate(i, j));
-
-						List<List<Coordinate>> innerList = new ArrayList<List<Coordinate>>();
-						innerList.add(qPolygonCoordinates);
-						Polygon qPolygon = new Polygon(innerList, uGrid);
-						qPolygonSet.add(qPolygon);
-					}
-				}
-
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, "timestamp", "oID", uGrid);
+				polygonSet = HelperClass.generateQueryPolygons(k, uGrid);
 				//Naive
-				//DataStream<Point> outputStream = TRangeQuery.TSpatialRangeQuery(qPolygonSet, spatialTrajectoryStream);
+				DataStream<Point> outputStream = TRangeQuery.realTimeNaive(polygonSet, spatialTrajectoryStream);
 				break;
 			}
 			case 204:{ // TRangeQuery Windowed
@@ -1285,7 +1198,7 @@ public class StreamingJob implements Serializable {
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, "timestamp", "oID", uGrid);
 				DataStream queryStream  = env.addSource(new FlinkKafkaConsumer<>(queryTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromLatest());
 				DataStream<Point> spatialQueryStream = Deserialization.TrajectoryStream(queryStream, inputFormat, inputDateFormat, "timestamp", "oID", uGrid);
-				new PointPointTJoinQuery(realtimeConf, uGrid).run(spatialTrajectoryStream, spatialQueryStream, radius);
+				DataStream<Tuple2<Point, Point>> outputStream =(DataStream<Tuple2<Point, Point>>)new PointPointTJoinQuery(realtimeConf, uGrid).run(spatialTrajectoryStream, spatialQueryStream, radius);
 				//new PointPointTJoinQuery(windowConf, uGrid).run(spatialTrajectoryStream, spatialQueryStream, radius).print();
 
 				// Self Stream Join
@@ -1296,6 +1209,16 @@ public class StreamingJob implements Serializable {
 
 				break;
 			}
+			case 2090:{ // TSpatialJoinQuery Real-time Naive
+				// Generating query stream
+				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, "timestamp", "oID", uGrid);
+				DataStream queryStream  = env.addSource(new FlinkKafkaConsumer<>(queryTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromLatest());
+				DataStream<Point> spatialQueryStream = Deserialization.TrajectoryStream(queryStream, inputFormat, inputDateFormat, "timestamp", "oID", uGrid);
+				// Naive
+				DataStream<Tuple2<Point, Point>> outputStream = TJoinQuery.realTimeJoinNaive(spatialTrajectoryStream, spatialQueryStream, radius, windowSize, allowedLateness);
+				break;
+			}
+
 			case 210:{ // TSpatialJoinQuery Windowed
 				// Generating query stream
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, "timestamp", "oID", uGrid);
@@ -1315,9 +1238,15 @@ public class StreamingJob implements Serializable {
 				//System.out.println("qPoint " + qPoint);
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, "timestamp", "oID", uGrid);
 				//Real-time kNN
-				new PointPointTKNNQuery(realtimeConf, uGrid).run(spatialTrajectoryStream, qPoint, radius, k); //.print();
+				DataStream<Tuple2<Point, Double>> outputStream = (DataStream<Tuple2<Point, Double>>)new PointPointTKNNQuery(realtimeConf, uGrid).run(spatialTrajectoryStream, qPoint, radius, k); //.print();
 				// Naive
 				//new PointPointTKNNQuery(windowConf, uGrid).runNative(spatialTrajectoryStream, qPoint, radius, k);
+				break;
+			}
+			case 2011:{ // TSpatialKNNQuery Real-time Naive
+				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, "timestamp", "oID", uGrid);
+				// Naive
+				DataStream<Tuple2<Point, Double>> outputStream = (DataStream<Tuple2<Point, Double>>)new PointPointTKNNQuery(realtimeConf, uGrid).runNaive(spatialTrajectoryStream, qPoint, radius, k); //.print();
 
 				break;
 			}
@@ -1719,5 +1648,8 @@ public class StreamingJob implements Serializable {
 		// Execute program
 		env.execute("Geo Flink");
 	}
+
+
+
 
 }

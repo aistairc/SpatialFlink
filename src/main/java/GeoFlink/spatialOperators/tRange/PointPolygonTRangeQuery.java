@@ -76,6 +76,8 @@ public class PointPolygonTRangeQuery extends TRangeQuery<Point, Polygon> {
             @Override
             public boolean filter(Point p) throws Exception {
                 for (Polygon poly : polygonSet) {
+                    //counter += 1;
+                    //System.out.println("counter " +  counter);
                     if (poly.polygon.contains(p.point.getEnvelope())) // Polygon contains the point
                         return true;
                 }
@@ -112,7 +114,7 @@ public class PointPolygonTRangeQuery extends TRangeQuery<Point, Polygon> {
             }
         });
 
-        // Generating window-based unique trajIDs
+        // Identifying trajectories' point which fulfill range query criteria
         DataStream<String> trajIDStream = filteredStream.keyBy(new KeySelector<Point, String>() {
             @Override
             public String getKey(Point p) throws Exception {
@@ -122,7 +124,15 @@ public class PointPolygonTRangeQuery extends TRangeQuery<Point, Polygon> {
             List<Coordinate> coordinateList = new LinkedList<>();
             @Override
             public void apply(String objID, TimeWindow timeWindow, Iterable<Point> pointIterator, Collector<String> output) throws Exception {
-                output.collect(objID);
+                // all the points in the pointIterator belong to one trajectory, so even if a single point fulfills range query criteria, the whole trajectory does
+                for (Point p:pointIterator) {
+                    for (Polygon poly : polygonSet) {
+                        if (poly.polygon.contains(p.point.getEnvelope())) { // Polygon contains the point
+                            output.collect(objID);
+                            return;
+                        }
+                    }
+                }
             }
         });
 

@@ -384,6 +384,60 @@ public class HelperClass {
         return distance;
     }
 
+    public static Set<Polygon> generateQueryPolygons(int numQueryPolygons, UniformGrid uGrid){
+
+        // Generating random polygons for testing
+        int gridSize = 100; // 25, 50, 100
+        int numQPolygons = numQueryPolygons;
+        Set<Polygon> qPolygonSet = new HashSet<>();
+
+        double polyLength1 = (117.6 - 115.5)/gridSize;
+        double polyLength2 = (41.1 - 39.6)/gridSize;
+        double polyLength;
+        if(polyLength2 < polyLength1)
+            polyLength = polyLength2;
+        else
+            polyLength = polyLength1;
+
+        for (double i = 115.5; i < 117.6; i+= polyLength) {
+            if(qPolygonSet.size() >= numQPolygons)
+                break;
+
+            for (double j = 39.6; j < 41.1; j+= polyLength) {
+
+                List<Coordinate> qPolygonCoordinates = new ArrayList<Coordinate>();
+
+                qPolygonCoordinates.add(new Coordinate(i, j));
+                qPolygonCoordinates.add(new Coordinate(i + polyLength, j));
+                qPolygonCoordinates.add(new Coordinate(i + polyLength, j + polyLength));
+                qPolygonCoordinates.add(new Coordinate(i, j + polyLength));
+                qPolygonCoordinates.add(new Coordinate(i, j));
+
+                List<List<Coordinate>> innerList = new ArrayList<List<Coordinate>>();
+                innerList.add(qPolygonCoordinates);
+                Polygon qPolygon = new Polygon(innerList, uGrid);
+                qPolygonSet.add(qPolygon);
+            }
+        }
+        /*
+        for (int i = 0; i < numPolygons; i++) {
+            List<Coordinate> qPolygonCoordinates = new ArrayList<Coordinate>();
+            for (int j = 0; j < 4; j++) {
+                double x = 115.5 + (Math.random() * (117.6 - 115.5));
+                double y = 39.6 + (Math.random() * (41.1 - 39.6));
+                qPolygonCoordinates.add(new Coordinate(x, y));
+            }
+            qPolygonCoordinates.add(qPolygonCoordinates.get(0));
+            List<List<Coordinate>> innerList = new ArrayList<List<Coordinate>>();
+            innerList.add(qPolygonCoordinates);
+            Polygon qPolygon = new Polygon(innerList, uGrid);
+            qPolygonSet.add(qPolygon);
+        }
+         */
+
+        return qPolygonSet;
+    }
+
     public static class checkExitControlTuple implements FilterFunction<ObjectNode> {
         @Override
         public boolean filter(ObjectNode json) throws Exception {

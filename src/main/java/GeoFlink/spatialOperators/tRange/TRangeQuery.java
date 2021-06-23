@@ -14,10 +14,10 @@ import java.util.Set;
 
 public abstract class TRangeQuery<T extends SpatialObject, K extends SpatialObject> implements Serializable {
     private QueryConfiguration queryConfiguration;
-
     public QueryConfiguration getQueryConfiguration() {
         return queryConfiguration;
     }
+    //static long counter = 0;
 
     public void setQueryConfiguration(QueryConfiguration queryConfiguration) {
         this.queryConfiguration = queryConfiguration;
@@ -46,9 +46,13 @@ public abstract class TRangeQuery<T extends SpatialObject, K extends SpatialObje
         }).filter(new FilterFunction<Point>() {
             @Override
             public boolean filter(Point p) throws Exception {
+
                 for (Polygon poly: polygonSet) {
-                    if (poly.polygon.contains(p.point.getEnvelope())) // Polygon contains the point
+                    //counter += 1;
+                    //System.out.println("counter " +  counter);
+                    if (poly.polygon.contains(p.point.getEnvelope())) { // Polygon contains the point
                         return true;
+                    }
                 }
                 return false; // Polygon does not contain the point
             }

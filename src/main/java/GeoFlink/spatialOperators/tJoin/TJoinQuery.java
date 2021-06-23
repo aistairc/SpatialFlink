@@ -28,6 +28,7 @@ import java.util.*;
 public abstract class TJoinQuery<T extends SpatialObject, K extends SpatialObject> implements Serializable {
     private QueryConfiguration queryConfiguration;
     private SpatialIndex spatialIndex;
+    static long dCounter = 0;
 
     public QueryConfiguration getQueryConfiguration() {
         return queryConfiguration;
@@ -52,7 +53,7 @@ public abstract class TJoinQuery<T extends SpatialObject, K extends SpatialObjec
 
     public abstract DataStream<?> run(DataStream<K> ordinaryStream, DataStream<K> queryStream, double joinDistance);
 
-    public static DataStream<Tuple2<Point, Point>> TSpatialJoinQuery(DataStream<Point> ordinaryPointStream, DataStream<Point> queryPointStream, double joinDistance, int omegaJoinDurationSeconds, int allowedLateness) {
+    public static DataStream<Tuple2<Point, Point>> realTimeJoinNaive(DataStream<Point> ordinaryPointStream, DataStream<Point> queryPointStream, double joinDistance, int omegaJoinDurationSeconds, int allowedLateness) {
 
 
         // Spatial stream with Timestamps and Watermarks
@@ -89,6 +90,7 @@ public abstract class TJoinQuery<T extends SpatialObject, K extends SpatialObjec
                 .apply(new JoinFunction<Point, Point, Tuple2<Point,Point>>() {
                     @Override
                     public Tuple2<Point, Point> join(Point p, Point q) {
+
                         //System.out.println(HelperClass.getPointPointEuclideanDistance(p.point.getX(), p.point.getY(), q.point.getX(), q.point.getY()));
                         if (DistanceFunctions.getPointPointEuclideanDistance(p.point.getX(), p.point.getY(), q.point.getX(), q.point.getY()) <= joinDistance) {
                             return Tuple2.of(p, q);

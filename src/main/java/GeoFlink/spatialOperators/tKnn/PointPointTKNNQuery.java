@@ -54,19 +54,20 @@ public class PointPointTKNNQuery extends TKNNQuery<Point, Point> {
         }
     }
 
-    public DataStream<Tuple3<String, LineString, Double>> runNative(DataStream<Point> pointStream, Point queryPoint, double queryRadius, Integer k) {
+    public DataStream<?> runNaive(DataStream<Point> pointStream, Point queryPoint, double queryRadius, Integer k) {
         int allowedLateness = this.getQueryConfiguration().getAllowedLateness();
 
-        //--------------- Real-time - POINT - POINT - POLYGON -----------------//
+        //--------------- Real-time - POINT - POINT -----------------//
         if (this.getQueryConfiguration().getQueryType() == QueryType.RealTime) {
-            throw new IllegalArgumentException("Not yet support");
+            int omegaJoinDurationSeconds = this.getQueryConfiguration().getWindowSize();
+            return realTimeNaive(pointStream, queryPoint, queryRadius, k, omegaJoinDurationSeconds, allowedLateness);
         }
 
-        //--------------- Window-based - POINT - POLYGON -----------------//
-        else if(this.getQueryConfiguration().getQueryType() == QueryType.WindowBased) {
+        //--------------- Window-based - POINT - POINT -----------------//
+        else if (this.getQueryConfiguration().getQueryType() == QueryType.WindowBased) {
             int windowSize = this.getQueryConfiguration().getWindowSize();
             int windowSlideStep = this.getQueryConfiguration().getSlideStep();
-            return windowBasedNative(pointStream, queryPoint, queryRadius, k, windowSize, windowSlideStep, allowedLateness);
+            return windowBasedNaive(pointStream, queryPoint, k, windowSize, windowSlideStep, allowedLateness);
         }
 
         else {
@@ -75,7 +76,7 @@ public class PointPointTKNNQuery extends TKNNQuery<Point, Point> {
     }
 
     // REAL-TIME
-    private DataStream<Tuple2<Point, Double>> realtime(DataStream<Point> pointStream, Point queryPoint, double queryRadius, Integer k, int omegaJoinDurationSeconds, int allowedLateness, UniformGrid uGrid) {
+    private DataStream<Tuple2<Point, Double>> realtime(DataStream<Point> pointStream, Point queryPoint, double queryRadius, Integer k, int omegaDuration, int allowedLateness, UniformGrid uGrid) {
 
         Set<String> neighboringCells = uGrid.getNeighboringCells(queryRadius, queryPoint);
 
@@ -97,21 +98,17 @@ public class PointPointTKNNQuery extends TKNNQuery<Point, Point> {
         });
 
         //filteredPoints.print();
-
         // Output at-most k objIDs and their distances from point p
         DataStream<Tuple2<Point, Double>> kNNStream = filteredPoints.keyBy(new KeySelector<Point, String>() {
             @Override
             public String getKey(Point p) throws Exception {
                 return p.gridID;
             }
-        }).window(TumblingProcessingTimeWindows.of(Time.seconds(omegaJoinDurationSeconds)))
+        }).window(TumblingProcessingTimeWindows.of(Time.seconds(omegaDuration)))
                 .apply(new TKNNQuery.kNNEvaluationRealtime(queryPoint, k));
 
-
-        //kNNStream.print();
-
         // Logic to integrate all the kNNs to produce an integrated kNN
-        return kNNStream.windowAll(TumblingProcessingTimeWindows.of(Time.seconds(omegaJoinDurationSeconds)))
+        return kNNStream.windowAll(TumblingProcessingTimeWindows.of(Time.seconds(omegaDuration)))
                 .apply(new AllWindowFunction<Tuple2<Point, Double>, Tuple2<Point, Double>, TimeWindow>() {
 
                     //Map of objID and Point
@@ -130,6 +127,8 @@ public class PointPointTKNNQuery extends TKNNQuery<Point, Point> {
 
                         // Collect all the points in two maps
                         for (Tuple2<Point, Double> e : input) {
+
+
 
                             Double existingDistance = pointDistFromQueryPoint.get(e.f0.objID);
                             // Check if a point already exist, if not insert it, else replace previous point if the current point distance is less than previous point with the same ID
@@ -364,9 +363,96 @@ public class PointPointTKNNQuery extends TKNNQuery<Point, Point> {
          */
     }
 
-    // WINDOW BASED Native
-    private DataStream<Tuple3<String, LineString, Double>> windowBasedNative(DataStream<Point> pointStream, Point queryPoint, double queryRadius, Integer k, int windowSize, int windowSlideStep, int allowedLateness) {
+    // REAL-TIME Naive
+    private DataStream<Tuple2<Point, Double>> realTimeNaive(DataStream<Point> pointStream, Point queryPoint, double queryRadius, Integer k, int omegaDuration, int allowedLateness) {
 
+        // Spatial stream with Timestamps and Watermarks
+        // Max Allowed Lateness: windowSize
+        DataStream<Point> pointStreamWithTsAndWm =
+                pointStream.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Point>(Time.seconds(allowedLateness)) {
+                    @Override
+                    public long extractTimestamp(Point p) {
+                        return p.timeStampMillisec;
+                    }
+                });
+
+        DataStream<Point> filteredPoints = pointStreamWithTsAndWm.filter(new FilterFunction<Point>() {
+            @Override
+            public boolean filter(Point point) throws Exception {
+
+                //dCounter += 1;
+                //System.out.println("counter " +  dCounter);
+
+                if(DistanceFunctions.getPointPointEuclideanDistance(point.point.getX(), point.point.getY(), queryPoint.point.getX(), queryPoint.point.getY()) <= queryRadius)
+                    return true;
+                else
+                    return false;
+            }
+        }).startNewChain();
+
+
+        DataStream<Tuple2<Point, Double>> kNNStream = filteredPoints.keyBy(new KeySelector<Point, String>() {
+            @Override
+            public String getKey(Point p) throws Exception {
+                return p.objID;
+            }
+        }).window(TumblingProcessingTimeWindows.of(Time.seconds(omegaDuration)))
+                .apply(new TKNNQuery.kNNEvaluationRealtime(queryPoint, k));
+
+        // Logic to integrate all the kNNs to produce an integrated kNN
+        return kNNStream.windowAll(TumblingProcessingTimeWindows.of(Time.seconds(omegaDuration)))
+                .apply(new AllWindowFunction<Tuple2<Point, Double>, Tuple2<Point, Double>, TimeWindow>() {
+
+                    //Map of objID and Point
+                    Map<String, Point> pointsIDMap = new HashMap<>();
+                    //Map of objID and distFromQueryPoint
+                    Map<String, Double> pointDistFromQueryPoint = new HashMap<>();
+                    //Map for sorting distFromQueryPoint
+                    HashMap<String, Double> sortedPointDistFromQueryPoint = new LinkedHashMap<>();
+
+                    @Override
+                    public void apply(TimeWindow window, Iterable<Tuple2<Point, Double>> input, Collector<Tuple2<Point, Double>> output) throws Exception {
+
+                        pointsIDMap.clear();
+                        pointDistFromQueryPoint.clear();
+                        sortedPointDistFromQueryPoint.clear();
+
+                        // Collect all the points in two maps
+                        for (Tuple2<Point, Double> e : input) {
+
+                            Double existingDistance = pointDistFromQueryPoint.get(e.f0.objID);
+                            // Check if a point already exist, if not insert it, else replace previous point if the current point distance is less than previous point with the same ID
+                            if (existingDistance == null) { // if object with the given ObjID does not already exist
+                                pointDistFromQueryPoint.put(e.f0.objID, e.f1);
+                                pointsIDMap.put(e.f0.objID, e.f0);
+                            } else { // object already exist
+                                if (e.f1 < existingDistance) {
+                                    pointDistFromQueryPoint.replace(e.f0.objID, e.f1);
+                                    pointsIDMap.replace(e.f0.objID, e.f0);
+                                }
+                            }
+                        }
+
+                        // Sorting the pointDistFromQueryPoint map by value
+                        List<Map.Entry<String, Double>> list = new LinkedList<>(pointDistFromQueryPoint.entrySet());
+                        Collections.sort(list, Comparator.comparing(o -> o.getValue()));
+                        for (Map.Entry<String, Double> map : list) {
+                            sortedPointDistFromQueryPoint.put(map.getKey(), map.getValue());
+                        }
+
+                        // Logic to return the kNN (trajectory ID, distance) pairs
+                        int counter = 0;
+                        for (Map.Entry<String, Double> entry: sortedPointDistFromQueryPoint.entrySet()) {
+                            if (counter == k) break; // to guarantee that only k outputs are generated
+                            output.collect(Tuple2.of(pointsIDMap.get(entry.getKey()), entry.getValue()));
+                            counter++;
+                        }
+                    }
+                });
+    }
+
+    // WINDOW BASED Naive
+    private DataStream<Tuple3<String, LineString, Double>> windowBasedNaive(DataStream<Point> pointStream, Point queryPoint, Integer k, int winSize, int winSlide, int allowedLateness) {
 
         // Spatial stream with Timestamps and Watermarks
         // Max Allowed Lateness: windowSize
@@ -384,9 +470,8 @@ public class PointPointTKNNQuery extends TKNNQuery<Point, Point> {
             public String getKey(Point p) throws Exception {
                 return p.gridID;
             }
-        }).window(SlidingEventTimeWindows.of(Time.seconds(windowSize), Time.seconds(windowSlideStep)))
+        }).window(SlidingEventTimeWindows.of(Time.seconds(winSize), Time.seconds(winSlide)))
                 .apply(new WindowFunction<Point, Tuple2<String, Double>, String, TimeWindow>() {
-
 
                     Map<String, Double> objMap = new HashMap<String, Double>();
                     HashMap<String, Double> sortedObjMap = new LinkedHashMap<>();
@@ -442,7 +527,7 @@ public class PointPointTKNNQuery extends TKNNQuery<Point, Point> {
                     public String getKey(Point p) throws Exception {
                         return p.objID;
                     }
-                }).window(SlidingEventTimeWindows.of(Time.seconds(windowSize), Time.seconds(windowSlideStep)))
+                }).window(SlidingEventTimeWindows.of(Time.seconds(winSize), Time.seconds(winSlide)))
                 .apply(new JoinFunction<Tuple2<String, Double>, Point, Tuple3<String, Point, Double>>() {
                     @Override
                     public Tuple3<String, Point, Double> join(Tuple2<String, Double> first, Point second) throws Exception {
@@ -457,7 +542,7 @@ public class PointPointTKNNQuery extends TKNNQuery<Point, Point> {
 
 
         // Logic to integrate all the kNNs to produce an integrated kNN
-        return windowedJoindKNN.windowAll(SlidingEventTimeWindows.of(Time.seconds(windowSize), Time.seconds(windowSlideStep)))
+        return windowedJoindKNN.windowAll(SlidingEventTimeWindows.of(Time.seconds(winSize), Time.seconds(winSlide)))
                 .apply(new AllWindowFunction<Tuple3<String, Point, Double>, Tuple3<String, LineString, Double>, TimeWindow>() {
 
                     //Map of objID and LineString
@@ -468,8 +553,6 @@ public class PointPointTKNNQuery extends TKNNQuery<Point, Point> {
                     public void apply(TimeWindow window, Iterable<Tuple3<String, Point, Double>> input, Collector<Tuple3<String, LineString, Double>> output) throws Exception {
 
                         //org.locationtech.jts.geom.LineString lineString = geofact.createLineString(coordinates.toArray(new Coordinate[0]));
-
-
                         trajectories.clear();
                         objDistFromQueryPoint.clear();
 

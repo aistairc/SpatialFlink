@@ -2,15 +2,27 @@ package GeoFlink.spatialOperators.tKnn;
 
 import GeoFlink.spatialIndices.SpatialIndex;
 
+import GeoFlink.spatialIndices.UniformGrid;
+import GeoFlink.spatialObjects.LineString;
 import GeoFlink.spatialObjects.Point;
 import GeoFlink.spatialObjects.SpatialObject;
 import GeoFlink.spatialOperators.QueryConfiguration;
 import GeoFlink.utils.DistanceFunctions;
+import org.apache.flink.api.common.functions.FilterFunction;
+import org.apache.flink.api.common.functions.JoinFunction;
+import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrdernessTimestampExtractor;
+import org.apache.flink.streaming.api.functions.windowing.AllWindowFunction;
 import org.apache.flink.streaming.api.functions.windowing.WindowFunction;
+import org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindows;
+import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows;
+import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
+import org.locationtech.jts.geom.Coordinate;
 
 import java.io.Serializable;
 import java.util.*;
@@ -18,6 +30,7 @@ import java.util.*;
 public abstract class TKNNQuery<T extends SpatialObject, K extends SpatialObject> implements Serializable {
     private QueryConfiguration queryConfiguration;
     private SpatialIndex spatialIndex;
+    //static long dCounter = 0;
 
     public QueryConfiguration getQueryConfiguration() {
         return queryConfiguration;
@@ -122,6 +135,10 @@ public abstract class TKNNQuery<T extends SpatialObject, K extends SpatialObject
 
             // compute the distance of all trajectory points w.r.t. query point and return the kNN (trajectory ID, distance) pairs
             for (Point p : inputTuples) {
+
+                //dCounter += 1;
+                //System.out.println("counter " +  dCounter);
+
                 Double newDistance = DistanceFunctions.getPointPointEuclideanDistance(p.point.getX(), p.point.getY(), queryPoint.point.getX(), queryPoint.point.getY());
                 Double existingDistance = objIDDistMap.get(p.objID);
 
