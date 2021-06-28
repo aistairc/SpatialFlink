@@ -93,50 +93,79 @@ public class StreamingJob implements Serializable {
 
 		ParameterTool parameters = ParameterTool.fromArgs(args);
 
-		Params params = new Params(parameters);
+		Params params = new Params();
+		System.out.println(params.toString());
+		/* Cluster */
+		boolean onCluster = params.clusterMode;
+		String bootStrapServers = params.kafkaBootStrapServers;
+
+		/* Stream1 */
+		String inputTopicName = params.inputTopicName1;
+		String inputFormat = params.inputFormat1;
+		String dateFormatStr = params.dateFormatStr1;
+		List<String> geoJSONSchemaAttr1 = params.geoJSONSchemaAttr1;
+		List<String> ordinaryStreamAttributeNames = params.geoJSONSchemaAttr1;// default order of attributes: objectID, timestamp
+		List<Integer> csvTsvSchemaAttr1 = params.csvTsvSchemaAttr1;
+		List<Double> gridBBox1 = params.gridBBox1;
+		int uniformGridSize = params.numGridCells1;
+
+		/* Stream2 */
+		String queryTopicName = params.inputTopicName2;
+		String inputFormat2 = params.inputFormat2;
+		String queryDateFormatStr = params.dateFormatStr2;
+		List<String> queryStreamAttributeNames = params.geoJSONSchemaAttr2;
+		List<Integer> csvTsvSchemaAttr2 = params.csvTsvSchemaAttr2;
+		List<Double> gridBBox2 = params.gridBBox2;
+		int uniformGridSize12 = params.numGridCells2;
+
+		/* Query */
 		int queryOption = params.queryOption;
-		String inputTopicName = params.inputTopicName;
-		String queryTopicName = params.queryTopicName;
-		String outputTopicName = params.outputTopicName;
-		String inputFormat = params.inputFormat;
-		String dateFormatStr = params.dateFormatStr;
-		String queryDateFormatStr = params.queryDateFormatStr;
-		String aggregateFunction = params.aggregateFunction;    // "ALL", "SUM", "AVG", "MIN", "MAX" (Default = ALL)
-		double radius = params.radius; // Default 10x10 Grid
-		int uniformGridSize = params.uniformGridSize;
-		double cellLengthMeters = params.cellLengthMeters;
-		int windowSize = params.windowSize;
-		int windowSlideStep = params.windowSlideStep;
+		boolean approximateQuery = params.queryApproximate;
+		double radius = params.queryRadius; // Default 10x10 Grid
+		String aggregateFunction = params.queryAggregateFunction;    // "ALL", "SUM", "AVG", "MIN", "MAX" (Default = ALL)
+		int k = params.queryK; // k denotes filter size in filter query
+		int omegaJoinDurationSeconds = params.queryOmegaDuration;
+		Set<String> trajIDs = params.queryTrajIDSet;
+		List<Coordinate> queryPointCoordinates = params.queryPoints;
+		List<List<Coordinate>> queryPolygons = params.queryPolygons;
+		List<List<Coordinate>> queryLineStrings = params.queryLineStrings;
+		String outputTopicName = params.queryOutputTopicName;
+		Long inactiveTrajDeletionThreshold = params.queryTrajDeletion;
+		int allowedLateness = params.queryOutOfOrderTuples;
+
+		/* Windows */
 		String windowType = params.windowType;
-		int k = params.k; // k denotes filter size in filter query
-		boolean onCluster = params.onCluster;
-		String bootStrapServers = params.bootStrapServers;
-		boolean approximateQuery = params.approximateQuery;
+		int windowSize = params.windowInterval;
+		int windowSlideStep = params.windowStep;
+
+
+
+
+		double cellLengthMeters = 0;
+
 		//String dataset = parameters.get("dataset"); // TDriveBeijing, ATCShoppingMall
-		Long inactiveTrajDeletionThreshold = params.inactiveTrajDeletionThreshold;
-		int allowedLateness = params.allowedLateness;
-		int omegaJoinDurationSeconds = params.omegaJoinDurationSeconds;
 
-		double gridMinX = params.gridMinX;
-		double gridMaxX = params.gridMaxX;
-		double gridMinY = params.gridMinY;
-		double gridMaxY = params.gridMaxY;
 
-		double qGridMinX = params.qGridMinX;
-		double qGridMaxX = params.qGridMaxX;
-		double qGridMinY = params.qGridMinY;
-		double qGridMaxY = params.qGridMaxY;
+		double gridMinX = gridBBox1.get(0);
+		double gridMaxX = gridBBox1.get(1);
+		double gridMinY = gridBBox1.get(2);
+		double gridMaxY = gridBBox1.get(3);
 
-		String trajIDSet = params.trajIDSet;
-		List<Coordinate> queryPointCoordinates = params.queryPointCoordinates;
-		List<Coordinate> queryLineStringCoordinates = params.queryLineStringCoordinates;
-		List<Coordinate> queryPolygonCoordinates = params.queryPolygonCoordinates;
-		List<List<Coordinate>> queryPointSetCoordinates = params.queryPointSetCoordinates;
-		List<List<List<Coordinate>>> queryPolygonSetCoordinates = params.queryPolygonSetCoordinates;
-		List<List<List<Coordinate>>> queryLineStringSetCoordinates = params.queryLineStringSetCoordinates;
+		double qGridMinX = gridBBox2.get(0);
+		double qGridMaxX = gridBBox2.get(1);
+		double qGridMinY = gridBBox2.get(2);
+		double qGridMaxY = gridBBox2.get(3);
 
-		List<String> ordinaryStreamAttributeNames = params.ordinaryStreamAttributeNames; // default order of attributes: objectID, timestamp
-		List<String> queryStreamAttributeNames = params.queryStreamAttributeNames;
+
+
+		List<Coordinate> queryLineStringCoordinates = queryLineStrings.get(0);
+		List<Coordinate> queryPolygonCoordinates = queryPolygons.get(0);
+		List<List<Coordinate>> queryPointSetCoordinates = new ArrayList<>();
+		queryPointSetCoordinates.add(queryPointCoordinates);
+		List<List<List<Coordinate>>> queryPolygonSetCoordinates = new ArrayList<>();
+		queryPolygonSetCoordinates.add(queryPolygons);
+		List<List<List<Coordinate>>> queryLineStringSetCoordinates = new ArrayList<>();
+		queryLineStringSetCoordinates.add(queryLineStrings);
 
 		//String bootStrapServers;
 		DateFormat inputDateFormat;
@@ -264,7 +293,6 @@ public class StreamingJob implements Serializable {
 
 		// Dataset-specific Parameters
 		// TDriveBeijing, ATCShoppingMall, NYCBuildingsPolygon
-		Set<String> trajIDs;
 		Set<Polygon> polygonSet;
 		Point qPoint;
 		Polygon queryPolygon;
@@ -280,9 +308,6 @@ public class StreamingJob implements Serializable {
 			uGrid = new UniformGrid(uniformGridSize, gridMinX, gridMaxX, gridMinY, gridMaxY);
 			qGrid = new UniformGrid(uniformGridSize, qGridMinX, qGridMaxX, qGridMinY, qGridMaxY);
 		}
-
-		String[] trajID = trajIDSet.split("\\s*,\\s*");
-		trajIDs = Stream.of(trajID).collect(Collectors.toSet());
 
 		qPoint = new Point(queryPointCoordinates.get(0).x, queryPointCoordinates.get(0).y, uGrid);
 

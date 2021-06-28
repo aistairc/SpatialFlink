@@ -1,250 +1,501 @@
 package GeoFlink.utils;
 
-import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.shaded.jackson2.org.yaml.snakeyaml.Yaml;
 import org.locationtech.jts.geom.Coordinate;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.io.*;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Params {
-    public int queryOption = Integer.MIN_VALUE;
-    public String inputTopicName;
-    public String queryTopicName;
-    public String outputTopicName;
-    public String inputFormat;
-    public String dateFormatStr;
-    public String queryDateFormatStr;
-    public String aggregateFunction;  // "ALL", "SUM", "AVG", "MIN", "MAX" (Default = ALL)
-    public double radius = Double.MIN_VALUE; // Default 10x10 Grid
-    public int uniformGridSize = Integer.MIN_VALUE;
-    public double cellLengthMeters = Double.MIN_VALUE;
-    public int windowSize = Integer.MIN_VALUE;
-    public int windowSlideStep = Integer.MIN_VALUE;
-    public String windowType;
-    public int k = Integer.MIN_VALUE; // k denotes filter size in filter query
-    public boolean onCluster = false;
-    public String bootStrapServers;
-    public boolean approximateQuery = false;
-    public Long inactiveTrajDeletionThreshold = Long.MIN_VALUE;
-    public int allowedLateness = Integer.MIN_VALUE;
-    public int omegaJoinDurationSeconds = Integer.MIN_VALUE;
-    public double gridMinX = Double.MIN_VALUE;
-    public double gridMaxX = Double.MIN_VALUE;
-    public double gridMinY = Double.MIN_VALUE;
-    public double gridMaxY = Double.MIN_VALUE;
-    public double qGridMinX = Double.MIN_VALUE;
-    public double qGridMaxX = Double.MIN_VALUE;
-    public double qGridMinY = Double.MIN_VALUE;
-    public double qGridMaxY = Double.MIN_VALUE;
-    public String trajIDSet;
-    public List<Coordinate> queryPointCoordinates = new ArrayList<Coordinate>();
-    public List<Coordinate> queryLineStringCoordinates = new ArrayList<Coordinate>();
-    public List<Coordinate> queryPolygonCoordinates = new ArrayList<Coordinate>();
-    public List<String> ordinaryStreamAttributeNames = new ArrayList<String>(); // default order of attributes: objectID, timestamp
-    public List<String> queryStreamAttributeNames = new ArrayList<String>();
-    public List<List<Coordinate>> queryPointSetCoordinates = new ArrayList<>();
-    public List<List<List<Coordinate>>> queryPolygonSetCoordinates = new ArrayList<>();
-    public List<List<List<Coordinate>>> queryLineStringSetCoordinates = new ArrayList<>();
+    /**
+     * Config File
+     */
+    public final String YAML_CONFIG = "geoflink-conf.yml";
+    public final String YAML_PATH = new File(".").getAbsoluteFile().getParent().toString() + File.separator +
+                                    "conf" +  File.separator + YAML_CONFIG;
 
-    public Params(ParameterTool parameters) throws NullPointerException, IllegalArgumentException, NumberFormatException {
+    /**
+     * Parameters
+     */
+    /* Cluster */
+    public boolean clusterMode = false;
+    public String kafkaBootStrapServers;
+
+    /* Stream1 */
+    public String inputTopicName1;
+    public String inputFormat1;
+    public String dateFormatStr1;
+    public List<String> geoJSONSchemaAttr1 = new ArrayList<>();
+    public List<Integer> csvTsvSchemaAttr1 = new ArrayList<>();
+    public List<Double> gridBBox1 = new ArrayList<>();
+    public int numGridCells1 = 0;
+    public int cellLength1 = 0;
+
+    /* Stream2 */
+    public String inputTopicName2;
+    public String inputFormat2;
+    public String dateFormatStr2;
+    public List<String> geoJSONSchemaAttr2 = new ArrayList<>();
+    public List<Integer> csvTsvSchemaAttr2 = new ArrayList<>();
+    public List<Double> gridBBox2 = new ArrayList<>();
+    public int numGridCells2 = 0;
+    public int cellLength2 = Integer.MIN_VALUE;
+
+    /* Query */
+    public int queryOption = Integer.MIN_VALUE;
+    public boolean queryApproximate = false;
+    public double queryRadius = Double.MIN_VALUE; // Default 10x10 Grid
+    public String queryAggregateFunction;  // "ALL", "SUM", "AVG", "MIN", "MAX" (Default = ALL)
+    public int queryK = Integer.MIN_VALUE; // k denotes filter size in filter query
+    public int queryOmegaDuration = Integer.MIN_VALUE;
+    public Set<String> queryTrajIDSet;
+    public List<Coordinate> queryPoints = new ArrayList<>();
+    public List<List<Coordinate>> queryPolygons = new ArrayList<>();
+    public List<List<Coordinate>> queryLineStrings = new ArrayList<>();
+    public String queryOutputTopicName;
+    public long queryTrajDeletion = Long.MIN_VALUE;
+    public int queryOutOfOrderTuples = Integer.MIN_VALUE;
+
+    /* Window */
+    public String windowType;
+    public int windowInterval = Integer.MIN_VALUE;
+    public int windowStep = Integer.MIN_VALUE;
+
+
+    public Params() throws NullPointerException, IllegalArgumentException, NumberFormatException {
+        ConfigType config = getYamlConfig(YAML_PATH);
+
+        /* Cluster */
+        clusterMode = config.isClusterMode();
+        if ((kafkaBootStrapServers = config.getKafkaBootStrapServers()) == null) {
+            throw new NullPointerException("kafkaBootStrapServers is " + config.getKafkaBootStrapServers());
+        }
+
+        /* Stream1 */
         try {
-            queryOption = Integer.parseInt(parameters.get("queryOption"));
-        }
-        catch (NullPointerException e) {
-            System.out.println("queryOption is " + parameters.get("queryOption"));
-        }
-        if ((inputTopicName = parameters.get("inputTopicName")) == null) {
-            throw new NullPointerException("inputTopicName is " + parameters.get("inputTopicName"));
-        }
-        if ((queryTopicName = parameters.get("queryTopicName")) == null) {
-            throw new NullPointerException("queryTopicName is " +  parameters.get("queryTopicName"));
-        }
-        if ((outputTopicName = parameters.get("outputTopicName")) == null) {
-            throw new NullPointerException("outputTopicName is " +  parameters.get("outputTopicName"));
-        }
-        if ((inputFormat = parameters.get("inputFormat")) == null) {
-            throw new NullPointerException("inputFormat is " + parameters.get("inputFormat"));
-        }
-        else {
-            List<String> validParam = Arrays.asList("GeoJSON", "CSV", "TSV");
-            if (!validParam.contains(inputFormat)) {
-                throw new IllegalArgumentException(
-                        "inputFormat is " + inputFormat + ". " +
-                                "Valid value is \"GeoJSON\", \"CSV\" or \"TSV\".");
+            if ((inputTopicName1 = (String)config.getStream1().get("topicName")) == null) {
+                throw new NullPointerException("inputTopicName1 is " + config.getStream1().get("topicName"));
             }
         }
-        if ((dateFormatStr = parameters.get("dateFormat")) == null) {
-            throw new NullPointerException("dateFormat is " + parameters.get("dateFormat"));
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("inputTopicName1 : " + e);
         }
-        if ((queryDateFormatStr = parameters.get("queryDateFormat")) == null) {
-            throw new NullPointerException("queryDateFormat is " + parameters.get("queryDateFormat"));
-        }
-        if ((aggregateFunction = parameters.get("aggregate")) == null) {
-            throw new NullPointerException("aggregate is " + parameters.get("aggregate"));
-        }
-        else {
-            List<String> validParam = Arrays.asList("ALL", "SUM", "AVG", "MIN", "MAX");
-            if (!validParam.contains(aggregateFunction)) {
-                throw new IllegalArgumentException(
-                        "aggregateFunction is " + aggregateFunction + ". " +
-                                "Valid value is \"ALL\", \"SUM\", \"AVG\", \"MIN\" or \"MAX\".");
+        try {
+            if ((inputFormat1 = (String)config.getStream1().get("format")) == null) {
+                throw new NullPointerException("format1 is " + config.getStream1().get("format"));
+            }
+            else {
+                List<String> validParam = Arrays.asList("GeoJSON", "CSV", "TSV");
+                if (!validParam.contains(inputFormat1)) {
+                    throw new IllegalArgumentException(
+                            "format1 is " + inputFormat1 + ". " +
+                                    "Valid value is \"GeoJSON\", \"CSV\" or \"TSV\".");
+                }
             }
         }
-        try {
-            radius = Double.parseDouble(parameters.get("radius")); // Default 10x10 Grid
-        }
-        catch (NullPointerException e) {
-            System.out.println("radius is " + parameters.get("radius"));
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("format1 : " + e);
         }
         try {
-            uniformGridSize = Integer.parseInt(parameters.get("uniformGridSize"));
-        }
-        catch (NullPointerException e) {
-            System.out.println("uniformGridSize is " + parameters.get("uniformGridSize"));
-        }
-        try {
-            cellLengthMeters = Double.parseDouble(parameters.get("cellLengthMeters"));
-        }
-        catch (NullPointerException e) {
-            System.out.println("cellLengthMeters is " + parameters.get("cellLengthMeters"));
-        }
-        try {
-            windowSize = Integer.parseInt(parameters.get("wInterval"));
-        }
-        catch (NullPointerException e) {
-            System.out.println("wInterval is " + parameters.get("wInterval"));
-        }
-        try {
-            windowSlideStep = Integer.parseInt(parameters.get("wStep"));
-        }
-        catch (NullPointerException e) {
-            System.out.println("wStep is " + parameters.get("wStep"));
-        }
-        if ((windowType = parameters.get("wType")) == null) {
-            throw new NullPointerException("wType is " + parameters.get("wType"));
-        }
-        try {
-            k = Integer.parseInt(parameters.get("k")); // k denotes filter size in filter query
-        }
-        catch (NullPointerException e) {
-            System.out.println("k is " + parameters.get("k"));
-        }
-        try {
-            onCluster = Boolean.parseBoolean(parameters.get("onCluster"));
-        }
-        catch (NullPointerException e) {
-            System.out.println("onCluster is " + parameters.get("onCluster"));
-        }
-        if ((bootStrapServers = parameters.get("kafkaBootStrapServers")) == null) {
-            throw new NullPointerException("kafkaBootStrapServers is " + parameters.get("kafkaBootStrapServers"));
-        }
-        try {
-            approximateQuery = Boolean.parseBoolean(parameters.get("approximateQuery"));
-        }
-        catch (NullPointerException e) {
-            System.out.println("approximateQuery is " + parameters.get("approximateQuery"));
-        }
-        try {
-            inactiveTrajDeletionThreshold = Long.parseLong(parameters.get("trajDeletionThreshold"));
-        }
-        catch (NullPointerException e) {
-            System.out.println("trajDeletionThreshold is " + parameters.get("trajDeletionThreshold"));
-        }
-        try {
-            allowedLateness = Integer.parseInt(parameters.get("outOfOrderAllowedLateness"));
-        }
-        catch (NullPointerException e) {
-            System.out.println("outOfOrderAllowedLateness is " + parameters.get("outOfOrderAllowedLateness"));
-        }
-        try {
-            omegaJoinDurationSeconds = Integer.parseInt(parameters.get("omegaJoinDuration"));
-        }
-        catch (NullPointerException e) {
-            System.out.println("omegaJoinDuration is " + parameters.get("omegaJoinDuration"));
-        }
-        String gridBBox1;
-        if ((gridBBox1 = parameters.get("gridBBox1")) == null) {
-            throw new NullPointerException("gridBBox1 is " + parameters.get("gridBBox1"));
-        }
-        else {
-            gridBBox1 = gridBBox1.replaceAll("\\[", "").replaceAll("]", "");
-            String[] arrayGrid = gridBBox1.split(",");
-            if (arrayGrid.length != 4) {
-                throw new IllegalArgumentException(" Illegal gridBBox1 number of elements : " + gridBBox1);
+            if ((dateFormatStr1 = (String)config.getStream1().get("dateFormat")) == null) {
+                throw new NullPointerException("dateFormat1 is " + config.getStream1().get("dateFormat"));
             }
-            gridMinX = Double.parseDouble(arrayGrid[0].trim());
-            gridMinY = Double.parseDouble(arrayGrid[1].trim());
-            gridMaxX = Double.parseDouble(arrayGrid[2].trim());
-            gridMaxY = Double.parseDouble(arrayGrid[3].trim());
         }
-        String gridBBox2;
-        if ((gridBBox2 = parameters.get("gridBBox2")) == null) {
-            throw new NullPointerException("gridBBox2 is " + parameters.get("gridBBox2"));
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("dateFormat1 : " + e);
         }
-        else {
-            gridBBox2 = gridBBox2.replaceAll("\\[", "").replaceAll("]", "");
-            String[] arrayGrid = gridBBox2.split(",");
-            if (arrayGrid.length != 4) {
-                throw new IllegalArgumentException(" Illegal gridBBox2 number of elements : " + gridBBox2);
+        try {
+            if ((geoJSONSchemaAttr1 = (ArrayList)config.getStream1().get("geoJSONSchemaAttr")) == null) {
+                throw new NullPointerException("geoJSONSchemaAttr1 is " + config.getStream1().get("geoJSONSchemaAttr"));
             }
-            qGridMinX = Double.parseDouble(arrayGrid[0].trim());
-            qGridMinY = Double.parseDouble(arrayGrid[1].trim());
-            qGridMaxX = Double.parseDouble(arrayGrid[2].trim());
-            qGridMaxY = Double.parseDouble(arrayGrid[3].trim());
         }
-        //System.out.println(gridBBox2);
-        //System.out.println(qGridMinX + ", " + qGridMinY + ", " + qGridMaxX + ", " + qGridMaxY);
-        if ((trajIDSet = parameters.get("trajIDSet")) == null) {
-            throw new NullPointerException("trajIDSet is " + parameters.get("trajIDSet"));
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("geoJSONSchemaAttr1 : " + e);
         }
         try {
-            queryPointCoordinates = HelperClass.getCoordinates(parameters.get("queryPoint"));
+            if ((csvTsvSchemaAttr1 = (ArrayList)config.getStream1().get("csvTsvSchemaAttr")) == null) {
+                throw new NullPointerException("csvTsvSchemaAttr1 is " + config.getStream1().get("csvTsvSchemaAttr"));
+            }
         }
-        catch (NullPointerException e) {
-            System.out.println("queryPoint is " + parameters.get("queryPoint"));
-        }
-        try {
-            queryLineStringCoordinates = HelperClass.getCoordinates(parameters.get("queryLineString"));
-        }
-        catch (NullPointerException e) {
-            System.out.println("queryLineString is " + parameters.get("queryLineString"));
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("csvTsvSchemaAttr1 : " + e);
         }
         try {
-            queryPolygonCoordinates = HelperClass.getCoordinates(parameters.get("queryPolygon"));
+            if ((gridBBox1 = (ArrayList)config.getStream1().get("gridBBox")) == null) {
+                throw new NullPointerException("gridBBox1 is " + config.getStream1().get("gridBBox"));
+            }
+            if (gridBBox1.size() != 4) {
+                throw new IllegalArgumentException("gridBBox1 num is " + gridBBox1.size());
+            }
         }
-        catch (NullPointerException e) {
-            System.out.println("queryPolygon is " + parameters.get("queryPolygon"));
-        }
-        try {
-            ordinaryStreamAttributeNames = HelperClass.getParametersArray(parameters.get("ordinaryStreamAttributes")); // default order of attributes: objectID, timestamp
-        }
-        catch (NullPointerException e) {
-            System.out.println("ordinaryStreamAttributes is " + parameters.get("ordinaryStreamAttributes"));
-        }
-        try {
-            queryStreamAttributeNames = HelperClass.getParametersArray(parameters.get("queryStreamAttributes"));
-        }
-        catch (NullPointerException e) {
-            System.out.println("queryStreamAttributes is " + parameters.get("queryStreamAttributes"));
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("gridBBox1 : " + e);
         }
         try {
-            queryPointSetCoordinates = HelperClass.getListCoordinates(parameters.get("queryPointSet"));
+            if(config.getStream1().get("numGridCells") == null) {
+                throw new NullPointerException("numGridCells1 is " + config.getStream1().get("numGridCells"));
+            }
+            else {
+                numGridCells1 = (int)config.getStream1().get("numGridCells");
+            }
         }
-        catch (NullPointerException e) {
-            System.out.println("queryPointSet is " + parameters.get("queryPointSet"));
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("numGridCells1 : " + e);
         }
         try {
-            queryPolygonSetCoordinates = HelperClass.getListListCoordinates(parameters.get("queryPolygonSet"));
+            if(config.getStream1().get("cellLength") == null) {
+                throw new NullPointerException("cellLength1 is " + config.getStream1().get("cellLength"));
+            }
+            else {
+                cellLength1 = (int)config.getStream1().get("cellLength");
+            }
         }
-        catch (NullPointerException e) {
-            System.out.println("queryPolygonSet is " + parameters.get("queryPolygonSet"));
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("cellLength1 : " + e);
+        }
+
+        /* Stream2 */
+        try {
+            if ((inputTopicName2 = (String)config.getStream2().get("topicName")) == null) {
+                throw new NullPointerException("inputTopicName2 is " + config.getStream2().get("topicName"));
+            }
+        }
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("inputTopicName2 : " + e);
         }
         try {
-            queryLineStringSetCoordinates = HelperClass.getListListCoordinates(parameters.get("queryLineStringSet"));
+            if ((inputFormat2 = (String)config.getStream2().get("format")) == null) {
+                throw new NullPointerException("format2 is " + config.getStream2().get("format"));
+            }
+            else {
+                List<String> validParam = Arrays.asList("GeoJSON", "CSV", "TSV");
+                if (!validParam.contains(inputFormat2)) {
+                    throw new IllegalArgumentException(
+                            "format2 is " + inputFormat2 + ". " +
+                                    "Valid value is \"GeoJSON\", \"CSV\" or \"TSV\".");
+                }
+            }
         }
-        catch (NullPointerException e) {
-            System.out.println("queryLineStringSet is " + parameters.get("queryLineStringSet"));
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("format2 : " + e);
         }
+        try {
+            if ((dateFormatStr2 = (String)config.getStream2().get("dateFormat")) == null) {
+                throw new NullPointerException("dateFormat2 is " + config.getStream2().get("dateFormat"));
+            }
+        }
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("dateFormat2 : " + e);
+        }
+        try {
+            if ((geoJSONSchemaAttr2 = (ArrayList)config.getStream2().get("geoJSONSchemaAttr")) == null) {
+                throw new NullPointerException("geoJSONSchemaAttr2 is " + config.getStream2().get("geoJSONSchemaAttr"));
+            }
+        }
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("geoJSONSchemaAttr2 : " + e);
+        }
+        try {
+            if ((csvTsvSchemaAttr2 = (ArrayList)config.getStream2().get("csvTsvSchemaAttr")) == null) {
+                throw new NullPointerException("csvTsvSchemaAttr2 is " + config.getStream2().get("csvTsvSchemaAttr"));
+            }
+        }
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("csvTsvSchemaAttr2 : " + e);
+        }
+        try {
+            if ((gridBBox2 = (ArrayList)config.getStream2().get("gridBBox")) == null) {
+                throw new NullPointerException("gridBBox2 is " + config.getStream2().get("gridBBox"));
+            }
+            if (gridBBox2.size() != 4) {
+                throw new IllegalArgumentException("gridBBox2 num is " + gridBBox2.size());
+            }
+        }
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("gridBBox2 : " + e);
+        }
+        try {
+            if(config.getStream2().get("numGridCells") == null) {
+                throw new NullPointerException("numGridCells2 is " + config.getStream2().get("numGridCells"));
+            }
+            else {
+                numGridCells2 = (int)config.getStream2().get("numGridCells");
+            }
+        }
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("numGridCells2 : " + e);
+        }
+        try {
+            if(config.getStream2().get("cellLength") == null) {
+                throw new NullPointerException("cellLength2 is " + config.getStream2().get("cellLength"));
+            }
+            else {
+                cellLength2 = (int)config.getStream2().get("cellLength");
+            }
+        }
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("cellLength2 : " + e);
+        }
+
+        /* Query */
+        try {
+            if(config.getQuery().get("option") == null) {
+                throw new NullPointerException("option is " + config.getQuery().get("option"));
+            }
+            else {
+                queryOption = (int)config.getQuery().get("option");
+            }
+        }
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("option : " + e);
+        }
+        try {
+            if(config.getQuery().get("approximate") == null) {
+                throw new NullPointerException("approximate is " + config.getQuery().get("approximate"));
+            }
+            else {
+                queryApproximate = (boolean)config.getQuery().get("approximate");
+            }
+        }
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("approximate : " + e);
+        }
+        try {
+            if(config.getQuery().get("radius") == null) {
+                throw new NullPointerException("radius is " + config.getQuery().get("radius"));
+            }
+            else {
+                queryRadius = (int)config.getQuery().get("radius");
+            }
+        }
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("radius : " + e);
+        }
+        try {
+            if ((queryAggregateFunction = (String)config.getQuery().get("aggregateFunction")) == null) {
+                throw new NullPointerException("aggregateFunction is " + config.getQuery().get("aggregateFunction"));
+            }
+            else {
+                List<String> validParam = Arrays.asList("ALL", "SUM", "AVG", "MIN", "MAX");
+                if (!validParam.contains(queryAggregateFunction)) {
+                    throw new IllegalArgumentException(
+                            "aggregateFunction is " + queryAggregateFunction + ". " +
+                                    "Valid value is \"ALL\", \"SUM\", \"AVG\", \"MIN\" or \"MAX\".");
+                }
+            }
+        }
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("aggregateFunction : " + e);
+        }
+        try {
+            if(config.getQuery().get("k") == null) {
+                throw new NullPointerException("k is " + config.getQuery().get("k"));
+            }
+            else {
+                queryK = (int)config.getQuery().get("k");
+            }
+        }
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("k : " + e);
+        }
+        try {
+            if(config.getQuery().get("omegaDuration") == null) {
+                throw new NullPointerException("omegaDuration is " + config.getQuery().get("omegaDuration"));
+            }
+            else {
+                queryOmegaDuration = (int)config.getQuery().get("omegaDuration");
+            }
+        }
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("omegaDuration : " + e);
+        }
+        try {
+            List<Integer> trajIDs;
+            if((trajIDs = (ArrayList)config.getQuery().get("trajIDs")) == null) {
+                throw new NullPointerException("trajIDs is " + config.getQuery().get("trajIDs"));
+            }
+            else {
+                List<String> arrTrajID = new ArrayList<>();
+                for (int trajID : trajIDs) {
+                    arrTrajID.add(Integer.valueOf(trajID).toString());
+                }
+                String[] strTrajIDs = arrTrajID.toArray(new String[0]);
+                queryTrajIDSet = Stream.of(strTrajIDs).collect(Collectors.toSet());
+            }
+        }
+        catch (Exception e) {
+            throw new IllegalArgumentException("trajIDs : " + e);
+        }
+        try {
+            List<List<Double>> coordinates;
+            if((coordinates = (List<List<Double>>)config.getQuery().get("queryPoints")) == null) {
+                throw new NullPointerException("queryPoints is " + config.getQuery().get("queryPoints"));
+            }
+            for (List<Double> c : coordinates) {
+                queryPoints.add(new Coordinate(c.get(0), c.get(1)));
+            }
+        }
+        catch (Exception e) {
+            throw new IllegalArgumentException("queryPoints : " + e);
+        }
+        try {
+            List<List<List<Double>>> listCoordinates;
+            if((listCoordinates = (List<List<List<Double>>>)config.getQuery().get("queryPolygons")) == null) {
+                throw new NullPointerException("queryPolygons is " + config.getQuery().get("queryPolygons"));
+            }
+            List<Coordinate> list;
+            for (List<List<Double>> coordinates : listCoordinates) {
+                list = new ArrayList<>();
+                for (List<Double> c : coordinates) {
+                    list.add(new Coordinate(c.get(0), c.get(1)));
+                }
+                queryPolygons.add(list);
+            }
+        }
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("queryPolygons : " + e);
+        }
+        try {
+            List<List<List<Double>>> listCoordinates;
+            if((listCoordinates = (List<List<List<Double>>>)config.getQuery().get("queryLineStrings")) == null) {
+                throw new NullPointerException("queryLineStrings is " + config.getQuery().get("queryLineStrings"));
+            }
+            List<Coordinate> list;
+            for (List<List<Double>> coordinates : listCoordinates) {
+                list = new ArrayList<>();
+                for (List<Double> c : coordinates) {
+                    list.add(new Coordinate(c.get(0), c.get(1)));
+                }
+                queryLineStrings.add(list);
+            }
+        }
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("queryLineStrings : " + e);
+        }
+        try {
+            if((queryOutputTopicName = (String)config.getQuery().get("outputTopicName")) == null) {
+                throw new NullPointerException("outputTopicName is " + config.getQuery().get("outputTopicName"));
+            }
+        }
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("outputTopicName : " + e);
+        }
+        try {
+            Map<String, Object> thresholds;
+            if((thresholds = (Map<String, Object>)config.getQuery().get("thresholds")) == null) {
+                throw new NullPointerException("thresholds is " + config.getQuery().get("thresholds"));
+            }
+            else {
+                if (thresholds.get("trajDeletion") == null) {
+                    throw new NullPointerException("trajDeletion is " + thresholds.get("trajDeletion"));
+                }
+                else {
+                    queryTrajDeletion = ((Integer)thresholds.get("trajDeletion")).longValue();
+                }
+                if (thresholds.get("outOfOrderTuples") == null) {
+                    throw new NullPointerException("outOfOrderTuples is " + thresholds.get("outOfOrderTuples"));
+                }
+                else {
+                    queryOutOfOrderTuples = (int)thresholds.get("outOfOrderTuples");
+                }
+            }
+        }
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("thresholds : " + e);
+        }
+
+        /* Window */
+        try {
+            if((windowType = (String)config.getWindow().get("type")) == null) {
+                throw new NullPointerException("windowType is " + config.getWindow().get("type"));
+            }
+        }
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("windowType : " + e);
+        }
+        try {
+            if(config.getWindow().get("interval") == null) {
+                throw new NullPointerException("interval is " + config.getWindow().get("interval"));
+            }
+            else {
+                windowInterval = (int)config.getWindow().get("interval");
+            }
+        }
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("interval : " + e);
+        }
+        try {
+            if(config.getWindow().get("step") == null) {
+                throw new NullPointerException("step is " + config.getWindow().get("step"));
+            }
+            else {
+                windowStep = (int)config.getWindow().get("step");
+            }
+        }
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("step : " + e);
+        }
+    }
+
+    private ConfigType getYamlConfig(String path) {
+        File file = new File(path);
+        Yaml yaml = new Yaml();
+        FileInputStream input;
+        InputStreamReader stream;
+        try {
+            input = new FileInputStream(file);
+            stream = new InputStreamReader(input, "UTF-8");
+            return (ConfigType)yaml.load(stream);
+        }
+        catch (FileNotFoundException e) {
+            throw new IllegalArgumentException(e);
+        }
+        catch (UnsupportedEncodingException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "clusterMode = " + clusterMode + ", " +
+                "kafkaBootStrapServers = " + kafkaBootStrapServers + ", " +
+                "\n" +
+                "inputTopicName1 = " + inputTopicName1 + ", " +
+                "format1 = " + inputFormat1 + ", " +
+                "dateFormatStr1 = " + dateFormatStr1 + ", " +
+                "geoJSONSchemaAttr1 = " + geoJSONSchemaAttr1 + ", " +
+                "csvTsvSchemaAttr1 = " + csvTsvSchemaAttr1 + ", " +
+                "gridBBox1 = " + gridBBox1 + ", " +
+                "numGridCells1 = " + numGridCells1 + ", " +
+                "cellLength1 = " + cellLength1 + ", " +
+                "\n" +
+                "inputTopicName2 = " + inputTopicName2 + ", " +
+                "format2 = " + inputFormat2 + ", " +
+                "dateFormatStr2 = " + dateFormatStr2 + ", " +
+                "geoJSONSchemaAttr2 = " + geoJSONSchemaAttr2 + ", " +
+                "csvTsvSchemaAttr2 = " + csvTsvSchemaAttr2 + ", " +
+                "gridBBox2 = " + gridBBox2 + ", " +
+                "numGridCells2 = " + numGridCells2 + ", " +
+                "cellLength2 = " + cellLength2 + ", " +
+                "\n" +
+                "queryOption = " + queryOption + ", " +
+                "queryApproximate = " + queryApproximate + ", " +
+                "queryRadius = " + queryRadius + ", " +
+                "queryAggregateFunction = " + queryAggregateFunction + ", " +
+                "queryK = " + queryK + ", " +
+                "queryOmegaDuration = " + queryOmegaDuration + ", " +
+                "queryTrajIDSet = " + queryTrajIDSet + ", " +
+                "queryPoints = " + queryPoints + ", " +
+                "queryPolygons = " + queryPolygons + ", " +
+                "queryLineStrings = " + queryLineStrings + ", " +
+                "queryOutputTopicName = " + queryOutputTopicName + ", " +
+                "queryTrajDeletion = " + queryTrajDeletion + ", " +
+                "queryOutOfOrderTuples = " + queryOutOfOrderTuples + ", " +
+                "\n" +
+                "windowType = " + windowType + ", " +
+                "windowInterval = " + windowInterval + ", " +
+                "windowStep = " + windowStep;
     }
 }
