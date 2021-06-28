@@ -267,7 +267,7 @@ public class Params {
                 throw new NullPointerException("radius is " + config.getQuery().get("radius"));
             }
             else {
-                queryRadius = (int)config.getQuery().get("radius");
+                queryRadius = (double)config.getQuery().get("radius");
             }
         }
         catch (ClassCastException e) {
