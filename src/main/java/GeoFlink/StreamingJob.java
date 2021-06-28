@@ -108,6 +108,7 @@ public class StreamingJob implements Serializable {
 		List<Integer> csvTsvSchemaAttr1 = params.csvTsvSchemaAttr1;
 		List<Double> gridBBox1 = params.gridBBox1;
 		int uniformGridSize = params.numGridCells1;
+		double cellLengthMeters = params.cellLength1;
 
 		/* Stream2 */
 		String queryTopicName = params.inputTopicName2;
@@ -116,7 +117,8 @@ public class StreamingJob implements Serializable {
 		List<String> queryStreamAttributeNames = params.geoJSONSchemaAttr2;
 		List<Integer> csvTsvSchemaAttr2 = params.csvTsvSchemaAttr2;
 		List<Double> gridBBox2 = params.gridBBox2;
-		int uniformGridSize12 = params.numGridCells2;
+		int uniformGridSize2 = params.numGridCells2;
+		double cellLengthMeters2 = params.cellLength1;
 
 		/* Query */
 		int queryOption = params.queryOption;
@@ -138,10 +140,6 @@ public class StreamingJob implements Serializable {
 		int windowSize = params.windowInterval;
 		int windowSlideStep = params.windowStep;
 
-
-
-
-		double cellLengthMeters = 0;
 
 		//String dataset = parameters.get("dataset"); // TDriveBeijing, ATCShoppingMall
 
@@ -303,10 +301,10 @@ public class StreamingJob implements Serializable {
 
 		if(cellLengthMeters > 0) {
 			uGrid = new UniformGrid(cellLengthMeters, gridMinX, gridMaxX, gridMinY, gridMaxY);
-			qGrid = new UniformGrid(cellLengthMeters, qGridMinX, qGridMaxX, qGridMinY, qGridMaxY);
+			qGrid = new UniformGrid(cellLengthMeters2, qGridMinX, qGridMaxX, qGridMinY, qGridMaxY);
 		}else{
 			uGrid = new UniformGrid(uniformGridSize, gridMinX, gridMaxX, gridMinY, gridMaxY);
-			qGrid = new UniformGrid(uniformGridSize, qGridMinX, qGridMaxX, qGridMinY, qGridMaxY);
+			qGrid = new UniformGrid(uniformGridSize2, qGridMinX, qGridMaxX, qGridMinY, qGridMaxY);
 		}
 
 		qPoint = new Point(queryPointCoordinates.get(0).x, queryPointCoordinates.get(0).y, uGrid);
@@ -1374,8 +1372,8 @@ public class StreamingJob implements Serializable {
 				// Converting GeoJSON,CSV stream to point spatial data stream
 				DataStream<Point> spatialPointStream = Deserialization.PointStream(geoJSONStream, "TSV", uGrid);
 				spatialPointStream.print();
-				DataStream<Point> rNeighbors= new PointPointRangeQuery(windowConf, uGrid).run(spatialPointStream, qPoint, radius);  // better than equivalent GB approach
-				rNeighbors.print();
+//				DataStream<Point> rNeighbors= new PointPointRangeQuery(windowConf, uGrid).run(spatialPointStream, qPoint, radius);  // better than equivalent GB approach
+//				rNeighbors.print();
 				break;}
 			case 602:{ // Range Query (TSV Polygon)
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>("kafka", new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
