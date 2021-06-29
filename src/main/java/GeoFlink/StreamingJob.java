@@ -145,13 +145,13 @@ public class StreamingJob implements Serializable {
 
 
 		double gridMinX = gridBBox1.get(0);
-		double gridMaxX = gridBBox1.get(1);
-		double gridMinY = gridBBox1.get(2);
+		double gridMaxX = gridBBox1.get(2);
+		double gridMinY = gridBBox1.get(1);
 		double gridMaxY = gridBBox1.get(3);
 
 		double qGridMinX = gridBBox2.get(0);
-		double qGridMaxX = gridBBox2.get(1);
-		double qGridMinY = gridBBox2.get(2);
+		double qGridMaxX = gridBBox2.get(2);
+		double qGridMinY = gridBBox2.get(1);
 		double qGridMaxY = gridBBox2.get(3);
 
 
