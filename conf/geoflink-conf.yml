@@ -2,19 +2,20 @@
 # This is a GeoFlink Config File 
 # ---
 # Cluster
-clusterMode: True
-kafkaBootStrapServers: "172.16.0.64:9092, 172.16.0.81:9092"
+clusterMode: False
+#kafkaBootStrapServers: "172.16.0.64:9092, 172.16.0.81:9092"
+kafkaBootStrapServers: "localhost:9092"
 
 # Stream1
 stream1:
-  topicName: "TaxiDrive17MillionGeoJSON"
-  format: "GeoJSON"
+  topicName: "NYCBuildingsPolygons"
+  format: "TSV"
   dateFormat: "yyyy-MM-dd HH:mm:ss"
   geoJSONSchemaAttr: ["oID", "timestamp"]
   csvTsvSchemaAttr: [1, 3, 5, 4]
   gridBBox: [115.5, 39.6, 117.6, 41.1]
-  numGridCells: 100 
-  cellLength: 0
+  numGridCells: 25 
+  cellLength: 50
 
 # Stream2
 stream2: 
@@ -29,9 +30,9 @@ stream2:
 
 # Query parameters
 query:
-  option: 211
+  option: 505
   approximate: False
-  radius: 1
+  radius: 0.005
   aggregateFunction: "SUM"
   k: 100
   omegaDuration: 1
@@ -53,6 +54,9 @@ query:
   thresholds:
     trajDeletion: 1000
     outOfOrderTuples: 1
+  # delimiter : CSV = ",", TSV separeted by TAB character = "	" or "\t", TSV separeted by \t = "\\\\t"
+  delimiter: "\\\\t"
+  charset: "UTF-8"
 
 # Window parameters
 window:

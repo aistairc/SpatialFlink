@@ -57,6 +57,8 @@ public class Params {
     public String queryOutputTopicName;
     public long queryTrajDeletion = Long.MIN_VALUE;
     public int queryOutOfOrderTuples = Integer.MIN_VALUE;
+    public String queryDelimiter;
+    public String queryCharset;
 
     /* Window */
     public String windowType;
@@ -404,6 +406,22 @@ public class Params {
         }
         catch (ClassCastException e) {
             throw new IllegalArgumentException("thresholds : " + e);
+        }
+        try {
+            if((queryDelimiter = (String)config.getQuery().get("delimiter")) == null) {
+                throw new NullPointerException("delimiter is " + config.getQuery().get("delimiter"));
+            }
+        }
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("delimiter : " + e);
+        }
+        try {
+            if((queryCharset = (String)config.getQuery().get("charset")) == null) {
+                throw new NullPointerException("charset is " + config.getQuery().get("charset"));
+            }
+        }
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("charset : " + e);
         }
 
         /* Window */
