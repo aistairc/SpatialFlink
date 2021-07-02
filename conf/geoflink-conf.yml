@@ -12,12 +12,13 @@ stream1:
   format: "TSV"
   dateFormat: "yyyy-MM-dd HH:mm:ss"
   geoJSONSchemaAttr: ["oID", "timestamp"]
-  csvTsvSchemaAttr: [1, 3, 5, 4]
+  # csvTsvSchemaAttr : object ID, timestamp, coordinate-x, coordinate-y (Point only)
+  csvTsvSchemaAttr: [1, 4, 5, 6]
   gridBBox: [115.5, 39.6, 117.6, 41.1]
   numGridCells: 25 
   cellLength: 50
   # delimiter : CSV = ",", TSV separeted by TAB character = "	" or "\t", TSV separeted by \t = "\\\\t"
-  delimiter: "\\\\t"
+  delimiter: "	"
   charset: "UTF-8"
 
 # Stream2
@@ -26,7 +27,8 @@ stream2:
   format: "GeoJSON"
   dateFormat: "yyyy-MM-dd HH:mm:ss"
   geoJSONSchemaAttr: ["oID", "timestamp"]
-  csvTsvSchemaAttr: [1, 3, 5, 4]
+  # csvTsvSchemaAttr : object ID, timestamp, coordinate-x, coordinate-y (Point only)
+  csvTsvSchemaAttr: [1, 4, 5, 6]
   gridBBox: [115.5, 39.6, 117.6, 41.1]
   numGridCells: 100
   cellLength: 0

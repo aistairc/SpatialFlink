@@ -58,7 +58,7 @@ public class Deserialization implements Serializable {
     }
 
     public static DataStream<Point> TrajectoryStream(DataStream inputStream, String inputType, DateFormat dateFormat, String delimiter,
-                                                     String propertyTimeStamp, String propertyObjID, UniformGrid uGrid){
+                                                     List<Integer> csvTsvSchemaAttr, String propertyTimeStamp, String propertyObjID, UniformGrid uGrid){
 
         DataStream<Point> trajectoryStream = null;
 
@@ -66,7 +66,7 @@ public class Deserialization implements Serializable {
             trajectoryStream = inputStream.map(new GeoJSONToTSpatial(uGrid, dateFormat, propertyTimeStamp, propertyObjID));
         }
         else {
-            trajectoryStream = inputStream.map(new CSVTSVToTSpatial(uGrid, dateFormat, delimiter)).returns(Point.class);
+            trajectoryStream = inputStream.map(new CSVTSVToTSpatial(uGrid, dateFormat, delimiter, csvTsvSchemaAttr)).returns(Point.class);
         }
 
         return trajectoryStream;
@@ -220,14 +220,16 @@ public class Deserialization implements Serializable {
         UniformGrid uGrid;
         DateFormat dateFormat;
         String delimiter;
+        List<Integer> csvTsvSchemaAttr;
 
         //ctor
         public CSVTSVToTSpatial() {};
-        public CSVTSVToTSpatial(UniformGrid uGrid, DateFormat dateFormat, String delimiter)
+        public CSVTSVToTSpatial(UniformGrid uGrid, DateFormat dateFormat, String delimiter, List<Integer> csvTsvSchemaAttr)
         {
             this.uGrid = uGrid;
             this.dateFormat = dateFormat;
             this.delimiter = delimiter;
+            this.csvTsvSchemaAttr = csvTsvSchemaAttr;
         };
 
         @Override
@@ -238,12 +240,23 @@ public class Deserialization implements Serializable {
             // time [ms] (unixtime + milliseconds/1000), person id, position x [mm], position y [mm], position z (height) [mm], velocity [mm/s], angle of motion [rad], facing angle [rad]
 
             Point spatialPoint;
+            boolean brinkoffFormat = false;
+
+            str = convertPointString(str, delimiter, csvTsvSchemaAttr);
             Coordinate coordinate = getCoordinateFromPoint(str);
             List<String> strArrayList = Arrays.asList(str.replace("\"", "").split("\\s*" + delimiter + "\\s*")); // For parsing CSV with , followed by space
             long time = 0;
             String strOId = null;
-            if (!strArrayList.get(0).startsWith("POINT")) {
-                strOId = strArrayList.get(0).trim();
+            // standard string
+            if (str.contains("POINT")) {
+                if (!strArrayList.get(0).startsWith("POINT")) {
+                    strOId = strArrayList.get(0).trim();
+                }
+            }
+            // Brinkoff Generator output string
+            else {
+                strOId = strArrayList.get(csvTsvSchemaAttr.get(0)).trim();
+                brinkoffFormat = true;
             }
             if (dateFormat != null) {
                 Collections.reverse(strArrayList);
@@ -254,6 +267,9 @@ public class Deserialization implements Serializable {
                     }
                     catch(ParseException e) {}
                 }
+            }
+            if ((time == 0) && (brinkoffFormat == true)) {
+                time = Integer.valueOf(str.split(delimiter)[csvTsvSchemaAttr.get(1)]);
             }
             if (time != 0) {
                 spatialPoint = new Point(strOId, coordinate.x, coordinate.y, time, uGrid);
@@ -1427,5 +1443,34 @@ public class Deserialization implements Serializable {
             }
         }
         return count;
+    }
+
+    private static String convertPointString(String str, String delimiter, List<Integer> csvTsvSchemaAttr) {
+        String[] elements = str.split(delimiter);
+        // insert "("
+        if (!str.contains("(")) {
+            int pos = 0;
+            for (int i = 0; i < csvTsvSchemaAttr.get(2); i++) {
+                pos = str.indexOf(delimiter, pos) + 1;
+            }
+            str = new StringBuilder(str).insert(pos, "(").toString();
+        }
+        // insert ")"
+        if (!str.contains(")")) {
+            int pos = 0;
+            for (int i = 0; i < csvTsvSchemaAttr.get(3); i++) {
+                pos = str.indexOf(delimiter, pos) + 1;
+            }
+            // ")" position is behind coordinate-y
+            pos = pos + elements[csvTsvSchemaAttr.get(3)].length();
+            str = new StringBuilder(str).insert(pos, ")").toString();
+        }
+        // replace tab  between Point coordinate-x and y to space
+        if (elements.length > csvTsvSchemaAttr.get(3)) {
+            String x = elements[csvTsvSchemaAttr.get(2)];
+            String y = elements[csvTsvSchemaAttr.get(3)];
+            str = str.replace(x + delimiter + y, x + " " + y);
+        }
+        return str;
     }
 }
