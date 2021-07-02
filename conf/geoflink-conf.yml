@@ -16,6 +16,9 @@ stream1:
   gridBBox: [115.5, 39.6, 117.6, 41.1]
   numGridCells: 25 
   cellLength: 50
+  # delimiter : CSV = ",", TSV separeted by TAB character = "	" or "\t", TSV separeted by \t = "\\\\t"
+  delimiter: "\\\\t"
+  charset: "UTF-8"
 
 # Stream2
 stream2: 
@@ -27,10 +30,13 @@ stream2:
   gridBBox: [115.5, 39.6, 117.6, 41.1]
   numGridCells: 100
   cellLength: 0
+  # delimiter : CSV = ",", TSV separeted by TAB character = "	" or "\t", TSV separeted by \t = "\\\\t"
+  delimiter: "\\\\t"
+  charset: "UTF-8"
 
 # Query parameters
 query:
-  option: 505
+  option: 901
   approximate: False
   radius: 0.005
   aggregateFunction: "SUM"
@@ -54,9 +60,6 @@ query:
   thresholds:
     trajDeletion: 1000
     outOfOrderTuples: 1
-  # delimiter : CSV = ",", TSV separeted by TAB character = "	" or "\t", TSV separeted by \t = "\\\\t"
-  delimiter: "\\\\t"
-  charset: "UTF-8"
 
 # Window parameters
 window:
