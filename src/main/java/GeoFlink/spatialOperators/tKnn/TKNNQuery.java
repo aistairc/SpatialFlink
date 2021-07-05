@@ -5,11 +5,14 @@ import GeoFlink.spatialIndices.SpatialIndex;
 import GeoFlink.spatialIndices.UniformGrid;
 import GeoFlink.spatialObjects.LineString;
 import GeoFlink.spatialObjects.Point;
+import GeoFlink.spatialObjects.Polygon;
 import GeoFlink.spatialObjects.SpatialObject;
 import GeoFlink.spatialOperators.QueryConfiguration;
 import GeoFlink.utils.DistanceFunctions;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.JoinFunction;
+import org.apache.flink.api.common.state.ValueState;
+import org.apache.flink.api.common.state.ValueStateDescriptor;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
@@ -20,6 +23,8 @@ import org.apache.flink.streaming.api.functions.windowing.WindowFunction;
 import org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
+import org.apache.flink.streaming.api.windowing.triggers.Trigger;
+import org.apache.flink.streaming.api.windowing.triggers.TriggerResult;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 import org.locationtech.jts.geom.Coordinate;
@@ -30,7 +35,7 @@ import java.util.*;
 public abstract class TKNNQuery<T extends SpatialObject, K extends SpatialObject> implements Serializable {
     private QueryConfiguration queryConfiguration;
     private SpatialIndex spatialIndex;
-    //static long dCounter = 0;
+    static long dCounter = 0;
 
     public QueryConfiguration getQueryConfiguration() {
         return queryConfiguration;
@@ -170,4 +175,55 @@ public abstract class TKNNQuery<T extends SpatialObject, K extends SpatialObject
             }
         }
     }
+
+    // TimeWindow Trigger
+    protected class realTimeWindowTrigger extends Trigger<Point, TimeWindow> {
+
+        @Override
+        public TriggerResult onElement(Point point, long l, TimeWindow timeWindow, TriggerContext triggerContext) throws Exception {
+            return TriggerResult.FIRE;
+            //return TriggerResult.CONTINUE;
+        }
+
+        @Override
+        public TriggerResult onProcessingTime(long l, TimeWindow timeWindow, TriggerContext triggerContext) throws Exception {
+            return TriggerResult.FIRE;
+        }
+
+        @Override
+        public TriggerResult onEventTime(long l, TimeWindow timeWindow, TriggerContext triggerContext) throws Exception {
+            return TriggerResult.FIRE;
+        }
+
+        @Override
+        public void clear(TimeWindow timeWindow, TriggerContext triggerContext) throws Exception {
+
+        }
+    }
+
+    // TimeWindowAll Trigger
+    protected class realTimeWindowAllTrigger extends Trigger<Tuple2<Point, Double>, TimeWindow> {
+
+        @Override
+        public TriggerResult onElement(Tuple2<Point, Double> pointDoubleTuple2, long l, TimeWindow timeWindow, TriggerContext triggerContext) throws Exception {
+            return TriggerResult.FIRE;
+            //return TriggerResult.CONTINUE;
+        }
+
+        @Override
+        public TriggerResult onProcessingTime(long l, TimeWindow timeWindow, TriggerContext triggerContext) throws Exception {
+            return TriggerResult.FIRE;
+        }
+
+        @Override
+        public TriggerResult onEventTime(long l, TimeWindow timeWindow, TriggerContext triggerContext) throws Exception {
+            return TriggerResult.FIRE;
+        }
+
+        @Override
+        public void clear(TimeWindow timeWindow, TriggerContext triggerContext) throws Exception {
+
+        }
+    }
+
 }

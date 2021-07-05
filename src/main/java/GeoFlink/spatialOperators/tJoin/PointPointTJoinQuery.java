@@ -11,12 +11,15 @@ import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.JoinFunction;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.streaming.api.datastream.CoGroupedStreams;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrdernessTimestampExtractor;
 import org.apache.flink.streaming.api.functions.windowing.WindowFunction;
 import org.apache.flink.streaming.api.windowing.assigners.SlidingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
+import org.apache.flink.streaming.api.windowing.triggers.Trigger;
+import org.apache.flink.streaming.api.windowing.triggers.TriggerResult;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 
@@ -107,6 +110,7 @@ public class PointPointTJoinQuery extends TJoinQuery<Point, Point> {
                         return q.gridID;
                     }
                 }).window(SlidingProcessingTimeWindows.of(Time.seconds(omegaJoinDurationSeconds), Time.seconds(omegaJoinDurationSeconds)))
+                .trigger(new TJoinQuery.realTimeWindowTrigger())
                 .apply(new JoinFunction<Point, Point, Tuple2<Point,Point>>() {
                     @Override
                     public Tuple2<Point, Point> join(Point p, Point q) {
@@ -131,7 +135,9 @@ public class PointPointTJoinQuery extends TJoinQuery<Point, Point> {
             public String getKey(Tuple2<Point, Point> e) throws Exception {
                 return e.f0.objID; // keyBy Trajectory ID
             }
-        }).window(SlidingProcessingTimeWindows.of(Time.seconds(omegaJoinDurationSeconds), Time.seconds(omegaJoinDurationSeconds))).apply(new WindowFunction<Tuple2<Point, Point>, Tuple2<Point, Point>, String, TimeWindow>() {
+        }).window(SlidingProcessingTimeWindows.of(Time.seconds(omegaJoinDurationSeconds), Time.seconds(omegaJoinDurationSeconds)))
+                .trigger(new TJoinQuery.realTimeWindowPointPointTrigger())
+                .apply(new WindowFunction<Tuple2<Point, Point>, Tuple2<Point, Point>, String, TimeWindow>() {
             @Override
             public void apply(String key, TimeWindow window, Iterable<Tuple2<Point, Point>> input, Collector<Tuple2<Point, Point>> out) throws Exception {
 

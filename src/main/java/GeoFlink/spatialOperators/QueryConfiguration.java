@@ -1,11 +1,15 @@
 package GeoFlink.spatialOperators;
 
-public class QueryConfiguration {
+import java.io.Serializable;
+
+public class QueryConfiguration implements Serializable {
     private QueryType queryType;
     private int windowSize = 0;
     private int slideStep = 0;
     private int allowedLateness = 0;
     private boolean approximateQuery = false;
+
+    public QueryConfiguration() {}
 
     public QueryConfiguration(QueryType queryType) {
         this.queryType = queryType;

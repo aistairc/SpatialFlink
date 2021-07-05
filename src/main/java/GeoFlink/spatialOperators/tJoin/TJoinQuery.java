@@ -12,12 +12,15 @@ import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.JoinFunction;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.streaming.api.datastream.CoGroupedStreams;
 import org.apache.flink.streaming.api.functions.windowing.WindowFunction;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrdernessTimestampExtractor;
 import org.apache.flink.streaming.api.functions.windowing.RichWindowFunction;
+import org.apache.flink.streaming.api.windowing.triggers.Trigger;
+import org.apache.flink.streaming.api.windowing.triggers.TriggerResult;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 import org.locationtech.jts.geom.Coordinate;
@@ -204,5 +207,54 @@ public abstract class TJoinQuery<T extends SpatialObject, K extends SpatialObjec
                 }
             }
         });
+    }
+
+
+    // TimeWindow Trigger
+    protected class realTimeWindowTrigger extends Trigger<CoGroupedStreams.TaggedUnion<Point, Point>, TimeWindow> {
+        @Override
+        public TriggerResult onElement(CoGroupedStreams.TaggedUnion<Point, Point> pointPointTaggedUnion, long l, TimeWindow timeWindow, TriggerContext triggerContext) throws Exception {
+            return TriggerResult.FIRE;
+            //return TriggerResult.CONTINUE;
+        }
+
+        @Override
+        public TriggerResult onProcessingTime(long l, TimeWindow timeWindow, TriggerContext triggerContext) throws Exception {
+            return TriggerResult.FIRE;
+        }
+
+        @Override
+        public TriggerResult onEventTime(long l, TimeWindow timeWindow, TriggerContext triggerContext) throws Exception {
+            return TriggerResult.FIRE;
+        }
+
+        @Override
+        public void clear(TimeWindow timeWindow, TriggerContext triggerContext) throws Exception {
+
+        }
+    }
+
+    // TimeWindow Trigger
+    protected class realTimeWindowPointPointTrigger extends Trigger<Tuple2<Point, Point>, TimeWindow> {
+        @Override
+        public TriggerResult onElement(Tuple2<Point, Point> pointPointTaggedUnion, long l, TimeWindow timeWindow, TriggerContext triggerContext) throws Exception {
+            return TriggerResult.FIRE;
+            //return TriggerResult.CONTINUE;
+        }
+
+        @Override
+        public TriggerResult onProcessingTime(long l, TimeWindow timeWindow, TriggerContext triggerContext) throws Exception {
+            return TriggerResult.FIRE;
+        }
+
+        @Override
+        public TriggerResult onEventTime(long l, TimeWindow timeWindow, TriggerContext triggerContext) throws Exception {
+            return TriggerResult.FIRE;
+        }
+
+        @Override
+        public void clear(TimeWindow timeWindow, TriggerContext triggerContext) throws Exception {
+
+        }
     }
 }

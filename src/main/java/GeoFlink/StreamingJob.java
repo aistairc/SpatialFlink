@@ -91,7 +91,7 @@ public class StreamingJob implements Serializable {
 		//--onCluster "false" --approximateQuery "false" --queryOption "137" --inputTopicName "NYCBuildingsLineStrings" --queryTopicName "NYCBuildingsPolygonsGeoJSON_Live" --outputTopicName "QueryLatency" --inputFormat "GeoJSON" --dateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --queryDateFormat "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" --radius "0.05" --aggregate "SUM" --wType "TIME" --wInterval "1" --wStep "1" --uniformGridSize 100 --k "10" --trajDeletionThreshold 1000 --outOfOrderAllowedLateness "1" --omegaJoinDuration "1" --gridMinX "-74.25540" --gridMaxX "-73.70007" --gridMinY "40.49843" --gridMaxY "40.91506" --qGridMinX "-74.25540" --qGridMaxX "-73.70007" --qGridMinY "40.49843" --qGridMaxY "40.91506" --trajIDSet "9211800, 9320801, 9090500, 7282400, 10390100" --queryPoint "[-74.0000, 40.72714]" --queryPolygon "[-73.98452330316861, 40.67563064195701], [-73.98776303794413, 40.671603874732455], [-73.97826680869485, 40.666980275860936], [-73.97297380718484, 40.67347172572744], [-73.98452330316861, 40.67563064195701]" --queryLineString "[-73.98452330316861, 40.67563064195701], [-73.98776303794413, 40.671603874732455], [-73.97826680869485, 40.666980275860936], [-73.97297380718484, 40.67347172572744]"
 		//--onCluster "false" --kafkaBootStrapServers "150.82.97.204:9092" --approximateQuery "false" --queryOption "1012" --inputTopicName "TaxiDriveGeoJSON_Live" --queryTopicName "Beijing_Polygons_Live" --outputTopicName "QueryLatency" --inputFormat "GeoJSON" --dateFormat "yyyy-MM-dd HH:mm:ss" --queryDateFormat "yyyy-MM-dd HH:mm:ss" --ordinaryStreamAttributes "[oID, timestamp]" --queryStreamAttributes "[doitt_id, lstmoddate]" --radius "0.05" --aggregate "SUM" --wType "TIME" --wInterval "3" --wStep "3" --uniformGridSize 100 --cellLengthMeters 50 --k "10" --trajDeletionThreshold 1000 --outOfOrderAllowedLateness "1" --omegaJoinDuration "1" --gridMinX "115.50000" --gridMaxX "117.60000" --gridMinY "39.60000" --gridMaxY "40.91506" --qGridMinX "115.50000" --qGridMaxX "117.60000" --qGridMinY "39.60000" --qGridMaxY "41.10000" --trajIDSet "9211800, 9320801, 9090500, 7282400, 10390100" --queryPoint "[-74.0000, 40.72714]" --queryPolygon "[-73.98452330316861, 40.67563064195701], [-73.98776303794413, 40.671603874732455], [-73.97826680869485, 40.666980275860936], [-73.97297380718484, 40.67347172572744], [-73.98452330316861, 40.67563064195701]" --queryLineString "[-73.98452330316861, 40.67563064195701], [-73.98776303794413, 40.671603874732455], [-73.97826680869485, 40.666980275860936], [-73.97297380718484, 40.67347172572744]"
 
-		ParameterTool parameters = ParameterTool.fromArgs(args);
+		//ParameterTool parameters = ParameterTool.fromArgs(args);
 
 		Params params = new Params();
 		System.out.println(params.toString());
@@ -126,7 +126,7 @@ public class StreamingJob implements Serializable {
 		double radius = params.queryRadius; // Default 10x10 Grid
 		String aggregateFunction = params.queryAggregateFunction;    // "ALL", "SUM", "AVG", "MIN", "MAX" (Default = ALL)
 		int k = params.queryK; // k denotes filter size in filter query
-		int omegaJoinDurationSeconds = params.queryOmegaDuration;
+		int omegaDuration = params.queryOmegaDuration;
 		Set<String> trajIDs = params.queryTrajIDSet;
 		List<Coordinate> queryPointCoordinates = params.queryPoints;
 		List<List<Coordinate>> queryPolygons = params.queryPolygons;
@@ -452,7 +452,7 @@ public class StreamingJob implements Serializable {
 		//DataStream<Point> spatialTrajectoryStream = SpatialStream.TrajectoryStream(inputStream, inputFormat, inputDateFormat, uGrid);
 		QueryConfiguration realtimeConf = new QueryConfiguration(QueryType.RealTime);
 		realtimeConf.setApproximateQuery(approximateQuery);
-		realtimeConf.setWindowSize(windowSize);
+		realtimeConf.setWindowSize(omegaDuration);
 
 		QueryConfiguration windowConf = new QueryConfiguration(QueryType.WindowBased);
 		windowConf.setApproximateQuery(approximateQuery);
@@ -1262,15 +1262,14 @@ public class StreamingJob implements Serializable {
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, "timestamp", "oID", uGrid);
 				//Real-time kNN
 				DataStream<Tuple2<Point, Double>> outputStream = (DataStream<Tuple2<Point, Double>>)new PointPointTKNNQuery(realtimeConf, uGrid).run(spatialTrajectoryStream, qPoint, radius, k); //.print();
-				// Naive
-				//new PointPointTKNNQuery(windowConf, uGrid).runNative(spatialTrajectoryStream, qPoint, radius, k);
+				//outputStream.print();
 				break;
 			}
 			case 2011:{ // TSpatialKNNQuery Real-time Naive
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, "timestamp", "oID", uGrid);
 				// Naive
 				DataStream<Tuple2<Point, Double>> outputStream = (DataStream<Tuple2<Point, Double>>)new PointPointTKNNQuery(realtimeConf, uGrid).runNaive(spatialTrajectoryStream, qPoint, radius, k); //.print();
-
+				//outputStream.print();
 				break;
 			}
 			case 212:{ // TSpatialKNNQuery Windowed

@@ -20,6 +20,8 @@ import org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindow
 import org.apache.flink.streaming.api.windowing.assigners.SlidingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
+import org.apache.flink.streaming.api.windowing.triggers.Trigger;
+import org.apache.flink.streaming.api.windowing.triggers.TriggerResult;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 import org.locationtech.jts.geom.Coordinate;
@@ -88,12 +90,23 @@ public class PointPointTKNNQuery extends TKNNQuery<Point, Point> {
                     public long extractTimestamp(Point p) {
                         return p.timeStampMillisec;
                     }
-                });
+                }).startNewChain();
 
         DataStream<Point> filteredPoints = pointStreamWithTsAndWm.filter(new FilterFunction<Point>() {
             @Override
             public boolean filter(Point point) throws Exception {
-                return (neighboringCells.contains(point.gridID));
+                //return (neighboringCells.contains(point.gridID));
+                if(neighboringCells.contains(point.gridID)){ // Cell-based pruning
+                    //dCounter += 1;
+                    //System.out.println("counter " +  dCounter);
+
+                    if(DistanceFunctions.getPointPointEuclideanDistance(point.point.getX(), point.point.getY(), queryPoint.point.getX(), queryPoint.point.getY()) <= queryRadius)
+                        return true;
+                    else
+                        return false;
+                }
+                else
+                    return false;
             }
         });
 
@@ -102,13 +115,16 @@ public class PointPointTKNNQuery extends TKNNQuery<Point, Point> {
         DataStream<Tuple2<Point, Double>> kNNStream = filteredPoints.keyBy(new KeySelector<Point, String>() {
             @Override
             public String getKey(Point p) throws Exception {
-                return p.gridID;
+                //return p.gridID;
+                return p.objID;
             }
         }).window(TumblingProcessingTimeWindows.of(Time.seconds(omegaDuration)))
+                .trigger(new TKNNQuery.realTimeWindowTrigger())
                 .apply(new TKNNQuery.kNNEvaluationRealtime(queryPoint, k));
 
         // Logic to integrate all the kNNs to produce an integrated kNN
         return kNNStream.windowAll(TumblingProcessingTimeWindows.of(Time.seconds(omegaDuration)))
+                .trigger(new TKNNQuery.realTimeWindowAllTrigger())
                 .apply(new AllWindowFunction<Tuple2<Point, Double>, Tuple2<Point, Double>, TimeWindow>() {
 
                     //Map of objID and Point
@@ -390,17 +406,18 @@ public class PointPointTKNNQuery extends TKNNQuery<Point, Point> {
             }
         }).startNewChain();
 
-
         DataStream<Tuple2<Point, Double>> kNNStream = filteredPoints.keyBy(new KeySelector<Point, String>() {
             @Override
             public String getKey(Point p) throws Exception {
                 return p.objID;
             }
         }).window(TumblingProcessingTimeWindows.of(Time.seconds(omegaDuration)))
-                .apply(new TKNNQuery.kNNEvaluationRealtime(queryPoint, k));
+            .trigger(new TKNNQuery.realTimeWindowTrigger())
+            .apply(new TKNNQuery.kNNEvaluationRealtime(queryPoint, k));
 
         // Logic to integrate all the kNNs to produce an integrated kNN
         return kNNStream.windowAll(TumblingProcessingTimeWindows.of(Time.seconds(omegaDuration)))
+                .trigger(new TKNNQuery.realTimeWindowAllTrigger())
                 .apply(new AllWindowFunction<Tuple2<Point, Double>, Tuple2<Point, Double>, TimeWindow>() {
 
                     //Map of objID and Point
