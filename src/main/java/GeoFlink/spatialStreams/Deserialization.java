@@ -50,29 +50,23 @@ public class Deserialization implements Serializable {
         if(inputType.equals("GeoJSON")) {
             pointStream = inputStream.map(new GeoJSONToSpatial(uGrid));
         }
-        else if (inputType.equals("CSV")){
-            pointStream = inputStream.map(new CSVToSpatial(uGrid));
-        }
-        else if (inputType.equals("TSV")){
-            pointStream = inputStream.map(new TSVToSpatial(uGrid));
+        else {
+            pointStream = inputStream.map(new CSVTSVToSpatial(uGrid)).returns(Point.class);
         }
 
         return pointStream;
     }
 
-    public static DataStream<Point> TrajectoryStream(DataStream inputStream, String inputType, DateFormat dateFormat,
-                                                     String propertyTimeStamp, String propertyObjID, UniformGrid uGrid){
+    public static DataStream<Point> TrajectoryStream(DataStream inputStream, String inputType, DateFormat dateFormat, String delimiter,
+                                                     List<Integer> csvTsvSchemaAttr, String propertyTimeStamp, String propertyObjID, UniformGrid uGrid){
 
         DataStream<Point> trajectoryStream = null;
 
         if(inputType.equals("GeoJSON")) {
             trajectoryStream = inputStream.map(new GeoJSONToTSpatial(uGrid, dateFormat, propertyTimeStamp, propertyObjID));
         }
-        else if (inputType.equals("CSV")){
-            trajectoryStream = inputStream.map(new CSVToTSpatial(uGrid, dateFormat));
-        }
-        else if (inputType.equals("TSV")){
-            trajectoryStream = inputStream.map(new TSVToTSpatial(uGrid, dateFormat));
+        else {
+            trajectoryStream = inputStream.map(new CSVTSVToTSpatial(uGrid, dateFormat, delimiter, csvTsvSchemaAttr)).returns(Point.class);
         }
 
         return trajectoryStream;
@@ -85,17 +79,14 @@ public class Deserialization implements Serializable {
         if(inputType.equals("GeoJSON")) {
             polygonStream = inputStream.map(new GeoJSONToSpatialPolygon(uGrid));
         }
-        else if (inputType.equals("CSV")){
-            polygonStream = inputStream.map(new CSVToSpatialPolygon(uGrid));
-        }
-        else if (inputType.equals("TSV")){
-            polygonStream = inputStream.map(new TSVToSpatialPolygon(uGrid));
+        else {
+            polygonStream = inputStream.map(new CSVTSVToSpatialPolygon(uGrid)).returns(Polygon.class);
         }
 
         return polygonStream;
     }
 
-    public static DataStream<Polygon> TrajectoryStreamPolygon(DataStream inputStream, String inputType, DateFormat dateFormat,
+    public static DataStream<Polygon> TrajectoryStreamPolygon(DataStream inputStream, String inputType, DateFormat dateFormat, String delimiter,
                                                               String propertyTimeStamp, String propertyObjID, UniformGrid uGrid){
 
         DataStream<Polygon> trajectoryStream = null;
@@ -103,11 +94,8 @@ public class Deserialization implements Serializable {
         if(inputType.equals("GeoJSON")) {
             trajectoryStream = inputStream.map(new GeoJSONToTSpatialPolygon(uGrid, dateFormat, propertyTimeStamp, propertyObjID));
         }
-        else if (inputType.equals("CSV")){
-            trajectoryStream = inputStream.map(new CSVToTSpatialPolygon(uGrid, dateFormat));
-        }
-        else if (inputType.equals("TSV")){
-            trajectoryStream = inputStream.map(new TSVToTSpatialPolygon(uGrid, dateFormat));
+        else {
+            trajectoryStream = inputStream.map(new CSVTSVToTSpatialPolygon(uGrid, dateFormat, delimiter)).returns(Point.class);
         }
 
         return trajectoryStream;
@@ -207,63 +195,81 @@ public class Deserialization implements Serializable {
     }
 
     // Assuming that csv string contains longitude and latitude at positions 0 and 1, respectively
-    public static class CSVToSpatial extends RichMapFunction<ObjectNode, Point> {
+    public static class CSVTSVToSpatial extends RichMapFunction<String, Point> {
 
         UniformGrid uGrid;
 
         //ctor
-        public  CSVToSpatial() {};
-        public  CSVToSpatial(UniformGrid uGrid)
+        public CSVTSVToSpatial() {};
+        public CSVTSVToSpatial(UniformGrid uGrid)
         {
             this.uGrid = uGrid;
         };
 
         @Override
-        public Point map(ObjectNode strTuple) throws Exception {
-            Coordinate coordinate = getCoordinateFromPoint(strTuple.toString());
+        public Point map(String str) throws Exception {
+            Coordinate coordinate = getCoordinateFromPoint(str);
             Point spatialPoint = new Point(coordinate.x,  coordinate.y, uGrid);
             return spatialPoint;
         }
     }
 
     // Assuming that csv string contains longitude and latitude at positions 0 and 1, respectively
-    public static class CSVToTSpatial extends RichMapFunction<ObjectNode, Point> {
+    public static class CSVTSVToTSpatial extends RichMapFunction<String, Point> {
 
         UniformGrid uGrid;
         DateFormat dateFormat;
+        String delimiter;
+        List<Integer> csvTsvSchemaAttr;
 
         //ctor
-        public  CSVToTSpatial() {};
-        public  CSVToTSpatial(UniformGrid uGrid, DateFormat dateFormat)
+        public CSVTSVToTSpatial() {};
+        public CSVTSVToTSpatial(UniformGrid uGrid, DateFormat dateFormat, String delimiter, List<Integer> csvTsvSchemaAttr)
         {
             this.uGrid = uGrid;
             this.dateFormat = dateFormat;
+            this.delimiter = delimiter;
+            this.csvTsvSchemaAttr = csvTsvSchemaAttr;
         };
 
         @Override
-        public Point map(ObjectNode strTuple) throws Exception {
+        public Point map(String str) throws Exception {
 
             // customized for ATC Shopping mall data
             //A sample tuple/record: 1351039728.980,9471001,-22366,2452,1261.421,780.711,-2.415,-2.441
             // time [ms] (unixtime + milliseconds/1000), person id, position x [mm], position y [mm], position z (height) [mm], velocity [mm/s], angle of motion [rad], facing angle [rad]
 
             Point spatialPoint;
-            Coordinate coordinate = getCoordinateFromPoint(strTuple.toString());
-            List<String> strArrayList = Arrays.asList(strTuple.get("value").toString().replace("\"", "").split("\\s*,\\s*")); // For parsing CSV with , followed by space
+            boolean brinkoffFormat = false;
+
+            str = convertPointString(str, delimiter, csvTsvSchemaAttr);
+            Coordinate coordinate = getCoordinateFromPoint(str);
+            List<String> strArrayList = Arrays.asList(str.replace("\"", "").split("\\s*" + delimiter + "\\s*")); // For parsing CSV with , followed by space
             long time = 0;
             String strOId = null;
-            if (!strArrayList.get(0).startsWith("POINT")) {
-                strOId = strArrayList.get(0).trim();
+            // standard string
+            if (str.contains("POINT")) {
+                if (!strArrayList.get(0).startsWith("POINT")) {
+                    strOId = strArrayList.get(0).trim();
+                }
+            }
+            // Brinkoff Generator output string
+            else {
+                strOId = strArrayList.get(csvTsvSchemaAttr.get(0)).trim();
+                brinkoffFormat = true;
             }
             if (dateFormat != null) {
                 Collections.reverse(strArrayList);
-                for (String str : strArrayList){
+                for (String s : strArrayList){
                     try {
-                        time = dateFormat.parse(str.trim()).getTime();
+                        time = dateFormat.parse(s.trim()).getTime();
                         break;
                     }
                     catch(ParseException e) {}
                 }
+            }
+            if ((time == 0) && (brinkoffFormat == true)) {
+                time = Integer.valueOf(str.split(delimiter)[csvTsvSchemaAttr.get(1)]);
             }
             if (time != 0) {
                 spatialPoint = new Point(strOId, coordinate.x, coordinate.y, time, uGrid);
@@ -274,77 +280,6 @@ public class Deserialization implements Serializable {
             return spatialPoint;
         }
     }
-
-    // Assuming that tsv string contains longitude and latitude at positions 0 and 1, respectively
-    public static class TSVToSpatial extends RichMapFunction<ObjectNode, Point> {
-
-        UniformGrid uGrid;
-
-        //ctor
-        public  TSVToSpatial() {};
-        public  TSVToSpatial(UniformGrid uGrid)
-        {
-            this.uGrid = uGrid;
-        };
-
-        @Override
-        public Point map(ObjectNode strTuple) throws Exception {
-            Coordinate coordinate = getCoordinateFromPoint(strTuple.toString());
-            Point spatialPoint = new Point(coordinate.x,  coordinate.y, uGrid);
-            return spatialPoint;
-        }
-    }
-
-    // Assuming that tsv string contains longitude and latitude at positions 0 and 1, respectively
-    public static class TSVToTSpatial extends RichMapFunction<ObjectNode, Point> {
-
-        UniformGrid uGrid;
-        DateFormat dateFormat;
-
-        //ctor
-        public  TSVToTSpatial() {};
-        public  TSVToTSpatial(UniformGrid uGrid, DateFormat dateFormat)
-        {
-            this.uGrid = uGrid;
-            this.dateFormat = dateFormat;
-        };
-
-        @Override
-        public Point map(ObjectNode strTuple) throws Exception {
-
-            // customized for ATC Shopping mall data
-            //A sample tuple/record: 1351039728.980,9471001,-22366,2452,1261.421,780.711,-2.415,-2.441
-            // time [ms] (unixtime + milliseconds/1000), person id, position x [mm], position y [mm], position z (height) [mm], velocity [mm/s], angle of motion [rad], facing angle [rad]
-
-            Point spatialPoint;
-            Coordinate coordinate = getCoordinateFromPoint(strTuple.toString());
-            List<String> strArrayList = Arrays.asList(strTuple.get("value").toString().replace("\"", "").split("\\\\t")); // For parsing TSV with \t
-            long time = 0;
-            String strOId = null;
-            if (!strArrayList.get(0).trim().startsWith("POINT")) {
-                strOId = strArrayList.get(0).trim();
-            }
-            if (dateFormat != null) {
-                Collections.reverse(strArrayList);
-                for (String str : strArrayList){
-                    try {
-                        time = dateFormat.parse(str.trim()).getTime();
-                        break;
-                    }
-                    catch(ParseException e) {}
-                }
-            }
-            if (time != 0) {
-                spatialPoint = new Point(strOId, coordinate.x, coordinate.y, time, uGrid);
-            }
-            else {
-                spatialPoint = new Point(strOId, coordinate.x, coordinate.y, 0, uGrid);
-            }
-            return spatialPoint;
-        }
-    }
-
-
 
     public static class GeoJSONToSpatialPolygon extends RichMapFunction<ObjectNode, Polygon> {
 
@@ -477,57 +412,59 @@ public class Deserialization implements Serializable {
     }
 
     // Assuming that csv string contains longitude and latitude at positions 0 and 1, respectively
-    public static class CSVToSpatialPolygon extends RichMapFunction<ObjectNode, Polygon> {
+    public static class CSVTSVToSpatialPolygon extends RichMapFunction<String, Polygon> {
 
         UniformGrid uGrid;
 
         //ctor
-        public  CSVToSpatialPolygon() {};
-        public  CSVToSpatialPolygon(UniformGrid uGrid)
+        public CSVTSVToSpatialPolygon() {};
+        public CSVTSVToSpatialPolygon(UniformGrid uGrid)
         {
             this.uGrid = uGrid;
         };
 
         @Override
-        public Polygon map(ObjectNode strTuple) throws Exception {
+        public Polygon map(String str) throws Exception {
             // {"key":1,"value":"MULTIPOLYGON (((-74.15010482037168 40.62183511874645, -74.15016701565006 40.62177739783489, -74.1502116609276 40.62180593197037, -74.15015270982748 40.62185788893257, -74.15014748371995 40.62186259918266, -74.1501238625006 40.6218473986088, -74.150107093191 40.62186251414858, -74.15008804280825 40.621850243299434, -74.15010482037168 40.62183511874645)))"}
             // value = "MULTIPOLYGON (((-74.15010482037168 40.62183511874645, -74.15016701565006 40.62177739783489, -74.1502116609276 40.62180593197037, -74.15015270982748 40.62185788893257, -74.15014748371995 40.62186259918266, -74.1501238625006 40.6218473986088, -74.150107093191 40.62186251414858, -74.15008804280825 40.621850243299434, -74.15010482037168 40.62183511874645)))"
 
             Polygon spatialPolygon;
-            if (strTuple.get("value").toString().contains("MULTIPOLYGON")) {
+            if (str.contains("MULTIPOLYGON")) {
                 List<List<List<Coordinate>>> listCoordinate = convertMultiCoordinates(
-                        strTuple.get("value").toString(), '(', ')', ",", " ", 3);
+                        str, '(', ')', ",", " ", 3);
                 spatialPolygon = new MultiPolygon(listCoordinate, uGrid);
             }
             else {
                 List<List<Coordinate>> listCoordinate = convertCoordinates(
-                        strTuple.get("value").toString(), '(', ')', ",", " ", 2);
+                        str, '(', ')', ",", " ", 2);
                 spatialPolygon = new Polygon(listCoordinate, uGrid);
             }
             return spatialPolygon;
         }
     }
 
-    public static class CSVToTSpatialPolygon extends RichMapFunction<ObjectNode, Polygon> {
+    public static class CSVTSVToTSpatialPolygon extends RichMapFunction<String, Polygon> {
 
         UniformGrid uGrid;
         DateFormat dateFormat;
+        String delimiter;
 
         //ctor
-        public  CSVToTSpatialPolygon() {};
-        public  CSVToTSpatialPolygon(UniformGrid uGrid, DateFormat dateFormat)
+        public CSVTSVToTSpatialPolygon() {};
+        public CSVTSVToTSpatialPolygon(UniformGrid uGrid, DateFormat dateFormat, String delimiter)
         {
             this.uGrid = uGrid;
             this.dateFormat = dateFormat;
+            this.delimiter = delimiter;
         };
 
         @Override
-        public Polygon map(ObjectNode strTuple) throws Exception {
+        public Polygon map(String str) throws Exception {
             // {"key":1,"value":"MULTIPOLYGON (((-74.15010482037168 40.62183511874645, -74.15016701565006 40.62177739783489, -74.1502116609276 40.62180593197037, -74.15015270982748 40.62185788893257, -74.15014748371995 40.62186259918266, -74.1501238625006 40.6218473986088, -74.150107093191 40.62186251414858, -74.15008804280825 40.621850243299434, -74.15010482037168 40.62183511874645)))"}
             // value = "MULTIPOLYGON (((-74.15010482037168 40.62183511874645, -74.15016701565006 40.62177739783489, -74.1502116609276 40.62180593197037, -74.15015270982748 40.62185788893257, -74.15014748371995 40.62186259918266, -74.1501238625006 40.6218473986088, -74.150107093191 40.62186251414858, -74.15008804280825 40.621850243299434, -74.15010482037168 40.62183511874645)))"
 
             Polygon spatialPolygon;
-            List<String> strArrayList = Arrays.asList(strTuple.get("value").toString().replace("\"", "").split("\\s*,\\s*")); // For parsing CSV with , followed by space
+            List<String> strArrayList = Arrays.asList(str.replace("\"", "").split("\\s*" + delimiter + "\\s*")); // For parsing CSV with , followed by space
             long time = 0;
             String oId = null;
             if (!strArrayList.get(0).trim().startsWith("POLYGON") && !strArrayList.get(0).trim().startsWith("MULTIPOLYGON")) {
@@ -538,17 +475,17 @@ public class Deserialization implements Serializable {
             }
             if (dateFormat != null) {
                 Collections.reverse(strArrayList);
-                for (String str : strArrayList){
+                for (String s : strArrayList){
                     try {
-                        time = dateFormat.parse(str.trim()).getTime();
+                        time = dateFormat.parse(s.trim()).getTime();
                         break;
                     }
                     catch(ParseException e) {}
                 }
             }
-            if (strTuple.get("value").toString().contains("MULTIPOLYGON")) {
+            if (str.contains("MULTIPOLYGON")) {
                 List<List<List<Coordinate>>> listCoordinate = convertMultiCoordinates(
-                        strTuple.get("value").toString(), '(', ')', ",", " ", 3);
+                        str, '(', ')', ",", " ", 3);
                 if (time != 0) {
                     spatialPolygon = new MultiPolygon(listCoordinate, oId, time, uGrid);
                 }
@@ -558,101 +495,7 @@ public class Deserialization implements Serializable {
             }
             else {
                 List<List<Coordinate>> listCoordinate = convertCoordinates(
-                        strTuple.get("value").toString(), '(', ')', ",", " ", 2);
-                if (time != 0) {
-                    spatialPolygon = new Polygon(oId, listCoordinate, time, uGrid);
-                }
-                else {
-                    spatialPolygon = new Polygon(listCoordinate, uGrid);
-                }
-            }
-            return spatialPolygon;
-        }
-    }
-
-    // Assuming that tsv string contains longitude and latitude at positions 0 and 1, respectively
-    public static class TSVToSpatialPolygon extends RichMapFunction<ObjectNode, Polygon> {
-
-        UniformGrid uGrid;
-
-        //ctor
-        public  TSVToSpatialPolygon() {};
-        public  TSVToSpatialPolygon(UniformGrid uGrid)
-        {
-            this.uGrid = uGrid;
-        };
-
-        @Override
-        public Polygon map(ObjectNode strTuple) throws Exception {
-            // {"key":1,"value":"MULTIPOLYGON (((-74.15010482037168 40.62183511874645, -74.15016701565006 40.62177739783489, -74.1502116609276 40.62180593197037, -74.15015270982748 40.62185788893257, -74.15014748371995 40.62186259918266, -74.1501238625006 40.6218473986088, -74.150107093191 40.62186251414858, -74.15008804280825 40.621850243299434, -74.15010482037168 40.62183511874645)))"}
-            // value = "MULTIPOLYGON (((-74.15010482037168 40.62183511874645, -74.15016701565006 40.62177739783489, -74.1502116609276 40.62180593197037, -74.15015270982748 40.62185788893257, -74.15014748371995 40.62186259918266, -74.1501238625006 40.6218473986088, -74.150107093191 40.62186251414858, -74.15008804280825 40.621850243299434, -74.15010482037168 40.62183511874645)))"
-
-            Polygon spatialPolygon;
-            if (strTuple.get("value").toString().contains("MULTIPOLYGON")) {
-                List<List<List<Coordinate>>> listCoordinate = convertMultiCoordinates(
-                        strTuple.get("value").toString(), '(', ')', ",", " ", 3);
-                spatialPolygon = new MultiPolygon(listCoordinate, uGrid);
-            }
-            else {
-                List<List<Coordinate>> listCoordinate = convertCoordinates(
-                        strTuple.get("value").toString(), '(', ')', ",", " ", 2);
-                spatialPolygon = new Polygon(listCoordinate, uGrid);
-            }
-            return spatialPolygon;
-        }
-    }
-
-    public static class TSVToTSpatialPolygon extends RichMapFunction<ObjectNode, Polygon> {
-
-        UniformGrid uGrid;
-        DateFormat dateFormat;
-
-        //ctor
-        public  TSVToTSpatialPolygon() {};
-        public  TSVToTSpatialPolygon(UniformGrid uGrid, DateFormat dateFormat)
-        {
-            this.uGrid = uGrid;
-            this.dateFormat = dateFormat;
-        };
-
-        @Override
-        public Polygon map(ObjectNode strTuple) throws Exception {
-            // {"key":1,"value":"MULTIPOLYGON (((-74.15010482037168 40.62183511874645, -74.15016701565006 40.62177739783489, -74.1502116609276 40.62180593197037, -74.15015270982748 40.62185788893257, -74.15014748371995 40.62186259918266, -74.1501238625006 40.6218473986088, -74.150107093191 40.62186251414858, -74.15008804280825 40.621850243299434, -74.15010482037168 40.62183511874645)))"}
-            // value = "MULTIPOLYGON (((-74.15010482037168 40.62183511874645, -74.15016701565006 40.62177739783489, -74.1502116609276 40.62180593197037, -74.15015270982748 40.62185788893257, -74.15014748371995 40.62186259918266, -74.1501238625006 40.6218473986088, -74.150107093191 40.62186251414858, -74.15008804280825 40.621850243299434, -74.15010482037168 40.62183511874645)))"
-
-            Polygon spatialPolygon;
-            List<String> strArrayList = Arrays.asList(strTuple.get("value").toString().replace("\"", "").split("\\\\t")); // For parsing TSV with \t
-            long time = 0;
-            String oId = null;
-            if (!strArrayList.get(0).trim().startsWith("POLYGON") && !strArrayList.get(0).trim().startsWith("MULTIPOLYGON")) {
-                try {
-                    oId = strArrayList.get(0).trim();
-                }
-                catch (NumberFormatException e) {}
-            }
-            if (dateFormat != null) {
-                Collections.reverse(strArrayList);
-                for (String str : strArrayList){
-                    try {
-                        time = dateFormat.parse(str.trim()).getTime();
-                        break;
-                    }
-                    catch(ParseException e) {}
-                }
-            }
-            if (strTuple.get("value").toString().contains("MULTIPOLYGON")) {
-                List<List<List<Coordinate>>> listCoordinate = convertMultiCoordinates(
-                        strTuple.get("value").toString(), '(', ')', ",", " ", 3);
-                if (time != 0) {
-                    spatialPolygon = new MultiPolygon(listCoordinate, oId, time, uGrid);
-                }
-                else {
-                    spatialPolygon = new MultiPolygon(listCoordinate, oId, 0, uGrid);
-                }
-            }
-            else {
-                List<List<Coordinate>> listCoordinate = convertCoordinates(
-                        strTuple.get("value").toString(), '(', ')', ",", " ", 2);
+                        str, '(', ')', ",", " ", 2);
                 if (time != 0) {
                     spatialPolygon = new Polygon(oId, listCoordinate, time, uGrid);
                 }
@@ -671,17 +514,14 @@ public class Deserialization implements Serializable {
         if(inputType.equals("GeoJSON")) {
             lineStringStream = inputStream.map(new GeoJSONToSpatialLineString(uGrid));
         }
-        else if (inputType.equals("CSV")){
-            lineStringStream = inputStream.map(new CSVToSpatialLineString(uGrid));
-        }
-        else if (inputType.equals("TSV")){
-            lineStringStream = inputStream.map(new TSVToSpatialLineString(uGrid));
+        else {
+            lineStringStream = inputStream.map(new CSVTSVToSpatialLineString(uGrid)).returns(Polygon.class);
         }
 
         return lineStringStream;
     }
 
-    public static DataStream<LineString> TrajectoryStreamLineString(DataStream inputStream, String inputType, DateFormat dateFormat,
+    public static DataStream<LineString> TrajectoryStreamLineString(DataStream inputStream, String inputType, DateFormat dateFormat, String delimiter,
                                                                     String propertyTimeStamp, String propertyObjID, UniformGrid uGrid){
 
         DataStream<LineString> trajectoryStream = null;
@@ -689,11 +529,8 @@ public class Deserialization implements Serializable {
         if(inputType.equals("GeoJSON")) {
             trajectoryStream = inputStream.map(new GeoJSONToTSpatialLineString(uGrid, dateFormat, propertyTimeStamp, propertyObjID));
         }
-        else if (inputType.equals("CSV")){
-            trajectoryStream = inputStream.map(new CSVToTSpatialLineString(uGrid, dateFormat));
-        }
-        else if (inputType.equals("TSV")){
-            trajectoryStream = inputStream.map(new TSVToTSpatialLineString(uGrid, dateFormat));
+        else {
+            trajectoryStream = inputStream.map(new CSVTSVToTSpatialLineString(uGrid, dateFormat, delimiter)).returns(Point.class);
         }
 
         return trajectoryStream;
@@ -821,54 +658,56 @@ public class Deserialization implements Serializable {
     }
 
     // Assuming that csv string contains longitude and latitude at positions 0 and 1, respectively
-    public static class CSVToSpatialLineString extends RichMapFunction<ObjectNode, LineString> {
+    public static class CSVTSVToSpatialLineString extends RichMapFunction<String, LineString> {
 
         UniformGrid uGrid;
 
         //ctor
-        public  CSVToSpatialLineString() {};
-        public  CSVToSpatialLineString(UniformGrid uGrid)
+        public CSVTSVToSpatialLineString() {};
+        public CSVTSVToSpatialLineString(UniformGrid uGrid)
         {
             this.uGrid = uGrid;
         };
 
         @Override
-        public LineString map(ObjectNode strTuple) throws Exception {
+        public LineString map(String str) throws Exception {
             //{"key":1,"value":"MULTILINESTRING((170.0 45.0,180.0 45.0,-180.0 45.0,-170.0, 45.0))"}
 
             LineString spatialLineString;
-            if (strTuple.get("value").toString().contains("MULTILINESTRING")) {
+            if (str.contains("MULTILINESTRING")) {
                 List<List<Coordinate>> list = convertCoordinates(
-                        strTuple.get("value").toString(), '(', ')', ",", " ", 2);
+                        str, '(', ')', ",", " ", 2);
                 spatialLineString = new MultiLineString(null, list, uGrid);
             }
             else {
                 List<List<Coordinate>> parent = convertCoordinates(
-                        strTuple.get("value").toString(), '(', ')', ",", " ", 1);
+                        str, '(', ')', ",", " ", 1);
                 spatialLineString = new LineString(null, parent.get(0), uGrid);
             }
             return spatialLineString;
         }
     }
 
-    public static class CSVToTSpatialLineString extends RichMapFunction<ObjectNode, LineString> {
+    public static class CSVTSVToTSpatialLineString extends RichMapFunction<String, LineString> {
 
         UniformGrid uGrid;
         DateFormat dateFormat;
+        String delimiter;
 
         //ctor
-        public  CSVToTSpatialLineString() {};
-        public  CSVToTSpatialLineString(UniformGrid uGrid, DateFormat dateFormat)
+        public CSVTSVToTSpatialLineString() {};
+        public CSVTSVToTSpatialLineString(UniformGrid uGrid, DateFormat dateFormat, String delimiter)
         {
             this.uGrid = uGrid;
             this.dateFormat = dateFormat;
+            this.delimiter = delimiter;
         };
 
         @Override
-        public LineString map(ObjectNode strTuple) throws Exception {
+        public LineString map(String str) throws Exception {
 
             LineString spatialLineString;
-            List<String> strArrayList = Arrays.asList(strTuple.get("value").toString().replace("\"", "").split("\\s*,\\s*")); // For parsing CSV with , followed by space
+            List<String> strArrayList = Arrays.asList(str.replace("\"", "").split("\\s*" + delimiter + "\\s*")); // For parsing CSV with , followed by space
             long time = 0;
             String strOId = null;
             if (!strArrayList.get(0).trim().startsWith("LINESTRING") && !strArrayList.get(0).trim().startsWith("MULTILINESTRING")) {
@@ -876,17 +715,17 @@ public class Deserialization implements Serializable {
             }
             if (dateFormat != null) {
                 Collections.reverse(strArrayList);
-                for (String str : strArrayList){
+                for (String s : strArrayList){
                     try {
-                        time = dateFormat.parse(str.trim()).getTime();
+                        time = dateFormat.parse(s.trim()).getTime();
                         break;
                     }
                     catch(ParseException e) {}
                 }
             }
-            if (strTuple.get("value").toString().contains("MULTILINESTRING")) {
+            if (str.contains("MULTILINESTRING")) {
                 List<List<Coordinate>> lists = convertCoordinates(
-                        strTuple.get("value").toString(), '(', ')', ",", " ", 2);
+                        str, '(', ')', ",", " ", 2);
                 if (time != 0) {
                     spatialLineString = new MultiLineString(strOId, lists, time, uGrid);
                 }
@@ -896,95 +735,7 @@ public class Deserialization implements Serializable {
             }
             else {
                 List<List<Coordinate>> lists = convertCoordinates(
-                        strTuple.get("value").toString(), '(', ')', ",", " ", 1);
-                if (time != 0) {
-                    spatialLineString = new LineString(strOId, lists.get(0), time, uGrid);
-                }
-                else {
-                    spatialLineString = new LineString(strOId, lists.get(0), uGrid);
-                }
-            }
-            return spatialLineString;
-        }
-    }
-
-    // Assuming that tsv string contains longitude and latitude at positions 0 and 1, respectively
-    public static class TSVToSpatialLineString extends RichMapFunction<ObjectNode, LineString> {
-
-        UniformGrid uGrid;
-
-        //ctor
-        public  TSVToSpatialLineString() {};
-        public  TSVToSpatialLineString(UniformGrid uGrid)
-        {
-            this.uGrid = uGrid;
-        };
-
-        @Override
-        public LineString map(ObjectNode strTuple) throws Exception {
-            //{"key":1,"value":"MULTILINESTRING((170.0 45.0,180.0 45.0,-180.0 45.0,-170.0, 45.0))"}
-
-            LineString spatialLineString;
-            if (strTuple.get("value").toString().contains("MULTILINESTRING")) {
-                List<List<Coordinate>> list = convertCoordinates(
-                        strTuple.get("value").toString(), '(', ')', ",", " ", 2);
-                spatialLineString = new MultiLineString(null, list, uGrid);
-            }
-            else {
-                List<List<Coordinate>> parent = convertCoordinates(
-                        strTuple.get("value").toString(), '(', ')', ",", " ", 1);
-                spatialLineString = new LineString(null, parent.get(0), uGrid);
-            }
-            return spatialLineString;
-        }
-    }
-
-    public static class TSVToTSpatialLineString extends RichMapFunction<ObjectNode, LineString> {
-
-        UniformGrid uGrid;
-        DateFormat dateFormat;
-
-        //ctor
-        public  TSVToTSpatialLineString() {};
-        public  TSVToTSpatialLineString(UniformGrid uGrid, DateFormat dateFormat)
-        {
-            this.uGrid = uGrid;
-            this.dateFormat = dateFormat;
-        };
-
-        @Override
-        public LineString map(ObjectNode strTuple) throws Exception {
-
-            LineString spatialLineString;
-            List<String> strArrayList = Arrays.asList(strTuple.get("value").toString().replace("\"", "").split("\\\\t")); // For parsing TSV with \t followed by space
-            long time = 0;
-            String strOId = null;
-            if (!strArrayList.get(0).trim().startsWith("LINESTRING") && !strArrayList.get(0).trim().startsWith("MULTILINESTRING")) {
-                strOId = strArrayList.get(0).trim();
-            }
-            if (dateFormat != null) {
-                Collections.reverse(strArrayList);
-                for (String str : strArrayList){
-                    try {
-                        time = dateFormat.parse(str.trim()).getTime();
-                        break;
-                    }
-                    catch(ParseException e) {}
-                }
-            }
-            if (strTuple.get("value").toString().contains("MULTILINESTRING")) {
-                List<List<Coordinate>> lists = convertCoordinates(
-                        strTuple.get("value").toString(), '(', ')', ",", " ", 2);
-                if (time != 0) {
-                    spatialLineString = new MultiLineString(strOId, lists, time, uGrid);
-                }
-                else {
-                    spatialLineString = new MultiLineString(strOId, lists, uGrid);
-                }
-            }
-            else {
-                List<List<Coordinate>> lists = convertCoordinates(
-                        strTuple.get("value").toString(), '(', ')', ",", " ", 1);
+                        str, '(', ')', ",", " ", 1);
                 if (time != 0) {
                     spatialLineString = new LineString(strOId, lists.get(0), time, uGrid);
                 }
@@ -1003,17 +754,14 @@ public class Deserialization implements Serializable {
         if(inputType.equals("GeoJSON")) {
             geometryCollectionStream = inputStream.map(new GeoJSONToSpatialGeometryCollection(uGrid));
         }
-        else if (inputType.equals("CSV")){
-            geometryCollectionStream = inputStream.map(new CSVToSpatialGeometryCollection(uGrid));
-        }
-        else if (inputType.equals("TSV")){
-            geometryCollectionStream = inputStream.map(new TSVToSpatialGeometryCollection(uGrid));
+        else {
+            geometryCollectionStream = inputStream.map(new CSVTSVToSpatialGeometryCollection(uGrid)).returns(Polygon.class);
         }
 
         return geometryCollectionStream;
     }
 
-    public static DataStream<GeometryCollection> TrajectoryStreamGeometryCollection(DataStream inputStream, String inputType, DateFormat dateFormat,
+    public static DataStream<GeometryCollection> TrajectoryStreamGeometryCollection(DataStream inputStream, String inputType, DateFormat dateFormat, String delimiter,
                                                                                     String propertyTimeStamp, String propertyObjID, UniformGrid uGrid){
 
         DataStream<GeometryCollection> trajectoryStream = null;
@@ -1021,11 +769,8 @@ public class Deserialization implements Serializable {
         if(inputType.equals("GeoJSON")) {
             trajectoryStream = inputStream.map(new GeoJSONToTSpatialGeometryCollection(uGrid, dateFormat, propertyTimeStamp, propertyObjID));
         }
-        else if (inputType.equals("CSV")){
-            trajectoryStream = inputStream.map(new CSVToTSpatialGeometryCollection(uGrid, dateFormat));
-        }
-        else if (inputType.equals("TSV")){
-            trajectoryStream = inputStream.map(new TSVToTSpatialGeometryCollection(uGrid, dateFormat));
+        else {
+            trajectoryStream = inputStream.map(new CSVTSVToTSpatialGeometryCollection(uGrid, dateFormat, delimiter)).returns(Point.class);
         }
 
         return trajectoryStream;
@@ -1183,21 +928,21 @@ public class Deserialization implements Serializable {
         }
     }
 
-    public static class CSVToSpatialGeometryCollection extends RichMapFunction<ObjectNode, GeometryCollection> {
+    public static class CSVTSVToSpatialGeometryCollection extends RichMapFunction<String, GeometryCollection> {
 
         UniformGrid uGrid;
 
         //ctor
-        public  CSVToSpatialGeometryCollection() {};
-        public  CSVToSpatialGeometryCollection(UniformGrid uGrid)
+        public CSVTSVToSpatialGeometryCollection() {};
+        public CSVTSVToSpatialGeometryCollection(UniformGrid uGrid)
         {
             this.uGrid = uGrid;
         };
 
         @Override
-        public GeometryCollection map(ObjectNode strTuple) throws Exception {
+        public GeometryCollection map(String str) throws Exception {
             List<SpatialObject> listObj = new ArrayList<SpatialObject>();
-            String str = strTuple.get("value").toString();
+//            String str = str.get("value").toString();
             String objStr, cmpStr;
             while (0 < str.length()) {
                 cmpStr = "Point";
@@ -1271,23 +1016,25 @@ public class Deserialization implements Serializable {
         }
     }
 
-    public static class CSVToTSpatialGeometryCollection extends RichMapFunction<ObjectNode, GeometryCollection> {
+    public static class CSVTSVToTSpatialGeometryCollection extends RichMapFunction<String, GeometryCollection> {
 
         UniformGrid uGrid;
         DateFormat dateFormat;
+        String delimiter;
 
         //ctor
-        public  CSVToTSpatialGeometryCollection() {};
-        public  CSVToTSpatialGeometryCollection(UniformGrid uGrid, DateFormat dateFormat)
+        public CSVTSVToTSpatialGeometryCollection() {};
+        public CSVTSVToTSpatialGeometryCollection(UniformGrid uGrid, DateFormat dateFormat, String delimiter)
         {
             this.uGrid = uGrid;
             this.dateFormat = dateFormat;
+            this.delimiter = delimiter;
         };
 
         @Override
-        public GeometryCollection map(ObjectNode strTuple) throws Exception {
+        public GeometryCollection map(String str) throws Exception {
 
-            List<String> strArrayList = Arrays.asList(strTuple.get("value").toString().replace("\"", "").split("\\s*,\\s*")); // For parsing CSV with , followed by space
+            List<String> strArrayList = Arrays.asList(str.replace("\"", "").split("\\s*" + delimiter + "\\s*")); // For parsing CSV with , followed by space
             long time = 0;
             String oId = null;
             if (!strArrayList.get(0).trim().startsWith("GEOMETRYCOLLECTION")) {
@@ -1298,9 +1045,9 @@ public class Deserialization implements Serializable {
             }
             if (dateFormat != null) {
                 Collections.reverse(strArrayList);
-                for (String str : strArrayList){
+                for (String s : strArrayList){
                     try {
-                        time = dateFormat.parse(str.trim()).getTime();
+                        time = dateFormat.parse(s.trim()).getTime();
                         break;
                     }
                     catch(ParseException e) {}
@@ -1308,206 +1055,6 @@ public class Deserialization implements Serializable {
             }
 
             List<SpatialObject> listObj = new ArrayList<SpatialObject>();
-            String str = strTuple.get("value").toString();
-            String objStr, cmpStr;
-            while (0 < str.length()) {
-                cmpStr = "Point";
-                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
-                if (objStr.equalsIgnoreCase(cmpStr)) {
-                    Coordinate coordinate = getCoordinateFromPoint(str);
-                    Point point = new Point(coordinate.x,  coordinate.y, uGrid);
-                    listObj.add(point);
-                    str = str.substring(cmpStr.length());
-                    continue;
-                }
-                cmpStr = "MultiPoint";
-                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
-                if (objStr.equalsIgnoreCase(cmpStr)) {
-                    List<List<Coordinate>> parent = convertCoordinates(
-                            str, '(', ')', ",", " ", 2);
-                    List<Coordinate> listMultiPoint = new ArrayList<Coordinate>();
-                    for (List<Coordinate> list : parent) {
-                        listMultiPoint.addAll(list);
-                    }
-                    MultiPoint multiPoint = new MultiPoint(null, listMultiPoint, uGrid);
-                    listObj.add(multiPoint);
-                    str = str.substring(cmpStr.length());
-                    continue;
-                }
-                cmpStr = "MultiPolygon";
-                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
-                if (objStr.equalsIgnoreCase(cmpStr)) {
-                    List<List<List<Coordinate>>> listCoordinate = convertMultiCoordinates(
-                            str, '(', ')', ",", " ", 3);
-                    MultiPolygon multiPolygon = new MultiPolygon(listCoordinate, uGrid);
-                    listObj.add(multiPolygon);
-                    str = str.substring(cmpStr.length());
-                    continue;
-                }
-                cmpStr = "Polygon";
-                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
-                if (objStr.equalsIgnoreCase(cmpStr)) {
-                    List<List<Coordinate>> listCoordinate = convertCoordinates(
-                            str, '(', ')', ",", " ", 2);
-                    Polygon polygon = new Polygon(listCoordinate, uGrid);
-                    listObj.add(polygon);
-                    str = str.substring(cmpStr.length());
-                    continue;
-                }
-                cmpStr = "MultiLineString";
-                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
-                if (objStr.equalsIgnoreCase(cmpStr)) {
-                    List<List<Coordinate>> list = convertCoordinates(
-                            str, '(', ')', ",", " ", 2);
-                    MultiLineString multiLineString = new MultiLineString(null, list, uGrid);
-                    listObj.add(multiLineString);
-                    str = str.substring(cmpStr.length());
-                    continue;
-                }
-                cmpStr = "LineString";
-                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
-                if (objStr.equalsIgnoreCase(cmpStr)) {
-                    List<List<Coordinate>> parent = convertCoordinates(
-                            str, '(', ')', ",", " ", 1);
-                    LineString lineString = new LineString(null, parent.get(0), uGrid);
-                    listObj.add(lineString);
-                    str = str.substring(cmpStr.length());
-                    continue;
-                }
-                str = str.substring(1);
-            }
-
-            GeometryCollection spatialGeometryCollection = new GeometryCollection(listObj, oId, time);
-            return spatialGeometryCollection;
-        }
-    }
-
-    public static class TSVToSpatialGeometryCollection extends RichMapFunction<ObjectNode, GeometryCollection> {
-
-        UniformGrid uGrid;
-
-        //ctor
-        public  TSVToSpatialGeometryCollection() {};
-        public  TSVToSpatialGeometryCollection(UniformGrid uGrid)
-        {
-            this.uGrid = uGrid;
-        };
-
-        @Override
-        public GeometryCollection map(ObjectNode strTuple) throws Exception {
-            List<SpatialObject> listObj = new ArrayList<SpatialObject>();
-            String str = strTuple.get("value").toString();
-            String objStr, cmpStr;
-            while (0 < str.length()) {
-                cmpStr = "Point";
-                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
-                if (objStr.equalsIgnoreCase(cmpStr)) {
-                    Coordinate coordinate = getCoordinateFromPoint(str);
-                    Point point = new Point(coordinate.x,  coordinate.y, uGrid);
-                    listObj.add(point);
-                    str = str.substring(cmpStr.length());
-                    continue;
-                }
-                cmpStr = "MultiPoint";
-                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
-                if (objStr.equalsIgnoreCase(cmpStr)) {
-                    List<List<Coordinate>> parent = convertCoordinates(
-                            str, '(', ')', ",", " ", 2);
-                    List<Coordinate> listMultiPoint = new ArrayList<Coordinate>();
-                    for (List<Coordinate> list : parent) {
-                        listMultiPoint.addAll(list);
-                    }
-                    MultiPoint multiPoint = new MultiPoint(null, listMultiPoint, uGrid);
-                    listObj.add(multiPoint);
-                    str = str.substring(cmpStr.length());
-                    continue;
-                }
-                cmpStr = "MultiPolygon";
-                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
-                if (objStr.equalsIgnoreCase(cmpStr)) {
-                    List<List<List<Coordinate>>> listCoordinate = convertMultiCoordinates(
-                            str, '(', ')', ",", " ", 3);
-                    MultiPolygon multiPolygon = new MultiPolygon(listCoordinate, uGrid);
-                    listObj.add(multiPolygon);
-                    str = str.substring(cmpStr.length());
-                    continue;
-                }
-                cmpStr = "Polygon";
-                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
-                if (objStr.equalsIgnoreCase(cmpStr)) {
-                    List<List<Coordinate>> listCoordinate = convertCoordinates(
-                            str, '(', ')', ",", " ", 2);
-                    Polygon polygon = new Polygon(listCoordinate, uGrid);
-                    listObj.add(polygon);
-                    str = str.substring(cmpStr.length());
-                    continue;
-                }
-                cmpStr = "MultiLineString";
-                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
-                if (objStr.equalsIgnoreCase(cmpStr)) {
-                    List<List<Coordinate>> list = convertCoordinates(
-                            str, '(', ')', ",", " ", 2);
-                    MultiLineString multiLineString = new MultiLineString(null, list, uGrid);
-                    listObj.add(multiLineString);
-                    str = str.substring(cmpStr.length());
-                    continue;
-                }
-                cmpStr = "LineString";
-                objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
-                if (objStr.equalsIgnoreCase(cmpStr)) {
-                    List<List<Coordinate>> parent = convertCoordinates(
-                            str, '(', ')', ",", " ", 1);
-                    LineString lineString = new LineString(null, parent.get(0), uGrid);
-                    listObj.add(lineString);
-                    str = str.substring(cmpStr.length());
-                    continue;
-                }
-                str = str.substring(1);
-            }
-
-            GeometryCollection spatialGeometryCollection = new GeometryCollection(listObj, null);
-            return spatialGeometryCollection;
-        }
-    }
-
-    public static class TSVToTSpatialGeometryCollection extends RichMapFunction<ObjectNode, GeometryCollection> {
-
-        UniformGrid uGrid;
-        DateFormat dateFormat;
-
-        //ctor
-        public  TSVToTSpatialGeometryCollection() {};
-        public  TSVToTSpatialGeometryCollection(UniformGrid uGrid, DateFormat dateFormat)
-        {
-            this.uGrid = uGrid;
-            this.dateFormat = dateFormat;
-        };
-
-        @Override
-        public GeometryCollection map(ObjectNode strTuple) throws Exception {
-
-            List<String> strArrayList = Arrays.asList(strTuple.get("value").toString().replace("\"", "").split("\\\\t")); // For parsing TSV with \t followed by space
-            long time = 0;
-            String oId = null;
-            if (!strArrayList.get(0).trim().startsWith("GEOMETRYCOLLECTION")) {
-                try {
-                    oId = strArrayList.get(0).trim();
-                }
-                catch (NumberFormatException e) {}
-            }
-            if (dateFormat != null) {
-                Collections.reverse(strArrayList);
-                for (String str : strArrayList){
-                    try {
-                        time = dateFormat.parse(str.trim()).getTime();
-                        break;
-                    }
-                    catch(ParseException e) {}
-                }
-            }
-
-            List<SpatialObject> listObj = new ArrayList<SpatialObject>();
-            String str = strTuple.get("value").toString();
             String objStr, cmpStr;
             while (0 < str.length()) {
                 cmpStr = "Point";
@@ -1588,17 +1135,14 @@ public class Deserialization implements Serializable {
         if(inputType.equals("GeoJSON")) {
             multiPointStream = inputStream.map(new GeoJSONToSpatialMultiPoint(uGrid));
         }
-        else if (inputType.equals("CSV")){
-            multiPointStream = inputStream.map(new CSVToSpatialMultiPoint(uGrid));
-        }
-        else if (inputType.equals("TSV")){
-            multiPointStream = inputStream.map(new TSVToSpatialMultiPoint(uGrid));
+        else {
+            multiPointStream = inputStream.map(new CSVTSVToSpatialMultiPoint(uGrid)).returns(Polygon.class);
         }
 
         return multiPointStream;
     }
 
-    public static DataStream<MultiPoint> TrajectoryStreamMultiPoint(DataStream inputStream, String inputType, DateFormat dateFormat,
+    public static DataStream<MultiPoint> TrajectoryStreamMultiPoint(DataStream inputStream, String inputType, DateFormat dateFormat, String delimiter,
                                                                     String propertyTimeStamp, String propertyObjID, UniformGrid uGrid){
 
         DataStream<MultiPoint> trajectoryStream = null;
@@ -1606,11 +1150,8 @@ public class Deserialization implements Serializable {
         if(inputType.equals("GeoJSON")) {
             trajectoryStream = inputStream.map(new GeoJSONToTSpatialMultiPoint(uGrid, dateFormat, propertyTimeStamp, propertyObjID));
         }
-        else if (inputType.equals("CSV")){
-            trajectoryStream = inputStream.map(new CSVToTSpatialMultiPoint(uGrid, dateFormat));
-        }
-        else if (inputType.equals("TSV")){
-            trajectoryStream = inputStream.map(new TSVToTSpatialMultiPoint(uGrid, dateFormat));
+        else {
+            trajectoryStream = inputStream.map(new CSVTSVToTSpatialMultiPoint(uGrid, dateFormat, delimiter)).returns(Point.class);
         }
 
         return trajectoryStream;
@@ -1684,22 +1225,22 @@ public class Deserialization implements Serializable {
         }
     }
 
-    public static class CSVToSpatialMultiPoint extends RichMapFunction<ObjectNode, MultiPoint> {
+    public static class CSVTSVToSpatialMultiPoint extends RichMapFunction<String, MultiPoint> {
 
         UniformGrid uGrid;
 
         //ctor
-        public  CSVToSpatialMultiPoint() {};
-        public  CSVToSpatialMultiPoint(UniformGrid uGrid)
+        public CSVTSVToSpatialMultiPoint() {};
+        public CSVTSVToSpatialMultiPoint(UniformGrid uGrid)
         {
             this.uGrid = uGrid;
         };
 
         @Override
-        public MultiPoint map(ObjectNode strTuple) throws Exception {
+        public MultiPoint map(String str) throws Exception {
 
             List<List<Coordinate>> parent = convertCoordinates(
-                    strTuple.get("value").toString(), '(', ')', ",", " ", 2);
+                    str, '(', ')', ",", " ", 2);
             List<Coordinate> listMultiPoint = new ArrayList<Coordinate>();
             for (List<Coordinate> list : parent) {
                 listMultiPoint.addAll(list);
@@ -1709,24 +1250,26 @@ public class Deserialization implements Serializable {
         }
     }
 
-    public static class CSVToTSpatialMultiPoint extends RichMapFunction<ObjectNode, MultiPoint> {
+    public static class CSVTSVToTSpatialMultiPoint extends RichMapFunction<String, MultiPoint> {
 
         UniformGrid uGrid;
         DateFormat dateFormat;
+        String delimiter;
 
         //ctor
-        public  CSVToTSpatialMultiPoint() {};
-        public  CSVToTSpatialMultiPoint(UniformGrid uGrid, DateFormat dateFormat)
+        public CSVTSVToTSpatialMultiPoint() {};
+        public CSVTSVToTSpatialMultiPoint(UniformGrid uGrid, DateFormat dateFormat, String delimiter)
         {
             this.uGrid = uGrid;
             this.dateFormat = dateFormat;
+            this.delimiter = delimiter;
         };
 
         @Override
-        public MultiPoint map(ObjectNode strTuple) throws Exception {
+        public MultiPoint map(String str) throws Exception {
 
             MultiPoint spatialMultiPoint;
-            List<String> strArrayList = Arrays.asList(strTuple.get("value").toString().replace("\"", "").split("\\s*,\\s*")); // For parsing CSV with , followed by space
+            List<String> strArrayList = Arrays.asList(str.replace("\"", "").split("\\s*" + delimiter + "\\s*")); // For parsing CSV with , followed by space
             long time = 0;
             String strOId = null;
             if (!strArrayList.get(0).trim().startsWith("MULTIPOINT")) {
@@ -1734,90 +1277,16 @@ public class Deserialization implements Serializable {
             }
             if (dateFormat != null) {
                 Collections.reverse(strArrayList);
-                for (String str : strArrayList){
+                for (String s : strArrayList){
                     try {
-                        time = dateFormat.parse(str.trim()).getTime();
+                        time = dateFormat.parse(s.trim()).getTime();
                         break;
                     }
                     catch(ParseException e) {}
                 }
             }
             List<List<Coordinate>> parent = convertCoordinates(
-                    strTuple.get("value").toString(), '(', ')', ",", " ", 2);
-            List<Coordinate> listMultiPoint = new ArrayList<Coordinate>();
-            for (List<Coordinate> list : parent) {
-                listMultiPoint.addAll(list);
-            }
-            if (time != 0) {
-                spatialMultiPoint = new MultiPoint(strOId, listMultiPoint, time, uGrid);
-            }
-            else {
-                spatialMultiPoint = new MultiPoint(strOId, listMultiPoint, uGrid);
-            }
-            return spatialMultiPoint;
-        }
-    }
-
-    public static class TSVToSpatialMultiPoint extends RichMapFunction<ObjectNode, MultiPoint> {
-
-        UniformGrid uGrid;
-
-        //ctor
-        public  TSVToSpatialMultiPoint() {};
-        public  TSVToSpatialMultiPoint(UniformGrid uGrid)
-        {
-            this.uGrid = uGrid;
-        };
-
-        @Override
-        public MultiPoint map(ObjectNode strTuple) throws Exception {
-
-            List<List<Coordinate>> parent = convertCoordinates(
-                    strTuple.get("value").toString(), '(', ')', ",", " ", 2);
-            List<Coordinate> listMultiPoint = new ArrayList<Coordinate>();
-            for (List<Coordinate> list : parent) {
-                listMultiPoint.addAll(list);
-            }
-            MultiPoint spatialMultiPoint = new MultiPoint(null, listMultiPoint, uGrid);
-            return spatialMultiPoint;
-        }
-    }
-
-    public static class TSVToTSpatialMultiPoint extends RichMapFunction<ObjectNode, MultiPoint> {
-
-        UniformGrid uGrid;
-        DateFormat dateFormat;
-
-        //ctor
-        public  TSVToTSpatialMultiPoint() {};
-        public  TSVToTSpatialMultiPoint(UniformGrid uGrid, DateFormat dateFormat)
-        {
-            this.uGrid = uGrid;
-            this.dateFormat = dateFormat;
-        };
-
-        @Override
-        public MultiPoint map(ObjectNode strTuple) throws Exception {
-
-            MultiPoint spatialMultiPoint;
-            List<String> strArrayList = Arrays.asList(strTuple.get("value").toString().replace("\"", "").split("\\\\t")); // For parsing TSV with \t followed by space
-            long time = 0;
-            String strOId = null;
-            if (!strArrayList.get(0).trim().startsWith("MULTIPOINT")) {
-                strOId = strArrayList.get(0).trim();
-            }
-            if (dateFormat != null) {
-                Collections.reverse(strArrayList);
-                for (String str : strArrayList){
-                    try {
-                        time = dateFormat.parse(str.trim()).getTime();
-                        break;
-                    }
-                    catch(ParseException e) {}
-                }
-            }
-            List<List<Coordinate>> parent = convertCoordinates(
-                    strTuple.get("value").toString(), '(', ')', ",", " ", 2);
+                    str, '(', ')', ",", " ", 2);
             List<Coordinate> listMultiPoint = new ArrayList<Coordinate>();
             for (List<Coordinate> list : parent) {
                 listMultiPoint.addAll(list);
@@ -1974,5 +1443,34 @@ public class Deserialization implements Serializable {
             }
         }
         return count;
+    }
+
+    private static String convertPointString(String str, String delimiter, List<Integer> csvTsvSchemaAttr) {
+        String[] elements = str.split(delimiter);
+        // insert "("
+        if (!str.contains("(")) {
+            int pos = 0;
+            for (int i = 0; i < csvTsvSchemaAttr.get(2); i++) {
+                pos = str.indexOf(delimiter, pos) + 1;
+            }
+            str = new StringBuilder(str).insert(pos, "(").toString();
+        }
+        // insert ")"
+        if (!str.contains(")")) {
+            int pos = 0;
+            for (int i = 0; i < csvTsvSchemaAttr.get(3); i++) {
+                pos = str.indexOf(delimiter, pos) + 1;
+            }
+            // ")" position is behind coordinate-y
+            pos = pos + elements[csvTsvSchemaAttr.get(3)].length();
+            str = new StringBuilder(str).insert(pos, ")").toString();
+        }
+        // replace tab  between Point coordinate-x and y to space
+        if (elements.length > csvTsvSchemaAttr.get(3)) {
+            String x = elements[csvTsvSchemaAttr.get(2)];
+            String y = elements[csvTsvSchemaAttr.get(3)];
+            str = str.replace(x + delimiter + y, x + " " + y);
+        }
+        return str;
     }
 }

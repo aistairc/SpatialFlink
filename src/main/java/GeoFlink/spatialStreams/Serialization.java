@@ -52,59 +52,28 @@ public class Serialization {
         }
     }
 
-    public static class PointToCSVOutputSchema implements Serializable, KafkaSerializationSchema<Point> {
+    public static class PointToCSVTSVOutputSchema implements Serializable, KafkaSerializationSchema<Point> {
 
         private String outputTopic;
         private DateFormat dateFormat;
+        private String delimiter;
 
-        public PointToCSVOutputSchema(String outputTopicName, DateFormat dateFormat)
+        public PointToCSVTSVOutputSchema(String outputTopicName, DateFormat dateFormat, String delimiter)
         {
             this.outputTopic = outputTopicName;
             this.dateFormat = dateFormat;
+            if (delimiter.equals("\\\\t")) {
+                this.delimiter = "\\t";
+            }
+            else {
+                this.delimiter = delimiter;
+            }
         }
 
         @Override
         public ProducerRecord<byte[], byte[]> serialize(Point point, @Nullable Long timestamp) {
 
-            final String SEPARATION = ",";
-            StringBuffer buf = new StringBuffer();
-
-            buf.append("\"");
-            if (point.objID != null) {
-                buf.append(point.objID);
-                buf.append(SEPARATION + " ");
-            }
-            buf.append("POINT(");
-            buf.append(point.point.getX());
-            buf.append(" ");
-            buf.append(point.point.getY());
-            buf.append(")");
-            if (point.timeStampMillisec != 0) {
-                buf.append(SEPARATION + " ");
-                buf.append(this.dateFormat.format(new Date(point.timeStampMillisec)));
-            }
-            buf.append("\"");
-            buf.append(SEPARATION);
-
-            return new ProducerRecord<byte[], byte[]>(outputTopic, buf.toString().getBytes(StandardCharsets.UTF_8));
-        }
-    }
-
-    public static class PointToTSVOutputSchema implements Serializable, KafkaSerializationSchema<Point> {
-
-        private String outputTopic;
-        private DateFormat dateFormat;
-
-        public PointToTSVOutputSchema(String outputTopicName, DateFormat dateFormat)
-        {
-            this.outputTopic = outputTopicName;
-            this.dateFormat = dateFormat;
-        }
-
-        @Override
-        public ProducerRecord<byte[], byte[]> serialize(Point point, @Nullable Long timestamp) {
-
-            final String SEPARATION = "\\t";
+            final String SEPARATION = delimiter;
             StringBuffer buf = new StringBuffer();
 
             buf.append("\"");
@@ -195,91 +164,28 @@ public class Serialization {
         }
     }
 
-    public static class PolygonToCSVOutputSchema implements Serializable, KafkaSerializationSchema<Polygon> {
+    public static class PolygonToCSVTSVOutputSchema implements Serializable, KafkaSerializationSchema<Polygon> {
 
         private String outputTopic;
         private DateFormat dateFormat;
+        private String delimiter;
 
-        public PolygonToCSVOutputSchema(String outputTopicName, DateFormat dateFormat)
+        public PolygonToCSVTSVOutputSchema(String outputTopicName, DateFormat dateFormat, String delimiter)
         {
             this.outputTopic = outputTopicName;
             this.dateFormat = dateFormat;
-        }
-
-        @Override
-        public ProducerRecord<byte[], byte[]> serialize(Polygon polygon, @Nullable Long timestamp) {
-
-            final String SEPARATION = ",";
-            StringBuffer buf = new StringBuffer();
-
-            buf.append("\"");
-            if (polygon.objID != null) {
-                buf.append(polygon.objID);
-                buf.append(SEPARATION + " ");
-            }
-            if (polygon instanceof MultiPolygon) {
-                buf.append("MULTIPOLYGON");
-                buf.append("(");
-                List<List<List<Coordinate>>> listListCoordinate = ((MultiPolygon)polygon).getListCoordinate();
-                for (List<List<Coordinate>> listCoordinate : listListCoordinate) {
-                    buf.append("(");
-                    for (List<Coordinate> l : listCoordinate) {
-                        buf.append("(");
-                        for (Coordinate c : l) {
-                            buf.append(c.x + " " + c.y + ", ");
-                        }
-                        buf.deleteCharAt(buf.length() - 1);
-                        buf.deleteCharAt(buf.length() - 1);
-                        buf.append("),");
-                    }
-                    buf.deleteCharAt(buf.length() - 1);
-                    buf.append("),");
-                }
-                buf.deleteCharAt(buf.length() - 1);
-                buf.append(")");
+            if (delimiter.equals("\\\\t")) {
+                this.delimiter = "\\t";
             }
             else {
-                buf.append("POLYGON");
-                buf.append("(");
-                for (List<Coordinate> coordinates : polygon.getCoordinates()) {
-                    buf.append("(");
-                    for (Coordinate c : coordinates) {
-                        buf.append(c.x + " " + c.y + ", ");
-                    }
-                    buf.deleteCharAt(buf.length() - 1);
-                    buf.deleteCharAt(buf.length() - 1);
-                    buf.append("), ");
-                }
-                buf.deleteCharAt(buf.length() - 1);
-                buf.deleteCharAt(buf.length() - 1);
-                buf.append(")");
+                this.delimiter = delimiter;
             }
-            if (polygon.timeStampMillisec != 0) {
-                buf.append(SEPARATION + " ");
-                buf.append(this.dateFormat.format(new Date(polygon.timeStampMillisec)));
-            }
-            buf.append("\"");
-            buf.append(SEPARATION);
-
-            return new ProducerRecord<byte[], byte[]>(outputTopic, buf.toString().getBytes(StandardCharsets.UTF_8));
-        }
-    }
-
-    public static class PolygonToTSVOutputSchema implements Serializable, KafkaSerializationSchema<Polygon> {
-
-        private String outputTopic;
-        private DateFormat dateFormat;
-
-        public PolygonToTSVOutputSchema(String outputTopicName, DateFormat dateFormat)
-        {
-            this.outputTopic = outputTopicName;
-            this.dateFormat = dateFormat;
         }
 
         @Override
         public ProducerRecord<byte[], byte[]> serialize(Polygon polygon, @Nullable Long timestamp) {
 
-            final String SEPARATION = "\\t";
+            final String SEPARATION = delimiter;
             StringBuffer buf = new StringBuffer();
 
             buf.append("\"");
@@ -395,21 +301,28 @@ public class Serialization {
         }
     }
 
-    public static class LineStringToCSVOutputSchema implements Serializable, KafkaSerializationSchema<LineString> {
+    public static class LineStringToCSVTSVOutputSchema implements Serializable, KafkaSerializationSchema<LineString> {
 
         private String outputTopic;
         private DateFormat dateFormat;
+        private String delimiter;
 
-        public LineStringToCSVOutputSchema(String outputTopicName, DateFormat dateFormat)
+        public LineStringToCSVTSVOutputSchema(String outputTopicName, DateFormat dateFormat, String delimiter)
         {
             this.outputTopic = outputTopicName;
             this.dateFormat = dateFormat;
+            if (delimiter.equals("\\\\t")) {
+                this.delimiter = "\\t";
+            }
+            else {
+                this.delimiter = delimiter;
+            }
         }
 
         @Override
         public ProducerRecord<byte[], byte[]> serialize(LineString lineString, @Nullable Long timestamp) {
 
-            final String SEPARATION = ",";
+            final String SEPARATION = delimiter;
             StringBuffer buf = new StringBuffer();
 
             buf.append("\"");
@@ -454,67 +367,7 @@ public class Serialization {
             return new ProducerRecord<byte[], byte[]>(outputTopic, buf.toString().getBytes(StandardCharsets.UTF_8));
         }
     }
-
-    public static class LineStringToTSVOutputSchema implements Serializable, KafkaSerializationSchema<LineString> {
-
-        private String outputTopic;
-        private DateFormat dateFormat;
-
-        public LineStringToTSVOutputSchema(String outputTopicName, DateFormat dateFormat)
-        {
-            this.outputTopic = outputTopicName;
-            this.dateFormat = dateFormat;
-        }
-
-        @Override
-        public ProducerRecord<byte[], byte[]> serialize(LineString lineString, @Nullable Long timestamp) {
-
-            final String SEPARATION = "\\t";
-            StringBuffer buf = new StringBuffer();
-
-            buf.append("\"");
-            if (lineString.objID != null) {
-                buf.append(lineString.objID);
-                buf.append(SEPARATION + " ");
-            }
-            if (lineString instanceof MultiLineString) {
-                buf.append("MULTILINESTRING");
-                buf.append("(");
-                List<List<Coordinate>> listCoordinate = ((MultiLineString)lineString).getListCoordinate();
-                for (List<Coordinate> l : listCoordinate) {
-                    buf.append("(");
-                    for (Coordinate c : l) {
-                        buf.append(c.x + " " + c.y + ", ");
-                    }
-                    buf.deleteCharAt(buf.length() - 1);
-                    buf.deleteCharAt(buf.length() - 1);
-                    buf.append("),");
-                }
-                buf.deleteCharAt(buf.length() - 1);
-                buf.append(")");
-            }
-            else {
-                buf.append("LINESTRING");
-                buf.append("(");
-                Coordinate[] coordinates = lineString.lineString.getCoordinates();
-                for (Coordinate c : coordinates) {
-                    buf.append(c.x + " " + c.y + ", ");
-                }
-                buf.deleteCharAt(buf.length() - 1);
-                buf.deleteCharAt(buf.length() - 1);
-                buf.append(")");
-            }
-            if (lineString.timeStampMillisec != 0) {
-                buf.append(SEPARATION + " ");
-                buf.append(this.dateFormat.format(new Date(lineString.timeStampMillisec)));
-            }
-            buf.append("\"");
-            buf.append(SEPARATION);
-
-            return new ProducerRecord<byte[], byte[]>(outputTopic, buf.toString().getBytes(StandardCharsets.UTF_8));
-        }
-    }
-
+    
     public static class GeometryCollectionToGeoJSONOutputSchema implements Serializable, KafkaSerializationSchema<GeometryCollection> {
 
         private String outputTopic;
@@ -634,151 +487,28 @@ public class Serialization {
         }
     }
 
-    public static class GeometryCollectionToCSVOutputSchema implements Serializable, KafkaSerializationSchema<GeometryCollection> {
+    public static class GeometryCollectionToCSVTSVOutputSchema implements Serializable, KafkaSerializationSchema<GeometryCollection> {
 
         private String outputTopic;
         private DateFormat dateFormat;
+        private String delimiter;
 
-        public GeometryCollectionToCSVOutputSchema(String outputTopicName, DateFormat dateFormat)
+        public GeometryCollectionToCSVTSVOutputSchema(String outputTopicName, DateFormat dateFormat, String delimiter)
         {
             this.outputTopic = outputTopicName;
             this.dateFormat = dateFormat;
+            if (delimiter.equals("\\\\t")) {
+                this.delimiter = "\\t";
+            }
+            else {
+                this.delimiter = delimiter;
+            }
         }
 
         @Override
         public ProducerRecord<byte[], byte[]> serialize(GeometryCollection geometryCollection, @Nullable Long timestamp) {
 
-            final String SEPARATION = ",";
-            StringBuffer buf = new StringBuffer();
-
-            buf.append("\"");
-            if (geometryCollection.objID != null) {
-                buf.append(geometryCollection.objID);
-                buf.append(SEPARATION + " ");
-            }
-            buf.append("GEOMETRYCOLLECTION(");
-            List<SpatialObject> listSpatialObject = geometryCollection.getSpatialObjects();
-            for (SpatialObject obj : listSpatialObject) {
-                if (obj instanceof Point) {
-                    Point point = (Point)obj;
-                    buf.append("POINT(");
-                    buf.append(point.point.getX());
-                    buf.append(" ");
-                    buf.append(point.point.getY());
-                    buf.append("), ");
-                }
-                else if (obj instanceof MultiPoint) {
-                    MultiPoint multiPoint = (MultiPoint)obj;
-                    buf.append("MULTIPOINT");
-                    buf.append("(");
-                    Coordinate[] coordinates = multiPoint.multiPoint.getCoordinates();
-                    for (Coordinate c : coordinates) {
-                        buf.append("(" + c.x + " " + c.y + "), ");
-                    }
-                    buf.deleteCharAt(buf.length() - 1);
-                    buf.deleteCharAt(buf.length() - 1);
-                    buf.append("), ");
-                }
-                else if (obj instanceof MultiPolygon) {
-                    MultiPolygon multiPolygon = (MultiPolygon)obj;
-                    buf.append("MULTIPOLYGON");
-                    buf.append("(");
-                    List<List<List<Coordinate>>> listListCoordinate = multiPolygon.getListCoordinate();
-                    for (List<List<Coordinate>> listCoordinate : listListCoordinate) {
-                        buf.append("(");
-                        for (List<Coordinate> l : listCoordinate) {
-                            buf.append("(");
-                            for (Coordinate c : l) {
-                                buf.append(c.x + " " + c.y + ", ");
-                            }
-                            buf.deleteCharAt(buf.length() - 1);
-                            buf.deleteCharAt(buf.length() - 1);
-                            buf.append("),");
-                        }
-                        buf.deleteCharAt(buf.length() - 1);
-                        buf.append("),");
-                    }
-                    buf.deleteCharAt(buf.length() - 1);
-                    buf.append("), ");
-                }
-                else if (obj instanceof Polygon) {
-                    Polygon polygon = (Polygon)obj;
-                    buf.append("POLYGON");
-                    buf.append("(");
-                    for (List<Coordinate> coordinates : polygon.getCoordinates()) {
-                        buf.append("(");
-                        for (Coordinate c : coordinates) {
-                            buf.append(c.x + " " + c.y + ", ");
-                        }
-                        buf.deleteCharAt(buf.length() - 1);
-                        buf.deleteCharAt(buf.length() - 1);
-                        buf.append("), ");
-                    }
-                    buf.deleteCharAt(buf.length() - 1);
-                    buf.deleteCharAt(buf.length() - 1);
-                    buf.append("), ");
-                }
-                else if (obj instanceof MultiLineString) {
-                    MultiLineString multiLineString = (MultiLineString)obj;
-                    buf.append("MULTILINESTRING");
-                    buf.append("(");
-                    List<List<Coordinate>> listCoordinate = multiLineString.getListCoordinate();
-                    for (List<Coordinate> l : listCoordinate) {
-                        buf.append("(");
-                        for (Coordinate c : l) {
-                            buf.append(c.x + " " + c.y + ", ");
-                        }
-                        buf.deleteCharAt(buf.length() - 1);
-                        buf.deleteCharAt(buf.length() - 1);
-                        buf.append("),");
-                    }
-                    buf.deleteCharAt(buf.length() - 1);
-                    buf.append("), ");
-                }
-                else if (obj instanceof LineString) {
-                    LineString lineString = (LineString)obj;
-                    buf.append("LINESTRING");
-                    buf.append("(");
-                    Coordinate[] coordinates = lineString.lineString.getCoordinates();
-                    for (Coordinate c : coordinates) {
-                        buf.append(c.x + " " + c.y + ", ");
-                    }
-                    buf.deleteCharAt(buf.length() - 1);
-                    buf.deleteCharAt(buf.length() - 1);
-                    buf.append("), ");
-                }
-            }
-            if (buf.substring(buf.length() - 2).equals(", ")) {
-                buf.deleteCharAt(buf.length() - 1);
-                buf.deleteCharAt(buf.length() - 1);
-            }
-            buf.append(")");
-            if (geometryCollection.timeStampMillisec != 0) {
-                buf.append(SEPARATION + " ");
-                buf.append(this.dateFormat.format(new Date(geometryCollection.timeStampMillisec)));
-            }
-            buf.append("\"");
-            buf.append(SEPARATION);
-
-            return new ProducerRecord<byte[], byte[]>(outputTopic, buf.toString().getBytes(StandardCharsets.UTF_8));
-        }
-    }
-
-    public static class GeometryCollectionToTSVOutputSchema implements Serializable, KafkaSerializationSchema<GeometryCollection> {
-
-        private String outputTopic;
-        private DateFormat dateFormat;
-
-        public GeometryCollectionToTSVOutputSchema(String outputTopicName, DateFormat dateFormat)
-        {
-            this.outputTopic = outputTopicName;
-            this.dateFormat = dateFormat;
-        }
-
-        @Override
-        public ProducerRecord<byte[], byte[]> serialize(GeometryCollection geometryCollection, @Nullable Long timestamp) {
-
-            final String SEPARATION = "\\t";
+            final String SEPARATION = delimiter;
             StringBuffer buf = new StringBuffer();
 
             buf.append("\"");
@@ -938,63 +668,28 @@ public class Serialization {
         }
     }
 
-    public static class MultiPointToCSVOutputSchema implements Serializable, KafkaSerializationSchema<MultiPoint> {
+    public static class MultiPointToCSVTSVOutputSchema implements Serializable, KafkaSerializationSchema<MultiPoint> {
 
         private String outputTopic;
         private DateFormat dateFormat;
+        private String delimiter;
 
-        public MultiPointToCSVOutputSchema(String outputTopicName, DateFormat dateFormat)
+        public MultiPointToCSVTSVOutputSchema(String outputTopicName, DateFormat dateFormat, String delimiter)
         {
             this.outputTopic = outputTopicName;
             this.dateFormat = dateFormat;
+            if (delimiter.equals("\\\\t")) {
+                this.delimiter = "\\t";
+            }
+            else {
+                this.delimiter = delimiter;
+            }
         }
 
         @Override
         public ProducerRecord<byte[], byte[]> serialize(MultiPoint multiPoint, @Nullable Long timestamp) {
 
-            final String SEPARATION = ",";
-            StringBuffer buf = new StringBuffer();
-
-            buf.append("\"");
-            if (multiPoint.objID != null) {
-                buf.append(multiPoint.objID);
-                buf.append(SEPARATION + " ");
-            }
-            buf.append("MULTIPOINT");
-            buf.append("(");
-            Coordinate[] coordinates = multiPoint.multiPoint.getCoordinates();
-            for (Coordinate c : coordinates) {
-                buf.append("(" + c.x + " " + c.y + "), ");
-            }
-            buf.deleteCharAt(buf.length() - 1);
-            buf.deleteCharAt(buf.length() - 1);
-            buf.append(")");
-            if (multiPoint.timeStampMillisec != 0) {
-                buf.append(SEPARATION + " ");
-                buf.append(this.dateFormat.format(new Date(multiPoint.timeStampMillisec)));
-            }
-            buf.append("\"");
-            buf.append(SEPARATION);
-
-            return new ProducerRecord<byte[], byte[]>(outputTopic, buf.toString().getBytes(StandardCharsets.UTF_8));
-        }
-    }
-
-    public static class MultiPointToTSVOutputSchema implements Serializable, KafkaSerializationSchema<MultiPoint> {
-
-        private String outputTopic;
-        private DateFormat dateFormat;
-
-        public MultiPointToTSVOutputSchema(String outputTopicName, DateFormat dateFormat)
-        {
-            this.outputTopic = outputTopicName;
-            this.dateFormat = dateFormat;
-        }
-
-        @Override
-        public ProducerRecord<byte[], byte[]> serialize(MultiPoint multiPoint, @Nullable Long timestamp) {
-
-            final String SEPARATION = "\\t";
+            final String SEPARATION = delimiter;
             StringBuffer buf = new StringBuffer();
 
             buf.append("\"");

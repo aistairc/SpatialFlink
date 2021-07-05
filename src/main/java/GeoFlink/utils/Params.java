@@ -32,6 +32,8 @@ public class Params {
     public List<Double> gridBBox1 = new ArrayList<>();
     public int numGridCells1 = 0;
     public int cellLength1 = 0;
+    public String queryDelimiter1;
+    public String queryCharset1;
 
     /* Stream2 */
     public String inputTopicName2;
@@ -42,6 +44,8 @@ public class Params {
     public List<Double> gridBBox2 = new ArrayList<>();
     public int numGridCells2 = 0;
     public int cellLength2 = Integer.MIN_VALUE;
+    public String queryDelimiter2;
+    public String queryCharset2;
 
     /* Query */
     public int queryOption = Integer.MIN_VALUE;
@@ -155,6 +159,22 @@ public class Params {
         catch (ClassCastException e) {
             throw new IllegalArgumentException("cellLength1 : " + e);
         }
+        try {
+            if((queryDelimiter1 = (String)config.getStream1().get("delimiter")) == null) {
+                throw new NullPointerException("delimiter1 is " + config.getQuery().get("delimiter"));
+            }
+        }
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("delimiter1 : " + e);
+        }
+        try {
+            if((queryCharset1 = (String)config.getStream1().get("charset")) == null) {
+                throw new NullPointerException("charset1 is " + config.getQuery().get("charset"));
+            }
+        }
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("charset1 : " + e);
+        }
 
         /* Stream2 */
         try {
@@ -237,6 +257,22 @@ public class Params {
         }
         catch (ClassCastException e) {
             throw new IllegalArgumentException("cellLength2 : " + e);
+        }
+        try {
+            if((queryDelimiter2 = (String)config.getStream2().get("delimiter")) == null) {
+                throw new NullPointerException("delimiter2 is " + config.getQuery().get("delimiter"));
+            }
+        }
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("delimiter2 : " + e);
+        }
+        try {
+            if((queryCharset2 = (String)config.getStream2().get("charset")) == null) {
+                throw new NullPointerException("charset2 is " + config.getQuery().get("charset"));
+            }
+        }
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("charset2 : " + e);
         }
 
         /* Query */
