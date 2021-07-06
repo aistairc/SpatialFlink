@@ -23,23 +23,16 @@ import GeoFlink.spatialObjects.Point;
 import GeoFlink.spatialObjects.Polygon;
 import GeoFlink.spatialObjects.SpatialObject;
 import GeoFlink.spatialOperators.QueryConfiguration;
-import GeoFlink.utils.DistanceFunctions;
-import GeoFlink.utils.HelperClass;
+import GeoFlink.spatialOperators.SpatialOperator;
 import org.apache.flink.api.common.functions.*;
-import org.apache.flink.api.java.functions.KeySelector;
-import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrdernessTimestampExtractor;
-import org.apache.flink.streaming.api.windowing.assigners.SlidingProcessingTimeWindows;
-import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
-import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.util.Collector;
 
 import java.io.Serializable;
 import java.util.*;
 
-public abstract class JoinQuery<T extends SpatialObject, K extends SpatialObject> implements Serializable {
+public abstract class JoinQuery<T extends SpatialObject, K extends SpatialObject> extends SpatialOperator implements Serializable {
     private QueryConfiguration queryConfiguration;
     private SpatialIndex spatialIndex1;
     private SpatialIndex spatialIndex2;

@@ -6,6 +6,7 @@ import GeoFlink.spatialObjects.Point;
 import GeoFlink.spatialObjects.Polygon;
 import GeoFlink.spatialObjects.SpatialObject;
 import GeoFlink.spatialOperators.QueryConfiguration;
+import GeoFlink.spatialOperators.SpatialOperator;
 import GeoFlink.utils.Comparators;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
@@ -20,7 +21,7 @@ import java.util.HashSet;
 import java.util.PriorityQueue;
 import java.util.Set;
 
-public abstract class KNNQuery<T extends SpatialObject, K extends SpatialObject> implements Serializable {
+public abstract class KNNQuery<T extends SpatialObject, K extends SpatialObject> extends SpatialOperator implements Serializable {
     private QueryConfiguration queryConfiguration;
     private SpatialIndex spatialIndex;
 

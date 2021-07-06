@@ -2,12 +2,13 @@ package GeoFlink.spatialOperators.tFilter;
 
 import GeoFlink.spatialObjects.SpatialObject;
 import GeoFlink.spatialOperators.QueryConfiguration;
+import GeoFlink.spatialOperators.SpatialOperator;
 import org.apache.flink.streaming.api.datastream.DataStream;
 
 import java.io.Serializable;
 import java.util.Set;
 
-public abstract class TFilterQuery<T extends SpatialObject> implements Serializable {
+public abstract class TFilterQuery<T extends SpatialObject> extends SpatialOperator implements Serializable {
     private QueryConfiguration queryConfiguration;
 
     public QueryConfiguration getQueryConfiguration() {

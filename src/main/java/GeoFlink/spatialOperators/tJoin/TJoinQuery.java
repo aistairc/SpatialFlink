@@ -6,6 +6,7 @@ import GeoFlink.spatialObjects.LineString;
 import GeoFlink.spatialObjects.Point;
 import GeoFlink.spatialObjects.SpatialObject;
 import GeoFlink.spatialOperators.QueryConfiguration;
+import GeoFlink.spatialOperators.SpatialOperator;
 import GeoFlink.utils.DistanceFunctions;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.FlatMapFunction;
@@ -28,7 +29,7 @@ import org.locationtech.jts.geom.Coordinate;
 import java.io.Serializable;
 import java.util.*;
 
-public abstract class TJoinQuery<T extends SpatialObject, K extends SpatialObject> implements Serializable {
+public abstract class TJoinQuery<T extends SpatialObject, K extends SpatialObject> extends SpatialOperator implements Serializable {
     private QueryConfiguration queryConfiguration;
     private SpatialIndex spatialIndex;
     static long dCounter = 0;

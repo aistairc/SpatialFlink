@@ -4,6 +4,7 @@ import GeoFlink.spatialObjects.Point;
 import GeoFlink.spatialObjects.Polygon;
 import GeoFlink.spatialObjects.SpatialObject;
 import GeoFlink.spatialOperators.QueryConfiguration;
+import GeoFlink.spatialOperators.SpatialOperator;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -12,7 +13,7 @@ import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
 
-public abstract class TRangeQuery<T extends SpatialObject, K extends SpatialObject> implements Serializable {
+public abstract class TRangeQuery<T extends SpatialObject, K extends SpatialObject> extends SpatialOperator implements Serializable {
     private QueryConfiguration queryConfiguration;
     public QueryConfiguration getQueryConfiguration() {
         return queryConfiguration;

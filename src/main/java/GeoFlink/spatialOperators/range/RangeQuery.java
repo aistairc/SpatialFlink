@@ -21,6 +21,7 @@ import GeoFlink.spatialObjects.LineString;
 import GeoFlink.spatialObjects.Polygon;
 import GeoFlink.spatialObjects.SpatialObject;
 import GeoFlink.spatialOperators.QueryConfiguration;
+import GeoFlink.spatialOperators.SpatialOperator;
 import org.apache.flink.api.common.functions.*;
 import org.apache.flink.api.common.state.*;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -33,7 +34,7 @@ import org.apache.flink.util.Collector;
 import java.io.Serializable;
 import java.util.*;
 
-public abstract class RangeQuery<T extends SpatialObject, K extends SpatialObject> implements Serializable {
+public abstract class RangeQuery<T extends SpatialObject, K extends SpatialObject> extends SpatialOperator implements Serializable {
     private QueryConfiguration queryConfiguration;
     private SpatialIndex spatialIndex;
 

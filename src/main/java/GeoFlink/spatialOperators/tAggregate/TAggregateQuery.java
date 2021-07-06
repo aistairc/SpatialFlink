@@ -3,6 +3,7 @@ package GeoFlink.spatialOperators.tAggregate;
 import GeoFlink.spatialObjects.Point;
 import GeoFlink.spatialObjects.SpatialObject;
 import GeoFlink.spatialOperators.QueryConfiguration;
+import GeoFlink.spatialOperators.SpatialOperator;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.common.state.MapState;
 import org.apache.flink.api.common.state.MapStateDescriptor;
@@ -22,7 +23,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-public abstract class TAggregateQuery<T extends SpatialObject> implements Serializable {
+public abstract class TAggregateQuery<T extends SpatialObject> extends SpatialOperator implements Serializable {
     private QueryConfiguration queryConfiguration;
 
     public QueryConfiguration getQueryConfiguration() {

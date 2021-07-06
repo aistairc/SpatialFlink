@@ -1,4 +1,4 @@
-//package GeoFlink.spatialOperators;
+//package GeoFlink.SpatialOperator;
 
 package GeoFlink.spatialOperators.tFilter;
 

@@ -3,6 +3,7 @@ package GeoFlink.spatialOperators.tStats;
 import GeoFlink.spatialObjects.Point;
 import GeoFlink.spatialObjects.SpatialObject;
 import GeoFlink.spatialOperators.QueryConfiguration;
+import GeoFlink.spatialOperators.SpatialOperator;
 import GeoFlink.utils.DistanceFunctions;
 import org.apache.flink.api.common.functions.RichFlatMapFunction;
 import org.apache.flink.api.common.state.ValueState;
@@ -20,7 +21,7 @@ import java.io.Serializable;
 import java.util.Date;
 import java.util.Set;
 
-public abstract class TStatsQuery<T extends SpatialObject> implements Serializable {
+public abstract class TStatsQuery<T extends SpatialObject> extends SpatialOperator implements Serializable {
     private QueryConfiguration queryConfiguration;
 
     public QueryConfiguration getQueryConfiguration() {
