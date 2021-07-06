@@ -23,7 +23,7 @@ public class Params {
     public boolean clusterMode = false;
     public String kafkaBootStrapServers;
 
-    /* Stream1 */
+    /* Stream1 Input */
     public String inputTopicName1;
     public String inputFormat1;
     public String dateFormatStr1;
@@ -32,10 +32,10 @@ public class Params {
     public List<Double> gridBBox1 = new ArrayList<>();
     public int numGridCells1 = 0;
     public int cellLength1 = 0;
-    public String queryDelimiter1;
+    public String queryDelimiter1Input;
     public String queryCharset1;
 
-    /* Stream2 */
+    /* Stream2 Input */
     public String inputTopicName2;
     public String inputFormat2;
     public String dateFormatStr2;
@@ -44,8 +44,14 @@ public class Params {
     public List<Double> gridBBox2 = new ArrayList<>();
     public int numGridCells2 = 0;
     public int cellLength2 = Integer.MIN_VALUE;
-    public String queryDelimiter2;
+    public String queryDelimiter2Input;
     public String queryCharset2;
+
+    /* Stream1 Output */
+    public String queryDelimiter1Output;
+
+    /* Stream2 Output */
+    public String queryDelimiter2Output;
 
     /* Query */
     public int queryOption = Integer.MIN_VALUE;
@@ -77,18 +83,18 @@ public class Params {
             throw new NullPointerException("kafkaBootStrapServers is " + config.getKafkaBootStrapServers());
         }
 
-        /* Stream1 */
+        /* Stream1 Input */
         try {
-            if ((inputTopicName1 = (String)config.getStream1().get("topicName")) == null) {
-                throw new NullPointerException("inputTopicName1 is " + config.getStream1().get("topicName"));
+            if ((inputTopicName1 = (String)config.getStream1Input().get("topicName")) == null) {
+                throw new NullPointerException("inputTopicName1 is " + config.getStream1Input().get("topicName"));
             }
         }
         catch (ClassCastException e) {
             throw new IllegalArgumentException("inputTopicName1 : " + e);
         }
         try {
-            if ((inputFormat1 = (String)config.getStream1().get("format")) == null) {
-                throw new NullPointerException("format1 is " + config.getStream1().get("format"));
+            if ((inputFormat1 = (String)config.getStream1Input().get("format")) == null) {
+                throw new NullPointerException("format1 is " + config.getStream1Input().get("format"));
             }
             else {
                 List<String> validParam = Arrays.asList("GeoJSON", "CSV", "TSV");
@@ -103,32 +109,32 @@ public class Params {
             throw new IllegalArgumentException("format1 : " + e);
         }
         try {
-            if ((dateFormatStr1 = (String)config.getStream1().get("dateFormat")) == null) {
-                throw new NullPointerException("dateFormat1 is " + config.getStream1().get("dateFormat"));
+            if ((dateFormatStr1 = (String)config.getStream1Input().get("dateFormat")) == null) {
+                throw new NullPointerException("dateFormat1 is " + config.getStream1Input().get("dateFormat"));
             }
         }
         catch (ClassCastException e) {
             throw new IllegalArgumentException("dateFormat1 : " + e);
         }
         try {
-            if ((geoJSONSchemaAttr1 = (ArrayList)config.getStream1().get("geoJSONSchemaAttr")) == null) {
-                throw new NullPointerException("geoJSONSchemaAttr1 is " + config.getStream1().get("geoJSONSchemaAttr"));
+            if ((geoJSONSchemaAttr1 = (ArrayList)config.getStream1Input().get("geoJSONSchemaAttr")) == null) {
+                throw new NullPointerException("geoJSONSchemaAttr1 is " + config.getStream1Input().get("geoJSONSchemaAttr"));
             }
         }
         catch (ClassCastException e) {
             throw new IllegalArgumentException("geoJSONSchemaAttr1 : " + e);
         }
         try {
-            if ((csvTsvSchemaAttr1 = (ArrayList)config.getStream1().get("csvTsvSchemaAttr")) == null) {
-                throw new NullPointerException("csvTsvSchemaAttr1 is " + config.getStream1().get("csvTsvSchemaAttr"));
+            if ((csvTsvSchemaAttr1 = (ArrayList)config.getStream1Input().get("csvTsvSchemaAttr")) == null) {
+                throw new NullPointerException("csvTsvSchemaAttr1 is " + config.getStream1Input().get("csvTsvSchemaAttr"));
             }
         }
         catch (ClassCastException e) {
             throw new IllegalArgumentException("csvTsvSchemaAttr1 : " + e);
         }
         try {
-            if ((gridBBox1 = (ArrayList)config.getStream1().get("gridBBox")) == null) {
-                throw new NullPointerException("gridBBox1 is " + config.getStream1().get("gridBBox"));
+            if ((gridBBox1 = (ArrayList)config.getStream1Input().get("gridBBox")) == null) {
+                throw new NullPointerException("gridBBox1 is " + config.getStream1Input().get("gridBBox"));
             }
             if (gridBBox1.size() != 4) {
                 throw new IllegalArgumentException("gridBBox1 num is " + gridBBox1.size());
@@ -138,56 +144,56 @@ public class Params {
             throw new IllegalArgumentException("gridBBox1 : " + e);
         }
         try {
-            if(config.getStream1().get("numGridCells") == null) {
-                throw new NullPointerException("numGridCells1 is " + config.getStream1().get("numGridCells"));
+            if(config.getStream1Input().get("numGridCells") == null) {
+                throw new NullPointerException("numGridCells1 is " + config.getStream1Input().get("numGridCells"));
             }
             else {
-                numGridCells1 = (int)config.getStream1().get("numGridCells");
+                numGridCells1 = (int)config.getStream1Input().get("numGridCells");
             }
         }
         catch (ClassCastException e) {
             throw new IllegalArgumentException("numGridCells1 : " + e);
         }
         try {
-            if(config.getStream1().get("cellLength") == null) {
-                throw new NullPointerException("cellLength1 is " + config.getStream1().get("cellLength"));
+            if(config.getStream1Input().get("cellLength") == null) {
+                throw new NullPointerException("cellLength1 is " + config.getStream1Input().get("cellLength"));
             }
             else {
-                cellLength1 = (int)config.getStream1().get("cellLength");
+                cellLength1 = (int)config.getStream1Input().get("cellLength");
             }
         }
         catch (ClassCastException e) {
             throw new IllegalArgumentException("cellLength1 : " + e);
         }
         try {
-            if((queryDelimiter1 = (String)config.getStream1().get("delimiter")) == null) {
-                throw new NullPointerException("delimiter1 is " + config.getQuery().get("delimiter"));
+            if((queryDelimiter1Input = (String)config.getStream1Input().get("delimiter")) == null) {
+                throw new NullPointerException("delimiter1Input is " + config.getQuery().get("delimiter"));
             }
         }
         catch (ClassCastException e) {
-            throw new IllegalArgumentException("delimiter1 : " + e);
+            throw new IllegalArgumentException("delimiter1Input : " + e);
         }
         try {
-            if((queryCharset1 = (String)config.getStream1().get("charset")) == null) {
-                throw new NullPointerException("charset1 is " + config.getQuery().get("charset"));
+            if((queryCharset1 = (String)config.getStream1Input().get("charset")) == null) {
+                throw new NullPointerException("charset1 is " + config.getStream1Input().get("charset"));
             }
         }
         catch (ClassCastException e) {
             throw new IllegalArgumentException("charset1 : " + e);
         }
 
-        /* Stream2 */
+        /* Stream2 Input */
         try {
-            if ((inputTopicName2 = (String)config.getStream2().get("topicName")) == null) {
-                throw new NullPointerException("inputTopicName2 is " + config.getStream2().get("topicName"));
+            if ((inputTopicName2 = (String)config.getStream2Input().get("topicName")) == null) {
+                throw new NullPointerException("inputTopicName2 is " + config.getStream2Input().get("topicName"));
             }
         }
         catch (ClassCastException e) {
             throw new IllegalArgumentException("inputTopicName2 : " + e);
         }
         try {
-            if ((inputFormat2 = (String)config.getStream2().get("format")) == null) {
-                throw new NullPointerException("format2 is " + config.getStream2().get("format"));
+            if ((inputFormat2 = (String)config.getStream2Input().get("format")) == null) {
+                throw new NullPointerException("format2 is " + config.getStream2Input().get("format"));
             }
             else {
                 List<String> validParam = Arrays.asList("GeoJSON", "CSV", "TSV");
@@ -202,32 +208,32 @@ public class Params {
             throw new IllegalArgumentException("format2 : " + e);
         }
         try {
-            if ((dateFormatStr2 = (String)config.getStream2().get("dateFormat")) == null) {
-                throw new NullPointerException("dateFormat2 is " + config.getStream2().get("dateFormat"));
+            if ((dateFormatStr2 = (String)config.getStream2Input().get("dateFormat")) == null) {
+                throw new NullPointerException("dateFormat2 is " + config.getStream2Input().get("dateFormat"));
             }
         }
         catch (ClassCastException e) {
             throw new IllegalArgumentException("dateFormat2 : " + e);
         }
         try {
-            if ((geoJSONSchemaAttr2 = (ArrayList)config.getStream2().get("geoJSONSchemaAttr")) == null) {
-                throw new NullPointerException("geoJSONSchemaAttr2 is " + config.getStream2().get("geoJSONSchemaAttr"));
+            if ((geoJSONSchemaAttr2 = (ArrayList)config.getStream2Input().get("geoJSONSchemaAttr")) == null) {
+                throw new NullPointerException("geoJSONSchemaAttr2 is " + config.getStream2Input().get("geoJSONSchemaAttr"));
             }
         }
         catch (ClassCastException e) {
             throw new IllegalArgumentException("geoJSONSchemaAttr2 : " + e);
         }
         try {
-            if ((csvTsvSchemaAttr2 = (ArrayList)config.getStream2().get("csvTsvSchemaAttr")) == null) {
-                throw new NullPointerException("csvTsvSchemaAttr2 is " + config.getStream2().get("csvTsvSchemaAttr"));
+            if ((csvTsvSchemaAttr2 = (ArrayList)config.getStream2Input().get("csvTsvSchemaAttr")) == null) {
+                throw new NullPointerException("csvTsvSchemaAttr2 is " + config.getStream2Input().get("csvTsvSchemaAttr"));
             }
         }
         catch (ClassCastException e) {
             throw new IllegalArgumentException("csvTsvSchemaAttr2 : " + e);
         }
         try {
-            if ((gridBBox2 = (ArrayList)config.getStream2().get("gridBBox")) == null) {
-                throw new NullPointerException("gridBBox2 is " + config.getStream2().get("gridBBox"));
+            if ((gridBBox2 = (ArrayList)config.getStream2Input().get("gridBBox")) == null) {
+                throw new NullPointerException("gridBBox2 is " + config.getStream2Input().get("gridBBox"));
             }
             if (gridBBox2.size() != 4) {
                 throw new IllegalArgumentException("gridBBox2 num is " + gridBBox2.size());
@@ -237,42 +243,62 @@ public class Params {
             throw new IllegalArgumentException("gridBBox2 : " + e);
         }
         try {
-            if(config.getStream2().get("numGridCells") == null) {
-                throw new NullPointerException("numGridCells2 is " + config.getStream2().get("numGridCells"));
+            if(config.getStream2Input().get("numGridCells") == null) {
+                throw new NullPointerException("numGridCells2 is " + config.getStream2Input().get("numGridCells"));
             }
             else {
-                numGridCells2 = (int)config.getStream2().get("numGridCells");
+                numGridCells2 = (int)config.getStream2Input().get("numGridCells");
             }
         }
         catch (ClassCastException e) {
             throw new IllegalArgumentException("numGridCells2 : " + e);
         }
         try {
-            if(config.getStream2().get("cellLength") == null) {
-                throw new NullPointerException("cellLength2 is " + config.getStream2().get("cellLength"));
+            if(config.getStream2Input().get("cellLength") == null) {
+                throw new NullPointerException("cellLength2 is " + config.getStream2Input().get("cellLength"));
             }
             else {
-                cellLength2 = (int)config.getStream2().get("cellLength");
+                cellLength2 = (int)config.getStream2Input().get("cellLength");
             }
         }
         catch (ClassCastException e) {
             throw new IllegalArgumentException("cellLength2 : " + e);
         }
         try {
-            if((queryDelimiter2 = (String)config.getStream2().get("delimiter")) == null) {
-                throw new NullPointerException("delimiter2 is " + config.getQuery().get("delimiter"));
+            if((queryDelimiter2Input = (String)config.getStream2Input().get("delimiter")) == null) {
+                throw new NullPointerException("delimiter2Input is " + config.getStream2Input().get("delimiter"));
             }
         }
         catch (ClassCastException e) {
-            throw new IllegalArgumentException("delimiter2 : " + e);
+            throw new IllegalArgumentException("delimiter2Input : " + e);
         }
         try {
-            if((queryCharset2 = (String)config.getStream2().get("charset")) == null) {
+            if((queryCharset2 = (String)config.getStream2Input().get("charset")) == null) {
                 throw new NullPointerException("charset2 is " + config.getQuery().get("charset"));
             }
         }
         catch (ClassCastException e) {
             throw new IllegalArgumentException("charset2 : " + e);
+        }
+
+        /* Stream1 Output */
+        try {
+            if((queryDelimiter1Output = (String)config.getStream2Output().get("delimiter")) == null) {
+                throw new NullPointerException("delimiter1Output is " + config.getStream1Output().get("delimiter"));
+            }
+        }
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("delimiter1Output : " + e);
+        }
+
+        /* Stream2 Output */
+        try {
+            if((queryDelimiter2Output = (String)config.getStream2Output().get("delimiter")) == null) {
+                throw new NullPointerException("delimiter2Output is " + config.getStream2Output().get("delimiter"));
+            }
+        }
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("delimiter2Output : " + e);
         }
 
         /* Query */

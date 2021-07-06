@@ -4,11 +4,11 @@
 # Cluster
 clusterMode: False
 #kafkaBootStrapServers: "172.16.0.64:9092, 172.16.0.81:9092"
-kafkaBootStrapServers: "150.82.97.204:9092"
-#kafkaBootStrapServers: "localhost:9092"
+#kafkaBootStrapServers: "150.82.97.204:9092"
+kafkaBootStrapServers: "localhost:9092"
 
-# Stream1
-stream1:
+# Stream1 input
+stream1Input:
   topicName: "NYCBuildingsPolygons"
   format: "TSV"
   dateFormat: "yyyy-MM-dd HH:mm:ss"
@@ -23,8 +23,8 @@ stream1:
   delimiter: "	"
   charset: "UTF-8"
 
-# Stream2
-stream2: 
+# Stream2 input
+stream2Input:
   topicName: "TaxiDriveGeoJSON_Live"
   format: "GeoJSON"
   dateFormat: "yyyy-MM-dd HH:mm:ss"
@@ -37,6 +37,14 @@ stream2:
   # delimiter : CSV = ",", TSV separeted by TAB character = "	" or "\t", TSV separeted by \t = "\\\\t"
   delimiter: "\\\\t"
   charset: "UTF-8"
+
+# Stream1 output
+stream1Output:
+  delimiter: "	"
+
+# Stream2 output
+stream2Output:
+  delimiter: "	"
 
 # Query parameters
 query:
