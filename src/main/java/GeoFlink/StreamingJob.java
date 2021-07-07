@@ -99,7 +99,7 @@ public class StreamingJob implements Serializable {
 		boolean onCluster = params.clusterMode;
 		String bootStrapServers = params.kafkaBootStrapServers;
 
-		/* Stream1 Input */
+		/* Input Stream1 */
 		String inputTopicName = params.inputTopicName1;
 		String inputFormat = params.inputFormat1;
 		String dateFormatStr = params.dateFormatStr1;
@@ -109,10 +109,10 @@ public class StreamingJob implements Serializable {
 		List<Double> gridBBox1 = params.gridBBox1;
 		int uniformGridSize = params.numGridCells1;
 		double cellLengthMeters = params.cellLength1;
-		String delimiter1Input = params.queryDelimiter1Input;
-		String charset1 = params.queryCharset1;
+		String delimiter1Input = params.inputDelimiter1;
+		String charset1 = params.charset1;
 
-		/* Stream2 Input */
+		/* Input Stream2 */
 		String queryTopicName = params.inputTopicName2;
 		String inputFormat2 = params.inputFormat2;
 		String queryDateFormatStr = params.dateFormatStr2;
@@ -121,14 +121,16 @@ public class StreamingJob implements Serializable {
 		List<Double> gridBBox2 = params.gridBBox2;
 		int uniformGridSize2 = params.numGridCells2;
 		double cellLengthMeters2 = params.cellLength1;
-		String delimiter2Input = params.queryDelimiter2Input;
-		String charset2 = params.queryCharset2;
+		String delimiter2Input = params.inputDelimiter2;
+		String charset2 = params.charset2;
 
-		/* Stream1 Output */
-		String delimiter1Output = params.queryDelimiter1Output;
+		/* Output Stream1 */
+		String outputTopicName1 = params.outputTopicName1;
+		String outputDelimiter1 = params.outputDelimiter1;
 
-		/* Stream2 Output */
-		String delimiter2Output = params.queryDelimiter2Output;
+		/* Output Stream2 */
+		String outputTopicName2 = params.outputTopicName2;
+		String outputDelimiter2 = params.outputDelimiter2;
 
 		/* Query */
 		int queryOption = params.queryOption;
@@ -1454,70 +1456,70 @@ public class StreamingJob implements Serializable {
 				DataStream csvStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new SimpleStringSchema(Charset.forName(charset1)), kafkaProperties).setStartFromEarliest());
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(csvStream, "CSV", inputDateFormat, delimiter1Input, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
 				spatialTrajectoryStream.print();
-				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.PointToCSVTSVOutputSchema("kafka", inputDateFormat, delimiter1Output), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.PointToCSVTSVOutputSchema("kafka", inputDateFormat, outputDelimiter1), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
 			case 802:{ // Polygon (CSV Polygon Timestamp)
 				DataStream csvStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new SimpleStringSchema(Charset.forName(charset1)), kafkaProperties).setStartFromEarliest());
 				DataStream<Polygon> spatialTrajectoryStream = Deserialization.TrajectoryStreamPolygon(csvStream, "CSV", inputDateFormat, delimiter1Input, null, null,uGrid);
 				spatialTrajectoryStream.print();
-				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.PolygonToCSVTSVOutputSchema("kafka", inputDateFormat, delimiter1Output), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.PolygonToCSVTSVOutputSchema("kafka", inputDateFormat, outputDelimiter1), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
 			case 803:{ // LineString (CSV LineString Timestamp)
 				DataStream csvStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new SimpleStringSchema(Charset.forName(charset1)), kafkaProperties).setStartFromEarliest());
 				DataStream<LineString> spatialTrajectoryStream = Deserialization.TrajectoryStreamLineString(csvStream, "CSV", inputDateFormat, delimiter1Input, null, null, uGrid);
 				spatialTrajectoryStream.print();
-				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.LineStringToCSVTSVOutputSchema("kafka", inputDateFormat, delimiter1Output), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.LineStringToCSVTSVOutputSchema("kafka", inputDateFormat, outputDelimiter1), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
 			case 804:{ // GeometryCollection (CSV GeometryCollection Timestamp)
 				DataStream csvStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new SimpleStringSchema(Charset.forName(charset1)), kafkaProperties).setStartFromEarliest());
 				DataStream<GeometryCollection> spatialTrajectoryStream = Deserialization.TrajectoryStreamGeometryCollection(csvStream, "CSV", inputDateFormat, delimiter1Input, null, null, uGrid);
 				spatialTrajectoryStream.print();
-				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.GeometryCollectionToCSVTSVOutputSchema("kafka", inputDateFormat, delimiter1Output), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.GeometryCollectionToCSVTSVOutputSchema("kafka", inputDateFormat, outputDelimiter1), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
 			case 805:{ // MultiPoint (CSV MultiPoint Timestamp)
 				DataStream csvStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new SimpleStringSchema(Charset.forName(charset1)), kafkaProperties).setStartFromEarliest());
 				DataStream<MultiPoint> spatialTrajectoryStream = Deserialization.TrajectoryStreamMultiPoint(csvStream, "CSV", inputDateFormat, delimiter1Input, null, null, uGrid);
 				spatialTrajectoryStream.print();
-				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.MultiPointToCSVTSVOutputSchema("kafka", inputDateFormat, delimiter1Output), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.MultiPointToCSVTSVOutputSchema("kafka", inputDateFormat, outputDelimiter1), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
 			case 901:{ // Point (TSV Point Timestamp)
 				DataStream tsvStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new SimpleStringSchema(Charset.forName(charset1)), kafkaProperties).setStartFromEarliest());
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(tsvStream, "TSV", inputDateFormat, delimiter1Input, csvTsvSchemaAttr1, null, null, uGrid);
 				spatialTrajectoryStream.print();
-				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.PointToCSVTSVOutputSchema("kafka", inputDateFormat, delimiter1Output), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.PointToCSVTSVOutputSchema("kafka", inputDateFormat, outputDelimiter1), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
 			case 902:{ // Polygon (TSV Polygon Timestamp)
 				DataStream tsvStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new SimpleStringSchema(Charset.forName(charset1)), kafkaProperties).setStartFromEarliest());
 				DataStream<Polygon> spatialTrajectoryStream = Deserialization.TrajectoryStreamPolygon(tsvStream, "TSV", inputDateFormat, delimiter1Input, null, null, uGrid);
 				spatialTrajectoryStream.print();
-				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.PolygonToCSVTSVOutputSchema("kafka", inputDateFormat, delimiter1Output), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.PolygonToCSVTSVOutputSchema("kafka", inputDateFormat, outputDelimiter1), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
 			case 903:{ // LineString (TSV LineString Timestamp)
 				DataStream tsvStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new SimpleStringSchema(Charset.forName(charset1)), kafkaProperties).setStartFromEarliest());
 				DataStream<LineString> spatialTrajectoryStream = Deserialization.TrajectoryStreamLineString(tsvStream, "TSV", inputDateFormat, delimiter1Input, null, null, uGrid);
 				spatialTrajectoryStream.print();
-				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.LineStringToCSVTSVOutputSchema("kafka", inputDateFormat, delimiter1Output), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.LineStringToCSVTSVOutputSchema("kafka", inputDateFormat, outputDelimiter1), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
 			case 904:{ // GeometryCollection (TSV GeometryCollection Timestamp)
 				DataStream tsvStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new SimpleStringSchema(Charset.forName(charset1)), kafkaProperties).setStartFromEarliest());
 				DataStream<GeometryCollection> spatialTrajectoryStream = Deserialization.TrajectoryStreamGeometryCollection(tsvStream, "TSV", inputDateFormat, delimiter1Input, null, null, uGrid);
 				spatialTrajectoryStream.print();
-				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.GeometryCollectionToCSVTSVOutputSchema("kafka", inputDateFormat, delimiter1Output), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.GeometryCollectionToCSVTSVOutputSchema("kafka", inputDateFormat, outputDelimiter1), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
 			case 905:{ // MultiPoint (TSV MultiPoint Timestamp)
 				DataStream tsvStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new SimpleStringSchema(Charset.forName(charset1)), kafkaProperties).setStartFromEarliest());
 				DataStream<MultiPoint> spatialTrajectoryStream = Deserialization.TrajectoryStreamMultiPoint(tsvStream, "TSV", inputDateFormat, delimiter1Input, null, null, uGrid);
 				spatialTrajectoryStream.print();
-				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.MultiPointToCSVTSVOutputSchema("kafka", inputDateFormat, delimiter1Output), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.MultiPointToCSVTSVOutputSchema("kafka", inputDateFormat, outputDelimiter1), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
 			case 1001:{ // Shapefile (Point)
