@@ -10,7 +10,8 @@ kafkaBootStrapServers: "localhost:9092"
 # Input Stream1
 inputStream1:
   topicName: "NYCBuildingsPolygons"
-  format: "TSV"
+  # format : GeoJSON or WKT or CSV or TSV
+  format: "WKT"
   dateFormat: "yyyy-MM-dd HH:mm:ss"
   geoJSONSchemaAttr: ["oID", "timestamp"]
 
@@ -26,6 +27,7 @@ inputStream1:
 # Input Stream2
 inputStream2:
   topicName: "TaxiDriveGeoJSON_Live"
+  # format : GeoJSON or WKT or CSV or TSV
   format: "GeoJSON"
   dateFormat: "yyyy-MM-dd HH:mm:ss"
   geoJSONSchemaAttr: ["oID", "timestamp"]
@@ -50,7 +52,7 @@ outputStream2:
 
 # Query parameters
 query:
-  option: 2011 #2011 or 211
+  option: 906 #2011 or 211
   approximate: False
   radius: 0.005
   aggregateFunction: "SUM"

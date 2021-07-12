@@ -293,7 +293,7 @@ public class Params {
             throw new IllegalArgumentException("outputTopicName1 : " + e);
         }
         try {
-            if((outputDelimiter1 = (String)config.getOutputStream2().get("delimiter")) == null) {
+            if((outputDelimiter1 = (String)config.getOutputStream1().get("delimiter")) == null) {
                 throw new NullPointerException("outputDelimiter1 is " + config.getOutputStream1().get("delimiter"));
             }
         }

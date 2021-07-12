@@ -10,9 +10,7 @@ import javax.annotation.Nullable;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 public class Serialization {
 
@@ -52,13 +50,13 @@ public class Serialization {
         }
     }
 
-    public static class PointToCSVTSVOutputSchema implements Serializable, KafkaSerializationSchema<Point> {
+    public static class PointToWKTOutputSchema implements Serializable, KafkaSerializationSchema<Point> {
 
         private String outputTopic;
         private DateFormat dateFormat;
         private String delimiter;
 
-        public PointToCSVTSVOutputSchema(String outputTopicName, DateFormat dateFormat, String delimiter)
+        public PointToWKTOutputSchema(String outputTopicName, DateFormat dateFormat, String delimiter)
         {
             this.outputTopic = outputTopicName;
             this.dateFormat = dateFormat;
@@ -93,6 +91,63 @@ public class Serialization {
             buf.append("\"");
             buf.append(SEPARATION);
 
+            return new ProducerRecord<byte[], byte[]>(outputTopic, buf.toString().getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    public static class PointToCSVTSVOutputSchema implements Serializable, KafkaSerializationSchema<Point> {
+
+        private String outputTopic;
+        private DateFormat dateFormat;
+        private String delimiter;
+        List<Integer> csvTsvSchemaAttr;
+        Map<Integer, String> positionMap = new HashMap<>();
+
+        public PointToCSVTSVOutputSchema(String outputTopicName, DateFormat dateFormat, String delimiter, List<Integer> csvTsvSchemaAttr)
+        {
+            this.outputTopic = outputTopicName;
+            this.dateFormat = dateFormat;
+            if (delimiter.equals("\\\\t")) {
+                this.delimiter = "\\t";
+            }
+            else {
+                this.delimiter = delimiter;
+            }
+            this.csvTsvSchemaAttr = csvTsvSchemaAttr;
+            positionMap.put(csvTsvSchemaAttr.get(0), "objID");
+            positionMap.put(csvTsvSchemaAttr.get(1), "timeStampMillisec");
+            positionMap.put(csvTsvSchemaAttr.get(2), "x");
+            positionMap.put(csvTsvSchemaAttr.get(3), "y");
+        }
+
+        @Override
+        public ProducerRecord<byte[], byte[]> serialize(Point point, @Nullable Long timestamp) {
+
+            final String SEPARATION = delimiter;
+            StringBuffer buf = new StringBuffer();
+            int max = Collections.max(positionMap.keySet());
+            for (int i = 0; i <= max; i++) {
+                if (positionMap.containsKey(Integer.valueOf(i))) {
+                    if (positionMap.get(Integer.valueOf(i)).equals("objID")) {
+                        buf.append(point.objID);
+                        buf.append(SEPARATION);
+                    } else if (positionMap.get(Integer.valueOf(i)).equals("timeStampMillisec")) {
+                        buf.append(point.timeStampMillisec);
+                        buf.append(SEPARATION);
+                    } else if (positionMap.get(Integer.valueOf(i)).equals("x")) {
+                        buf.append(point.point.getX());
+                        buf.append(SEPARATION);
+                    } else if (positionMap.get(Integer.valueOf(i)).equals("y")) {
+                        buf.append(point.point.getY());
+                        buf.append(SEPARATION);
+                    }
+                }
+                else {
+                    buf.append("0");
+                    buf.append(SEPARATION);
+                }
+            }
+            buf.deleteCharAt(buf.length()-1);
             return new ProducerRecord<byte[], byte[]>(outputTopic, buf.toString().getBytes(StandardCharsets.UTF_8));
         }
     }
@@ -164,13 +219,13 @@ public class Serialization {
         }
     }
 
-    public static class PolygonToCSVTSVOutputSchema implements Serializable, KafkaSerializationSchema<Polygon> {
+    public static class PolygonToWKTOutputSchema implements Serializable, KafkaSerializationSchema<Polygon> {
 
         private String outputTopic;
         private DateFormat dateFormat;
         private String delimiter;
 
-        public PolygonToCSVTSVOutputSchema(String outputTopicName, DateFormat dateFormat, String delimiter)
+        public PolygonToWKTOutputSchema(String outputTopicName, DateFormat dateFormat, String delimiter)
         {
             this.outputTopic = outputTopicName;
             this.dateFormat = dateFormat;
@@ -301,13 +356,13 @@ public class Serialization {
         }
     }
 
-    public static class LineStringToCSVTSVOutputSchema implements Serializable, KafkaSerializationSchema<LineString> {
+    public static class LineStringToWKTOutputSchema implements Serializable, KafkaSerializationSchema<LineString> {
 
         private String outputTopic;
         private DateFormat dateFormat;
         private String delimiter;
 
-        public LineStringToCSVTSVOutputSchema(String outputTopicName, DateFormat dateFormat, String delimiter)
+        public LineStringToWKTOutputSchema(String outputTopicName, DateFormat dateFormat, String delimiter)
         {
             this.outputTopic = outputTopicName;
             this.dateFormat = dateFormat;
@@ -487,13 +542,13 @@ public class Serialization {
         }
     }
 
-    public static class GeometryCollectionToCSVTSVOutputSchema implements Serializable, KafkaSerializationSchema<GeometryCollection> {
+    public static class GeometryCollectionToWKTOutputSchema implements Serializable, KafkaSerializationSchema<GeometryCollection> {
 
         private String outputTopic;
         private DateFormat dateFormat;
         private String delimiter;
 
-        public GeometryCollectionToCSVTSVOutputSchema(String outputTopicName, DateFormat dateFormat, String delimiter)
+        public GeometryCollectionToWKTOutputSchema(String outputTopicName, DateFormat dateFormat, String delimiter)
         {
             this.outputTopic = outputTopicName;
             this.dateFormat = dateFormat;
@@ -668,13 +723,13 @@ public class Serialization {
         }
     }
 
-    public static class MultiPointToCSVTSVOutputSchema implements Serializable, KafkaSerializationSchema<MultiPoint> {
+    public static class MultiPointToWKTOutputSchema implements Serializable, KafkaSerializationSchema<MultiPoint> {
 
         private String outputTopic;
         private DateFormat dateFormat;
         private String delimiter;
 
-        public MultiPointToCSVTSVOutputSchema(String outputTopicName, DateFormat dateFormat, String delimiter)
+        public MultiPointToWKTOutputSchema(String outputTopicName, DateFormat dateFormat, String delimiter)
         {
             this.outputTopic = outputTopicName;
             this.dateFormat = dateFormat;

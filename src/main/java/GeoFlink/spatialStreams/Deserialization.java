@@ -27,6 +27,7 @@ import org.locationtech.jts.geom.Coordinate;
 //import org.locationtech.jts.geom.Geometry;
 //import org.wololo.geojson.Feature;
 //import org.wololo.geojson.GeoJSONFactory;
+import org.locationtech.jts.io.WKTReader;
 import org.locationtech.jts.io.geojson.GeoJsonReader;
 import org.locationtech.jts.geom.GeometryFactory;
 
@@ -43,15 +44,18 @@ public class Deserialization implements Serializable {
 
     private static GeoJsonReader geoJsonReader = new GeoJsonReader(new GeometryFactory());
 
-    public static DataStream<Point> PointStream(DataStream inputStream, String inputType, UniformGrid uGrid){
+    public static DataStream<Point> PointStream(DataStream inputStream, String inputType, String delimiter, List<Integer> csvTsvSchemaAttr, UniformGrid uGrid){
 
         DataStream<Point> pointStream = null;
 
         if(inputType.equals("GeoJSON")) {
             pointStream = inputStream.map(new GeoJSONToSpatial(uGrid));
         }
+        else if(inputType.equals("WKT")) {
+            pointStream = inputStream.map(new WKTToSpatial(uGrid)).returns(Point.class);
+        }
         else {
-            pointStream = inputStream.map(new CSVTSVToSpatial(uGrid)).returns(Point.class);
+            pointStream = inputStream.map(new CSVTSVToSpatial(uGrid, delimiter, csvTsvSchemaAttr)).returns(Point.class);
         }
 
         return pointStream;
@@ -64,6 +68,9 @@ public class Deserialization implements Serializable {
 
         if(inputType.equals("GeoJSON")) {
             trajectoryStream = inputStream.map(new GeoJSONToTSpatial(uGrid, dateFormat, propertyTimeStamp, propertyObjID));
+        }
+        else if(inputType.equals("WKT")) {
+            trajectoryStream = inputStream.map(new WKTToTSpatial(uGrid, dateFormat, delimiter)).returns(Point.class);
         }
         else {
             trajectoryStream = inputStream.map(new CSVTSVToTSpatial(uGrid, dateFormat, delimiter, csvTsvSchemaAttr)).returns(Point.class);
@@ -79,8 +86,11 @@ public class Deserialization implements Serializable {
         if(inputType.equals("GeoJSON")) {
             polygonStream = inputStream.map(new GeoJSONToSpatialPolygon(uGrid));
         }
+        else if(inputType.equals("WKT")) {
+            polygonStream = inputStream.map(new WKTToSpatialPolygon(uGrid)).returns(Polygon.class);
+        }
         else {
-            polygonStream = inputStream.map(new CSVTSVToSpatialPolygon(uGrid)).returns(Polygon.class);
+            throw new IllegalArgumentException("inputType : " + inputType + " is not support");
         }
 
         return polygonStream;
@@ -94,8 +104,11 @@ public class Deserialization implements Serializable {
         if(inputType.equals("GeoJSON")) {
             trajectoryStream = inputStream.map(new GeoJSONToTSpatialPolygon(uGrid, dateFormat, propertyTimeStamp, propertyObjID));
         }
+        else if(inputType.equals("WKT")) {
+            trajectoryStream = inputStream.map(new WKTToTSpatialPolygon(uGrid, dateFormat, delimiter)).returns(Point.class);
+        }
         else {
-            trajectoryStream = inputStream.map(new CSVTSVToTSpatialPolygon(uGrid, dateFormat, delimiter)).returns(Point.class);
+            throw new IllegalArgumentException("inputType : " + inputType + " is not support");
         }
 
         return trajectoryStream;
@@ -195,26 +208,83 @@ public class Deserialization implements Serializable {
     }
 
     // Assuming that csv string contains longitude and latitude at positions 0 and 1, respectively
-    public static class CSVTSVToSpatial extends RichMapFunction<String, Point> {
+    public static class WKTToSpatial extends RichMapFunction<String, Point> {
 
         UniformGrid uGrid;
 
         //ctor
-        public CSVTSVToSpatial() {};
-        public CSVTSVToSpatial(UniformGrid uGrid)
+        public WKTToSpatial() {};
+        public WKTToSpatial(UniformGrid uGrid)
         {
             this.uGrid = uGrid;
         };
 
         @Override
         public Point map(String str) throws Exception {
-            Coordinate coordinate = getCoordinateFromPoint(str);
+            int pos = str.indexOf("POINT");
+            Coordinate coordinate = getCoordinate(str.substring(pos));
             Point spatialPoint = new Point(coordinate.x,  coordinate.y, uGrid);
             return spatialPoint;
         }
     }
 
+    // Assuming that csv/tsv string contains longitude and latitude at positions 0 and 1, respectively
+    public static class CSVTSVToSpatial extends RichMapFunction<String, Point> {
+
+        UniformGrid uGrid;
+        String delimiter;
+        List<Integer> csvTsvSchemaAttr;
+
+        //ctor
+        public CSVTSVToSpatial() {};
+        public CSVTSVToSpatial(UniformGrid uGrid, String delimiter, List<Integer> csvTsvSchemaAttr)
+        {
+            this.uGrid = uGrid;
+            this.delimiter = delimiter;
+            this.csvTsvSchemaAttr = csvTsvSchemaAttr;
+        };
+
+        @Override
+        public Point map(String str) throws Exception {
+            List<String> strArrayList = Arrays.asList(str.replace("\"", "").split("\\s*" + delimiter + "\\s*")); // For parsing CSV with , followed by space
+            double x = Double.valueOf(strArrayList.get(csvTsvSchemaAttr.get(2)));
+            double y = Double.valueOf(strArrayList.get(csvTsvSchemaAttr.get(3)));;
+            Point spatialPoint = new Point(x, y, uGrid);
+            return spatialPoint;
+        }
+    }
+
     // Assuming that csv string contains longitude and latitude at positions 0 and 1, respectively
+    public static class WKTToTSpatial extends RichMapFunction<String, Point> {
+
+        UniformGrid uGrid;
+        DateFormat dateFormat;
+        String delimiter;
+
+        //ctor
+        public WKTToTSpatial() {};
+        public WKTToTSpatial(UniformGrid uGrid, DateFormat dateFormat, String delimiter)
+        {
+            this.uGrid = uGrid;
+            this.dateFormat = dateFormat;
+            this.delimiter = delimiter;
+        };
+
+        @Override
+        public Point map(String str) throws Exception {
+
+            // customized for ATC Shopping mall data
+            //A sample tuple/record: 1351039728.980,9471001,-22366,2452,1261.421,780.711,-2.415,-2.441
+            // time [ms] (unixtime + milliseconds/1000), person id, position x [mm], position y [mm], position z (height) [mm], velocity [mm/s], angle of motion [rad], facing angle [rad]
+
+            int pos = str.indexOf("POINT");
+            Coordinate coordinate = getCoordinate(str.substring(pos));
+            Point spatialPoint = new Point(coordinate.x,  coordinate.y, uGrid);
+            return spatialPoint;
+        }
+    }
+
+    // Assuming that csv/tsv string contains longitude and latitude at positions 0 and 1, respectively
     public static class CSVTSVToTSpatial extends RichMapFunction<String, Point> {
 
         UniformGrid uGrid;
@@ -240,43 +310,13 @@ public class Deserialization implements Serializable {
             // time [ms] (unixtime + milliseconds/1000), person id, position x [mm], position y [mm], position z (height) [mm], velocity [mm/s], angle of motion [rad], facing angle [rad]
 
             Point spatialPoint;
-            boolean brinkoffFormat = false;
-
-            str = convertPointString(str, delimiter, csvTsvSchemaAttr);
-            Coordinate coordinate = getCoordinateFromPoint(str);
             List<String> strArrayList = Arrays.asList(str.replace("\"", "").split("\\s*" + delimiter + "\\s*")); // For parsing CSV with , followed by space
-            long time = 0;
-            String strOId = null;
-            // standard string
-            if (str.contains("POINT")) {
-                if (!strArrayList.get(0).startsWith("POINT")) {
-                    strOId = strArrayList.get(0).trim();
-                }
-            }
-            // Brinkoff Generator output string
-            else {
-                strOId = strArrayList.get(csvTsvSchemaAttr.get(0)).trim();
-                brinkoffFormat = true;
-            }
-            if (dateFormat != null) {
-                Collections.reverse(strArrayList);
-                for (String s : strArrayList){
-                    try {
-                        time = dateFormat.parse(s.trim()).getTime();
-                        break;
-                    }
-                    catch(ParseException e) {}
-                }
-            }
-            if ((time == 0) && (brinkoffFormat == true)) {
-                time = Integer.valueOf(str.split(delimiter)[csvTsvSchemaAttr.get(1)]);
-            }
-            if (time != 0) {
-                spatialPoint = new Point(strOId, coordinate.x, coordinate.y, time, uGrid);
-            }
-            else {
-                spatialPoint = new Point(strOId, coordinate.x, coordinate.y, 0, uGrid);
-            }
+            String strOId = strArrayList.get(csvTsvSchemaAttr.get(0));
+            long time = Long.valueOf(strArrayList.get(csvTsvSchemaAttr.get(1)));
+            double x = Double.valueOf(strArrayList.get(csvTsvSchemaAttr.get(2)));
+            double y = Double.valueOf(strArrayList.get(csvTsvSchemaAttr.get(3)));;
+
+            spatialPoint = new Point(strOId, x, y, time, uGrid);
             return spatialPoint;
         }
     }
@@ -412,6 +452,38 @@ public class Deserialization implements Serializable {
     }
 
     // Assuming that csv string contains longitude and latitude at positions 0 and 1, respectively
+    public static class WKTToSpatialPolygon extends RichMapFunction<String, Polygon> {
+
+        UniformGrid uGrid;
+
+        //ctor
+        public WKTToSpatialPolygon() {};
+        public WKTToSpatialPolygon(UniformGrid uGrid)
+        {
+            this.uGrid = uGrid;
+        };
+
+        @Override
+        public Polygon map(String str) throws Exception {
+            // {"key":1,"value":"MULTIPOLYGON (((-74.15010482037168 40.62183511874645, -74.15016701565006 40.62177739783489, -74.1502116609276 40.62180593197037, -74.15015270982748 40.62185788893257, -74.15014748371995 40.62186259918266, -74.1501238625006 40.6218473986088, -74.150107093191 40.62186251414858, -74.15008804280825 40.621850243299434, -74.15010482037168 40.62183511874645)))"}
+            // value = "MULTIPOLYGON (((-74.15010482037168 40.62183511874645, -74.15016701565006 40.62177739783489, -74.1502116609276 40.62180593197037, -74.15015270982748 40.62185788893257, -74.15014748371995 40.62186259918266, -74.1501238625006 40.6218473986088, -74.150107093191 40.62186251414858, -74.15008804280825 40.621850243299434, -74.15010482037168 40.62183511874645)))"
+
+            Polygon spatialPolygon;
+            int pos;
+            if ((pos = str.indexOf("MULTIPOLYGON")) >= 0) {
+                List<List<List<Coordinate>>> list = getMultiPolygonCoordinates(str.substring(pos));
+                spatialPolygon = new MultiPolygon(list, uGrid);
+            }
+            else {
+                pos = str.indexOf("POLYGON");
+                List<List<Coordinate>> list = getPolygonCoordinates(str.substring(pos));
+                spatialPolygon = new Polygon(list, uGrid);
+            }
+            return spatialPolygon;
+        }
+    }
+
+    // Assuming that csv string contains longitude and latitude at positions 0 and 1, respectively
     public static class CSVTSVToSpatialPolygon extends RichMapFunction<String, Polygon> {
 
         UniformGrid uGrid;
@@ -443,15 +515,15 @@ public class Deserialization implements Serializable {
         }
     }
 
-    public static class CSVTSVToTSpatialPolygon extends RichMapFunction<String, Polygon> {
+    public static class WKTToTSpatialPolygon extends RichMapFunction<String, Polygon> {
 
         UniformGrid uGrid;
         DateFormat dateFormat;
         String delimiter;
 
         //ctor
-        public CSVTSVToTSpatialPolygon() {};
-        public CSVTSVToTSpatialPolygon(UniformGrid uGrid, DateFormat dateFormat, String delimiter)
+        public WKTToTSpatialPolygon() {};
+        public WKTToTSpatialPolygon(UniformGrid uGrid, DateFormat dateFormat, String delimiter)
         {
             this.uGrid = uGrid;
             this.dateFormat = dateFormat;
@@ -483,9 +555,9 @@ public class Deserialization implements Serializable {
                     catch(ParseException e) {}
                 }
             }
-            if (str.contains("MULTIPOLYGON")) {
-                List<List<List<Coordinate>>> listCoordinate = convertMultiCoordinates(
-                        str, '(', ')', ",", " ", 3);
+            int pos;
+            if ((pos = str.indexOf("MULTIPOLYGON")) >= 0) {
+                List<List<List<Coordinate>>> listCoordinate = getMultiPolygonCoordinates(str.substring(pos));
                 if (time != 0) {
                     spatialPolygon = new MultiPolygon(listCoordinate, oId, time, uGrid);
                 }
@@ -494,8 +566,8 @@ public class Deserialization implements Serializable {
                 }
             }
             else {
-                List<List<Coordinate>> listCoordinate = convertCoordinates(
-                        str, '(', ')', ",", " ", 2);
+                pos = str.indexOf("POLYGON");
+                List<List<Coordinate>> listCoordinate = getPolygonCoordinates(str.substring(pos));
                 if (time != 0) {
                     spatialPolygon = new Polygon(oId, listCoordinate, time, uGrid);
                 }
@@ -514,8 +586,11 @@ public class Deserialization implements Serializable {
         if(inputType.equals("GeoJSON")) {
             lineStringStream = inputStream.map(new GeoJSONToSpatialLineString(uGrid));
         }
+        else if(inputType.equals("WKT")) {
+            lineStringStream = inputStream.map(new WKTToSpatialLineString(uGrid)).returns(Polygon.class);
+        }
         else {
-            lineStringStream = inputStream.map(new CSVTSVToSpatialLineString(uGrid)).returns(Polygon.class);
+            throw new IllegalArgumentException("inputType : " + inputType + " is not support");
         }
 
         return lineStringStream;
@@ -529,8 +604,11 @@ public class Deserialization implements Serializable {
         if(inputType.equals("GeoJSON")) {
             trajectoryStream = inputStream.map(new GeoJSONToTSpatialLineString(uGrid, dateFormat, propertyTimeStamp, propertyObjID));
         }
+        else if(inputType.equals("WKT")) {
+            trajectoryStream = inputStream.map(new WKTToTSpatialLineString(uGrid, dateFormat, delimiter)).returns(Point.class);
+        }
         else {
-            trajectoryStream = inputStream.map(new CSVTSVToTSpatialLineString(uGrid, dateFormat, delimiter)).returns(Point.class);
+            throw new IllegalArgumentException("inputType : " + inputType + " is not support");
         }
 
         return trajectoryStream;
@@ -658,13 +736,13 @@ public class Deserialization implements Serializable {
     }
 
     // Assuming that csv string contains longitude and latitude at positions 0 and 1, respectively
-    public static class CSVTSVToSpatialLineString extends RichMapFunction<String, LineString> {
+    public static class WKTToSpatialLineString extends RichMapFunction<String, LineString> {
 
         UniformGrid uGrid;
 
         //ctor
-        public CSVTSVToSpatialLineString() {};
-        public CSVTSVToSpatialLineString(UniformGrid uGrid)
+        public WKTToSpatialLineString() {};
+        public WKTToSpatialLineString(UniformGrid uGrid)
         {
             this.uGrid = uGrid;
         };
@@ -674,29 +752,29 @@ public class Deserialization implements Serializable {
             //{"key":1,"value":"MULTILINESTRING((170.0 45.0,180.0 45.0,-180.0 45.0,-170.0, 45.0))"}
 
             LineString spatialLineString;
-            if (str.contains("MULTILINESTRING")) {
-                List<List<Coordinate>> list = convertCoordinates(
-                        str, '(', ')', ",", " ", 2);
+            int pos;
+            if ((pos = str.indexOf("MULTILINESTRING")) >= 0) {
+                List<List<Coordinate>> list = getListListCoordinates(str.substring(pos));
                 spatialLineString = new MultiLineString(null, list, uGrid);
             }
             else {
-                List<List<Coordinate>> parent = convertCoordinates(
-                        str, '(', ')', ",", " ", 1);
-                spatialLineString = new LineString(null, parent.get(0), uGrid);
+                pos = str.indexOf("LINESTRING");
+                List<Coordinate> list = getListCoordinates(str.substring(pos));
+                spatialLineString = new LineString(null, list, uGrid);
             }
             return spatialLineString;
         }
     }
 
-    public static class CSVTSVToTSpatialLineString extends RichMapFunction<String, LineString> {
+    public static class WKTToTSpatialLineString extends RichMapFunction<String, LineString> {
 
         UniformGrid uGrid;
         DateFormat dateFormat;
         String delimiter;
 
         //ctor
-        public CSVTSVToTSpatialLineString() {};
-        public CSVTSVToTSpatialLineString(UniformGrid uGrid, DateFormat dateFormat, String delimiter)
+        public WKTToTSpatialLineString() {};
+        public WKTToTSpatialLineString(UniformGrid uGrid, DateFormat dateFormat, String delimiter)
         {
             this.uGrid = uGrid;
             this.dateFormat = dateFormat;
@@ -723,24 +801,24 @@ public class Deserialization implements Serializable {
                     catch(ParseException e) {}
                 }
             }
-            if (str.contains("MULTILINESTRING")) {
-                List<List<Coordinate>> lists = convertCoordinates(
-                        str, '(', ')', ",", " ", 2);
+            int pos;
+            if ((pos = str.indexOf("MULTILINESTRING")) >= 0) {
+                List<List<Coordinate>> list = getListListCoordinates(str.substring(pos));
                 if (time != 0) {
-                    spatialLineString = new MultiLineString(strOId, lists, time, uGrid);
+                    spatialLineString = new MultiLineString(strOId, list, time, uGrid);
                 }
                 else {
-                    spatialLineString = new MultiLineString(strOId, lists, uGrid);
+                    spatialLineString = new MultiLineString(strOId, list, uGrid);
                 }
             }
             else {
-                List<List<Coordinate>> lists = convertCoordinates(
-                        str, '(', ')', ",", " ", 1);
+                pos = str.indexOf("LINESTRING");
+                List<Coordinate> list = getListCoordinates(str.substring(pos));
                 if (time != 0) {
-                    spatialLineString = new LineString(strOId, lists.get(0), time, uGrid);
+                    spatialLineString = new LineString(strOId, list, time, uGrid);
                 }
                 else {
-                    spatialLineString = new LineString(strOId, lists.get(0), uGrid);
+                    spatialLineString = new LineString(strOId, list, uGrid);
                 }
             }
             return spatialLineString;
@@ -754,8 +832,11 @@ public class Deserialization implements Serializable {
         if(inputType.equals("GeoJSON")) {
             geometryCollectionStream = inputStream.map(new GeoJSONToSpatialGeometryCollection(uGrid));
         }
+        else if(inputType.equals("WKT")) {
+            geometryCollectionStream = inputStream.map(new WKTToSpatialGeometryCollection(uGrid)).returns(Polygon.class);
+        }
         else {
-            geometryCollectionStream = inputStream.map(new CSVTSVToSpatialGeometryCollection(uGrid)).returns(Polygon.class);
+            throw new IllegalArgumentException("inputType : " + inputType + " is not support");
         }
 
         return geometryCollectionStream;
@@ -769,8 +850,11 @@ public class Deserialization implements Serializable {
         if(inputType.equals("GeoJSON")) {
             trajectoryStream = inputStream.map(new GeoJSONToTSpatialGeometryCollection(uGrid, dateFormat, propertyTimeStamp, propertyObjID));
         }
+        else if(inputType.equals("WKT")) {
+            trajectoryStream = inputStream.map(new WKTToTSpatialGeometryCollection(uGrid, dateFormat, delimiter)).returns(Point.class);
+        }
         else {
-            trajectoryStream = inputStream.map(new CSVTSVToTSpatialGeometryCollection(uGrid, dateFormat, delimiter)).returns(Point.class);
+            throw new IllegalArgumentException("inputType : " + inputType + " is not support");
         }
 
         return trajectoryStream;
@@ -928,13 +1012,13 @@ public class Deserialization implements Serializable {
         }
     }
 
-    public static class CSVTSVToSpatialGeometryCollection extends RichMapFunction<String, GeometryCollection> {
+    public static class WKTToSpatialGeometryCollection extends RichMapFunction<String, GeometryCollection> {
 
         UniformGrid uGrid;
 
         //ctor
-        public CSVTSVToSpatialGeometryCollection() {};
-        public CSVTSVToSpatialGeometryCollection(UniformGrid uGrid)
+        public WKTToSpatialGeometryCollection() {};
+        public WKTToSpatialGeometryCollection(UniformGrid uGrid)
         {
             this.uGrid = uGrid;
         };
@@ -942,13 +1026,12 @@ public class Deserialization implements Serializable {
         @Override
         public GeometryCollection map(String str) throws Exception {
             List<SpatialObject> listObj = new ArrayList<SpatialObject>();
-//            String str = str.get("value").toString();
             String objStr, cmpStr;
             while (0 < str.length()) {
                 cmpStr = "Point";
                 objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
                 if (objStr.equalsIgnoreCase(cmpStr)) {
-                    Coordinate coordinate = getCoordinateFromPoint(str);
+                    Coordinate coordinate = getCoordinate(str);
                     Point point = new Point(coordinate.x,  coordinate.y, uGrid);
                     listObj.add(point);
                     str = str.substring(cmpStr.length());
@@ -957,13 +1040,8 @@ public class Deserialization implements Serializable {
                 cmpStr = "MultiPoint";
                 objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
                 if (objStr.equalsIgnoreCase(cmpStr)) {
-                    List<List<Coordinate>> parent = convertCoordinates(
-                            str, '(', ')', ",", " ", 2);
-                    List<Coordinate> listMultiPoint = new ArrayList<Coordinate>();
-                    for (List<Coordinate> list : parent) {
-                        listMultiPoint.addAll(list);
-                    }
-                    MultiPoint multiPoint = new MultiPoint(null, listMultiPoint, uGrid);
+                    List<Coordinate> list = getListCoordinates(str);
+                    MultiPoint multiPoint = new MultiPoint(null, list, uGrid);
                     listObj.add(multiPoint);
                     str = str.substring(cmpStr.length());
                     continue;
@@ -971,9 +1049,8 @@ public class Deserialization implements Serializable {
                 cmpStr = "MultiPolygon";
                 objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
                 if (objStr.equalsIgnoreCase(cmpStr)) {
-                    List<List<List<Coordinate>>> listCoordinate = convertMultiCoordinates(
-                            str, '(', ')', ",", " ", 3);
-                    MultiPolygon multiPolygon = new MultiPolygon(listCoordinate, uGrid);
+                    List<List<List<Coordinate>>> list = getMultiPolygonCoordinates(str);
+                    MultiPolygon multiPolygon = new MultiPolygon(list, uGrid);
                     listObj.add(multiPolygon);
                     str = str.substring(cmpStr.length());
                     continue;
@@ -981,9 +1058,8 @@ public class Deserialization implements Serializable {
                 cmpStr = "Polygon";
                 objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
                 if (objStr.equalsIgnoreCase(cmpStr)) {
-                    List<List<Coordinate>> listCoordinate = convertCoordinates(
-                            str, '(', ')', ",", " ", 2);
-                    Polygon polygon = new Polygon(listCoordinate, uGrid);
+                    List<List<Coordinate>> list = getPolygonCoordinates(str);
+                    Polygon polygon = new Polygon(list, uGrid);
                     listObj.add(polygon);
                     str = str.substring(cmpStr.length());
                     continue;
@@ -991,8 +1067,7 @@ public class Deserialization implements Serializable {
                 cmpStr = "MultiLineString";
                 objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
                 if (objStr.equalsIgnoreCase(cmpStr)) {
-                    List<List<Coordinate>> list = convertCoordinates(
-                            str, '(', ')', ",", " ", 2);
+                    List<List<Coordinate>> list = getListListCoordinates(str);
                     MultiLineString multiLineString = new MultiLineString(null, list, uGrid);
                     listObj.add(multiLineString);
                     str = str.substring(cmpStr.length());
@@ -1001,9 +1076,8 @@ public class Deserialization implements Serializable {
                 cmpStr = "LineString";
                 objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
                 if (objStr.equalsIgnoreCase(cmpStr)) {
-                    List<List<Coordinate>> parent = convertCoordinates(
-                            str, '(', ')', ",", " ", 1);
-                    LineString lineString = new LineString(null, parent.get(0), uGrid);
+                    List<Coordinate> list = getListCoordinates(str);
+                    LineString lineString = new LineString(null, list, uGrid);
                     listObj.add(lineString);
                     str = str.substring(cmpStr.length());
                     continue;
@@ -1016,15 +1090,15 @@ public class Deserialization implements Serializable {
         }
     }
 
-    public static class CSVTSVToTSpatialGeometryCollection extends RichMapFunction<String, GeometryCollection> {
+    public static class WKTToTSpatialGeometryCollection extends RichMapFunction<String, GeometryCollection> {
 
         UniformGrid uGrid;
         DateFormat dateFormat;
         String delimiter;
 
         //ctor
-        public CSVTSVToTSpatialGeometryCollection() {};
-        public CSVTSVToTSpatialGeometryCollection(UniformGrid uGrid, DateFormat dateFormat, String delimiter)
+        public WKTToTSpatialGeometryCollection() {};
+        public WKTToTSpatialGeometryCollection(UniformGrid uGrid, DateFormat dateFormat, String delimiter)
         {
             this.uGrid = uGrid;
             this.dateFormat = dateFormat;
@@ -1060,8 +1134,8 @@ public class Deserialization implements Serializable {
                 cmpStr = "Point";
                 objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
                 if (objStr.equalsIgnoreCase(cmpStr)) {
-                    Coordinate coordinate = getCoordinateFromPoint(str);
-                    Point point = new Point(coordinate.x,  coordinate.y, uGrid);
+                    Coordinate coordinate = getCoordinate(str);
+                    Point point = new Point(oId, coordinate.x,  coordinate.y, time, uGrid);
                     listObj.add(point);
                     str = str.substring(cmpStr.length());
                     continue;
@@ -1069,13 +1143,8 @@ public class Deserialization implements Serializable {
                 cmpStr = "MultiPoint";
                 objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
                 if (objStr.equalsIgnoreCase(cmpStr)) {
-                    List<List<Coordinate>> parent = convertCoordinates(
-                            str, '(', ')', ",", " ", 2);
-                    List<Coordinate> listMultiPoint = new ArrayList<Coordinate>();
-                    for (List<Coordinate> list : parent) {
-                        listMultiPoint.addAll(list);
-                    }
-                    MultiPoint multiPoint = new MultiPoint(null, listMultiPoint, uGrid);
+                    List<Coordinate> list = getListCoordinates(str);
+                    MultiPoint multiPoint = new MultiPoint(oId, list, time, uGrid);
                     listObj.add(multiPoint);
                     str = str.substring(cmpStr.length());
                     continue;
@@ -1083,9 +1152,8 @@ public class Deserialization implements Serializable {
                 cmpStr = "MultiPolygon";
                 objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
                 if (objStr.equalsIgnoreCase(cmpStr)) {
-                    List<List<List<Coordinate>>> listCoordinate = convertMultiCoordinates(
-                            str, '(', ')', ",", " ", 3);
-                    MultiPolygon multiPolygon = new MultiPolygon(listCoordinate, uGrid);
+                    List<List<List<Coordinate>>> list = getMultiPolygonCoordinates(str);
+                    MultiPolygon multiPolygon = new MultiPolygon(list, oId, time, uGrid);
                     listObj.add(multiPolygon);
                     str = str.substring(cmpStr.length());
                     continue;
@@ -1093,9 +1161,8 @@ public class Deserialization implements Serializable {
                 cmpStr = "Polygon";
                 objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
                 if (objStr.equalsIgnoreCase(cmpStr)) {
-                    List<List<Coordinate>> listCoordinate = convertCoordinates(
-                            str, '(', ')', ",", " ", 2);
-                    Polygon polygon = new Polygon(listCoordinate, uGrid);
+                    List<List<Coordinate>> list = getPolygonCoordinates(str);
+                    Polygon polygon = new Polygon(oId, list, time, uGrid);
                     listObj.add(polygon);
                     str = str.substring(cmpStr.length());
                     continue;
@@ -1103,9 +1170,8 @@ public class Deserialization implements Serializable {
                 cmpStr = "MultiLineString";
                 objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
                 if (objStr.equalsIgnoreCase(cmpStr)) {
-                    List<List<Coordinate>> list = convertCoordinates(
-                            str, '(', ')', ",", " ", 2);
-                    MultiLineString multiLineString = new MultiLineString(null, list, uGrid);
+                    List<List<Coordinate>> list = getListListCoordinates(str);
+                    MultiLineString multiLineString = new MultiLineString(oId, list, time, uGrid);
                     listObj.add(multiLineString);
                     str = str.substring(cmpStr.length());
                     continue;
@@ -1113,9 +1179,8 @@ public class Deserialization implements Serializable {
                 cmpStr = "LineString";
                 objStr = str.length() >= cmpStr.length() ? str.substring(0, cmpStr.length()) : str;
                 if (objStr.equalsIgnoreCase(cmpStr)) {
-                    List<List<Coordinate>> parent = convertCoordinates(
-                            str, '(', ')', ",", " ", 1);
-                    LineString lineString = new LineString(null, parent.get(0), uGrid);
+                    List<Coordinate> list = getListCoordinates(str);
+                    LineString lineString = new LineString(oId, list, time, uGrid);
                     listObj.add(lineString);
                     str = str.substring(cmpStr.length());
                     continue;
@@ -1135,8 +1200,11 @@ public class Deserialization implements Serializable {
         if(inputType.equals("GeoJSON")) {
             multiPointStream = inputStream.map(new GeoJSONToSpatialMultiPoint(uGrid));
         }
+        else if(inputType.equals("WKT")) {
+            multiPointStream = inputStream.map(new WKTToSpatialMultiPoint(uGrid)).returns(Polygon.class);
+        }
         else {
-            multiPointStream = inputStream.map(new CSVTSVToSpatialMultiPoint(uGrid)).returns(Polygon.class);
+            throw new IllegalArgumentException("inputType : " + inputType + " is not support");
         }
 
         return multiPointStream;
@@ -1150,8 +1218,11 @@ public class Deserialization implements Serializable {
         if(inputType.equals("GeoJSON")) {
             trajectoryStream = inputStream.map(new GeoJSONToTSpatialMultiPoint(uGrid, dateFormat, propertyTimeStamp, propertyObjID));
         }
+        else if(inputType.equals("WKT")) {
+            trajectoryStream = inputStream.map(new WKTToTSpatialMultiPoint(uGrid, dateFormat, delimiter)).returns(Point.class);
+        }
         else {
-            trajectoryStream = inputStream.map(new CSVTSVToTSpatialMultiPoint(uGrid, dateFormat, delimiter)).returns(Point.class);
+            throw new IllegalArgumentException("inputType : " + inputType + " is not support");
         }
 
         return trajectoryStream;
@@ -1225,13 +1296,13 @@ public class Deserialization implements Serializable {
         }
     }
 
-    public static class CSVTSVToSpatialMultiPoint extends RichMapFunction<String, MultiPoint> {
+    public static class WKTToSpatialMultiPoint extends RichMapFunction<String, MultiPoint> {
 
         UniformGrid uGrid;
 
         //ctor
-        public CSVTSVToSpatialMultiPoint() {};
-        public CSVTSVToSpatialMultiPoint(UniformGrid uGrid)
+        public WKTToSpatialMultiPoint() {};
+        public WKTToSpatialMultiPoint(UniformGrid uGrid)
         {
             this.uGrid = uGrid;
         };
@@ -1239,26 +1310,22 @@ public class Deserialization implements Serializable {
         @Override
         public MultiPoint map(String str) throws Exception {
 
-            List<List<Coordinate>> parent = convertCoordinates(
-                    str, '(', ')', ",", " ", 2);
-            List<Coordinate> listMultiPoint = new ArrayList<Coordinate>();
-            for (List<Coordinate> list : parent) {
-                listMultiPoint.addAll(list);
-            }
-            MultiPoint spatialMultiPoint = new MultiPoint(null, listMultiPoint, uGrid);
+            int pos = str.indexOf("MULTIPOINT");
+            List<Coordinate> list = getListCoordinates(str.substring(pos));
+            MultiPoint spatialMultiPoint = new MultiPoint(null, list, uGrid);
             return spatialMultiPoint;
         }
     }
 
-    public static class CSVTSVToTSpatialMultiPoint extends RichMapFunction<String, MultiPoint> {
+    public static class WKTToTSpatialMultiPoint extends RichMapFunction<String, MultiPoint> {
 
         UniformGrid uGrid;
         DateFormat dateFormat;
         String delimiter;
 
         //ctor
-        public CSVTSVToTSpatialMultiPoint() {};
-        public CSVTSVToTSpatialMultiPoint(UniformGrid uGrid, DateFormat dateFormat, String delimiter)
+        public WKTToTSpatialMultiPoint() {};
+        public WKTToTSpatialMultiPoint(UniformGrid uGrid, DateFormat dateFormat, String delimiter)
         {
             this.uGrid = uGrid;
             this.dateFormat = dateFormat;
@@ -1285,17 +1352,13 @@ public class Deserialization implements Serializable {
                     catch(ParseException e) {}
                 }
             }
-            List<List<Coordinate>> parent = convertCoordinates(
-                    str, '(', ')', ",", " ", 2);
-            List<Coordinate> listMultiPoint = new ArrayList<Coordinate>();
-            for (List<Coordinate> list : parent) {
-                listMultiPoint.addAll(list);
-            }
+            int pos = str.indexOf("MULTIPOINT");
+            List<Coordinate> list = getListCoordinates(str.substring(pos));
             if (time != 0) {
-                spatialMultiPoint = new MultiPoint(strOId, listMultiPoint, time, uGrid);
+                spatialMultiPoint = new MultiPoint(strOId, list, time, uGrid);
             }
             else {
-                spatialMultiPoint = new MultiPoint(strOId, listMultiPoint, uGrid);
+                spatialMultiPoint = new MultiPoint(strOId, list, uGrid);
             }
             return spatialMultiPoint;
         }
@@ -1348,6 +1411,108 @@ public class Deserialization implements Serializable {
         return listParent;
     }
 
+    private static List<List<List<Coordinate>>> getListListListCoordinates(String str) throws Exception {
+        List<List<List<Coordinate>>> listListListCoordinate = new ArrayList<>();
+        WKTReader wktReader = new WKTReader();
+        Geometry geometryLayer0 = wktReader.read(str);
+        int num = geometryLayer0.getNumGeometries();
+        for (int i = 0; i < num; i++) {
+            List<List<Coordinate>> listListCoordinate = new ArrayList<>();
+            Geometry geometryLayer1 = geometryLayer0.getGeometryN(i);
+            int numChild = geometryLayer1.getNumGeometries();
+            if (numChild > 0) {
+                for (int j = 0; j < numChild; j++) {
+                    Geometry geometryLayer2 = geometryLayer1.getGeometryN(i);
+                    Coordinate[] coordinates = geometryLayer2.getCoordinates();
+                    ArrayList<Coordinate> listCoordinate = new ArrayList<>(Arrays.asList(coordinates));
+                    listListCoordinate.add(listCoordinate);
+                }
+            }
+            else {
+                Coordinate[] coordinates = geometryLayer1.getCoordinates();
+                ArrayList<Coordinate> listCoordinate = new ArrayList<>(Arrays.asList(coordinates));
+                listListCoordinate.add(listCoordinate);
+            }
+            listListListCoordinate.add(listListCoordinate);
+        }
+        return listListListCoordinate;
+    }
+
+    private static List<List<Coordinate>> getListListCoordinates(String str) throws Exception {
+        List<List<Coordinate>> ListListCoordinate = new ArrayList<>();
+        WKTReader wktReader = new WKTReader();
+        Geometry geometry = wktReader.read(str);
+        int num = geometry.getNumGeometries();
+        for (int i = 0; i < num; i++) {
+            Coordinate[] coordinates = geometry.getGeometryN(i).getCoordinates();
+            ArrayList<Coordinate> listCoordinate = new ArrayList<>(Arrays.asList(coordinates));
+            ListListCoordinate.add(listCoordinate);
+        }
+        return ListListCoordinate;
+    }
+
+    private static List<List<Coordinate>> getPolygonCoordinates(String str) throws Exception {
+        List<List<Coordinate>> ListListCoordinate = new ArrayList<>();
+        WKTReader wktReader = new WKTReader();
+        org.locationtech.jts.geom.Polygon geomPolygon = (org.locationtech.jts.geom.Polygon)wktReader.read(str);
+
+        org.locationtech.jts.geom.LineString externalRing = geomPolygon.getExteriorRing();
+        Coordinate[] extenalCoordinates = externalRing.getCoordinates();
+        ListListCoordinate.add(new ArrayList<>(Arrays.asList(extenalCoordinates)));
+
+        int num = geomPolygon.getNumInteriorRing();
+        for (int i = 0; i < num; i++) {
+            org.locationtech.jts.geom.LineString internalRing = geomPolygon.getInteriorRingN(i);
+            Coordinate[] internalCoordinates = internalRing.getCoordinates();
+            ListListCoordinate.add(new ArrayList<>(Arrays.asList(internalCoordinates)));
+        }
+        return ListListCoordinate;
+    }
+
+    private static List<List<Coordinate>> getGeomPolygonCoordinates(org.locationtech.jts.geom.Polygon geomPolygon)
+            throws Exception {
+        List<List<Coordinate>> ListListCoordinate = new ArrayList<>();
+        WKTReader wktReader = new WKTReader();
+
+        org.locationtech.jts.geom.LineString externalRing = geomPolygon.getExteriorRing();
+        Coordinate[] extenalCoordinates = externalRing.getCoordinates();
+        ListListCoordinate.add(new ArrayList<>(Arrays.asList(extenalCoordinates)));
+
+        int num = geomPolygon.getNumInteriorRing();
+        for (int i = 0; i < num; i++) {
+            org.locationtech.jts.geom.LineString internalRing = geomPolygon.getInteriorRingN(i);
+            Coordinate[] internalCoordinates = internalRing.getCoordinates();
+            ListListCoordinate.add(new ArrayList<>(Arrays.asList(internalCoordinates)));
+        }
+        return ListListCoordinate;
+    }
+
+    private static List<List<List<Coordinate>>> getMultiPolygonCoordinates(String str) throws Exception {
+        List<List<List<Coordinate>>> listListListCoordinate = new ArrayList<>();
+        WKTReader wktReader = new WKTReader();
+        Geometry geometryLayer0 = wktReader.read(str);
+        int num = geometryLayer0.getNumGeometries();
+        for (int i = 0; i < num; i++) {
+            org.locationtech.jts.geom.Polygon geomPolygon = (org.locationtech.jts.geom.Polygon)geometryLayer0.getGeometryN(i);
+            List<List<Coordinate>> listListCoordinate = getGeomPolygonCoordinates(geomPolygon);
+            listListListCoordinate.add(listListCoordinate);
+        }
+        return listListListCoordinate;
+    }
+
+    private static List<Coordinate> getListCoordinates(String str) throws Exception {
+        WKTReader wktReader = new WKTReader();
+        Geometry geometry = wktReader.read(str);
+        Coordinate[] coordinates = geometry.getCoordinates();
+        return new ArrayList<>(Arrays.asList(coordinates));
+    }
+
+    private static Coordinate getCoordinate(String str) throws Exception {
+        WKTReader wktReader = new WKTReader();
+        Geometry geometry = wktReader.read(str);
+        return geometry.getCoordinate();
+    }
+
     private static List<List<List<Coordinate>>> convertMultiCoordinates(String str, char start, char end, String separator1, String separator2, int layer) {
         List<String> listTarget = splitString(str, start, end);
         List<List<List<Coordinate>>> list = new ArrayList<List<List<Coordinate>>>();
@@ -1387,38 +1552,6 @@ public class Deserialization implements Serializable {
         return list;
     }
 
-    private static Coordinate getCoordinateFromPoint(String str) {
-        // "POINT(116.69171 39.85184)"
-        final int LAYER_NUM = 1;
-        int startPos = 0;
-        for (int i = 0; i < LAYER_NUM; i++) {
-            startPos = str.indexOf("(", startPos);
-            startPos++;
-        }
-        int endPos = 0;
-        for (int i = 0; i < LAYER_NUM; i++) {
-            endPos = str.indexOf(")", endPos + 1);
-        }
-        String strCoordinates = str.substring(startPos, endPos);
-        String[] arrStr = strCoordinates.trim().split("\\s* \\s*");
-        int pos = arrStr[0].lastIndexOf("(");
-        double x, y;
-        if (pos < 0) {
-            x = Double.parseDouble(arrStr[0]);
-        }
-        else {
-            x = Double.parseDouble(arrStr[0].substring(pos + 1));
-        }
-        pos = arrStr[1].indexOf(")");
-        if (pos < 0) {
-            y = Double.parseDouble(arrStr[1]);
-        }
-        else {
-            y = Double.parseDouble(arrStr[1].substring(0, pos));
-        }
-        return new Coordinate(x, y);
-    }
-
     private static Geometry readGeoJSON(String geoJson) throws org.locationtech.jts.io.ParseException {
         return geoJsonReader.read(geoJson);
     }
@@ -1443,34 +1576,5 @@ public class Deserialization implements Serializable {
             }
         }
         return count;
-    }
-
-    private static String convertPointString(String str, String delimiter, List<Integer> csvTsvSchemaAttr) {
-        String[] elements = str.split(delimiter);
-        // insert "("
-        if (!str.contains("(")) {
-            int pos = 0;
-            for (int i = 0; i < csvTsvSchemaAttr.get(2); i++) {
-                pos = str.indexOf(delimiter, pos) + 1;
-            }
-            str = new StringBuilder(str).insert(pos, "(").toString();
-        }
-        // insert ")"
-        if (!str.contains(")")) {
-            int pos = 0;
-            for (int i = 0; i < csvTsvSchemaAttr.get(3); i++) {
-                pos = str.indexOf(delimiter, pos) + 1;
-            }
-            // ")" position is behind coordinate-y
-            pos = pos + elements[csvTsvSchemaAttr.get(3)].length();
-            str = new StringBuilder(str).insert(pos, ")").toString();
-        }
-        // replace tab  between Point coordinate-x and y to space
-        if (elements.length > csvTsvSchemaAttr.get(3)) {
-            String x = elements[csvTsvSchemaAttr.get(2)];
-            String y = elements[csvTsvSchemaAttr.get(3)];
-            str = str.replace(x + delimiter + y, x + " " + y);
-        }
-        return str;
     }
 }
