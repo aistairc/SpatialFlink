@@ -94,6 +94,7 @@ public class StreamingJob implements Serializable {
 		//ParameterTool parameters = ParameterTool.fromArgs(args);
 
 		Params params = new Params();
+		System.out.println(params);
 		/* Cluster */
 		boolean onCluster = params.clusterMode;
 		String bootStrapServers = params.kafkaBootStrapServers;
@@ -123,13 +124,9 @@ public class StreamingJob implements Serializable {
 		String inputDelimiter2 = params.inputDelimiter2;
 		String charset2 = params.charset2;
 
-		/* Output Stream1 */
-		String outputTopicName1 = params.outputTopicName1;
-		String outputDelimiter1 = params.outputDelimiter1;
-
-		/* Output Stream2 */
-		String outputTopicName2 = params.outputTopicName2;
-		String outputDelimiter2 = params.outputDelimiter2;
+		/* Stream Output */
+		String outputTopicName = params.outputTopicName;
+		String outputDelimiter = params.outputDelimiter;
 
 		/* Query */
 		int queryOption = params.queryOption;
@@ -142,7 +139,6 @@ public class StreamingJob implements Serializable {
 		List<Coordinate> queryPointCoordinates = params.queryPoints;
 		List<List<Coordinate>> queryPolygons = params.queryPolygons;
 		List<List<Coordinate>> queryLineStrings = params.queryLineStrings;
-		String outputTopicName = params.queryOutputTopicName;
 		Long inactiveTrajDeletionThreshold = params.queryTrajDeletion;
 		int allowedLateness = params.queryOutOfOrderTuples;
 
@@ -1467,84 +1463,84 @@ public class StreamingJob implements Serializable {
 				DataStream csvStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new SimpleStringSchema(Charset.forName(charset1)), kafkaProperties).setStartFromEarliest());
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(csvStream, "WKT", inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
 				spatialTrajectoryStream.print();
-				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.PointToWKTOutputSchema("kafka", inputDateFormat, outputDelimiter1), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.PointToWKTOutputSchema("kafka", inputDateFormat, outputDelimiter), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
 			case 802:{ // Polygon (WKT CSV Polygon Timestamp)
 				DataStream csvStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new SimpleStringSchema(Charset.forName(charset1)), kafkaProperties).setStartFromEarliest());
 				DataStream<Polygon> spatialTrajectoryStream = Deserialization.TrajectoryStreamPolygon(csvStream, "WKT", inputDateFormat, inputDelimiter1, null, null,uGrid);
 				spatialTrajectoryStream.print();
-				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.PolygonToWKTOutputSchema("kafka", inputDateFormat, outputDelimiter1), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.PolygonToWKTOutputSchema("kafka", inputDateFormat, outputDelimiter), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
 			case 803:{ // LineString (WKT CSV LineString Timestamp)
 				DataStream csvStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new SimpleStringSchema(Charset.forName(charset1)), kafkaProperties).setStartFromEarliest());
 				DataStream<LineString> spatialTrajectoryStream = Deserialization.TrajectoryStreamLineString(csvStream, "WKT", inputDateFormat, inputDelimiter1, null, null, uGrid);
 				spatialTrajectoryStream.print();
-				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.LineStringToWKTOutputSchema("kafka", inputDateFormat, outputDelimiter1), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.LineStringToWKTOutputSchema("kafka", inputDateFormat, outputDelimiter), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
 			case 804:{ // GeometryCollection (WKT CSV GeometryCollection Timestamp)
 				DataStream csvStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new SimpleStringSchema(Charset.forName(charset1)), kafkaProperties).setStartFromEarliest());
 				DataStream<GeometryCollection> spatialTrajectoryStream = Deserialization.TrajectoryStreamGeometryCollection(csvStream, "WKT", inputDateFormat, inputDelimiter1, null, null, uGrid);
 				spatialTrajectoryStream.print();
-				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.GeometryCollectionToWKTOutputSchema("kafka", inputDateFormat, outputDelimiter1), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.GeometryCollectionToWKTOutputSchema("kafka", inputDateFormat, outputDelimiter), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
 			case 805:{ // MultiPoint (WKT CSV MultiPoint Timestamp)
 				DataStream csvStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new SimpleStringSchema(Charset.forName(charset1)), kafkaProperties).setStartFromEarliest());
 				DataStream<MultiPoint> spatialTrajectoryStream = Deserialization.TrajectoryStreamMultiPoint(csvStream, "WKT", inputDateFormat, inputDelimiter1, null, null, uGrid);
 				spatialTrajectoryStream.print();
-				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.MultiPointToWKTOutputSchema("kafka", inputDateFormat, outputDelimiter1), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.MultiPointToWKTOutputSchema("kafka", inputDateFormat, outputDelimiter), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
 			case 806:{ // Point (NOT WKT CSV Point Timestamp)
 				DataStream csvStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new SimpleStringSchema(Charset.forName(charset1)), kafkaProperties).setStartFromEarliest());
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(csvStream, "CSV", inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
 				spatialTrajectoryStream.print();
-				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.PointToCSVTSVOutputSchema("kafka", inputDateFormat, outputDelimiter1, csvTsvSchemaAttr1), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.PointToCSVTSVOutputSchema("kafka", inputDateFormat, outputDelimiter, csvTsvSchemaAttr1), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
 			case 901:{ // Point (WKT TSV Point Timestamp)
 				DataStream tsvStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new SimpleStringSchema(Charset.forName(charset1)), kafkaProperties).setStartFromEarliest());
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(tsvStream, "WKT", inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, null, null, uGrid);
 				spatialTrajectoryStream.print();
-				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.PointToWKTOutputSchema("kafka", inputDateFormat, outputDelimiter1), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.PointToWKTOutputSchema("kafka", inputDateFormat, outputDelimiter), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
 			case 902:{ // Polygon (WKT TSV Polygon Timestamp)
 				DataStream tsvStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new SimpleStringSchema(Charset.forName(charset1)), kafkaProperties).setStartFromEarliest());
 				DataStream<Polygon> spatialTrajectoryStream = Deserialization.TrajectoryStreamPolygon(tsvStream, "WKT", inputDateFormat, inputDelimiter1, null, null, uGrid);
 				spatialTrajectoryStream.print();
-				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.PolygonToWKTOutputSchema("kafka", inputDateFormat, outputDelimiter1), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.PolygonToWKTOutputSchema("kafka", inputDateFormat, outputDelimiter), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
 			case 903:{ // LineString (WKT TSV LineString Timestamp)
 				DataStream tsvStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new SimpleStringSchema(Charset.forName(charset1)), kafkaProperties).setStartFromEarliest());
 				DataStream<LineString> spatialTrajectoryStream = Deserialization.TrajectoryStreamLineString(tsvStream, "WKT", inputDateFormat, inputDelimiter1, null, null, uGrid);
 				spatialTrajectoryStream.print();
-				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.LineStringToWKTOutputSchema("kafka", inputDateFormat, outputDelimiter1), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.LineStringToWKTOutputSchema("kafka", inputDateFormat, outputDelimiter), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
 			case 904:{ // GeometryCollection (WKT TSV GeometryCollection Timestamp)
 				DataStream tsvStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new SimpleStringSchema(Charset.forName(charset1)), kafkaProperties).setStartFromEarliest());
 				DataStream<GeometryCollection> spatialTrajectoryStream = Deserialization.TrajectoryStreamGeometryCollection(tsvStream, "WKT", inputDateFormat, inputDelimiter1, null, null, uGrid);
 				spatialTrajectoryStream.print();
-				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.GeometryCollectionToWKTOutputSchema("kafka", inputDateFormat, outputDelimiter1), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.GeometryCollectionToWKTOutputSchema("kafka", inputDateFormat, outputDelimiter), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
 			case 905:{ // MultiPoint (WKT TSV MultiPoint Timestamp)
 				DataStream tsvStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new SimpleStringSchema(Charset.forName(charset1)), kafkaProperties).setStartFromEarliest());
 				DataStream<MultiPoint> spatialTrajectoryStream = Deserialization.TrajectoryStreamMultiPoint(tsvStream, "WKT", inputDateFormat, inputDelimiter1, null, null, uGrid);
 				spatialTrajectoryStream.print();
-				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.MultiPointToWKTOutputSchema("kafka", inputDateFormat, outputDelimiter1), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.MultiPointToWKTOutputSchema("kafka", inputDateFormat, outputDelimiter), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
 			case 906:{ // Point (NOT WKT TSV Point Timestamp)
 				DataStream tsvStream = env.addSource(new FlinkKafkaConsumer<>("kafka", new SimpleStringSchema(Charset.forName(charset1)), kafkaProperties).setStartFromEarliest());
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(tsvStream, "TSV", inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, null, null, uGrid);
 				spatialTrajectoryStream.print();
-				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.PointToCSVTSVOutputSchema("kafka", inputDateFormat, outputDelimiter1, csvTsvSchemaAttr1), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
+				spatialTrajectoryStream.addSink(new FlinkKafkaProducer<>("kafka", new Serialization.PointToCSVTSVOutputSchema("kafka", inputDateFormat, outputDelimiter, csvTsvSchemaAttr1), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
 			case 1001:{ // Shapefile (Point)

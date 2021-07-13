@@ -40,13 +40,8 @@ inputStream2:
   delimiter: "\\\\t"
   charset: "UTF-8"
 
-# Output Stream1
-outputStream1:
-  topicName: "output"
-  delimiter: "	"
-
-# Output Stream2
-outputStream2:
+# Output Stream
+outputStream:
   topicName: "output"
   delimiter: "	"
 
@@ -72,7 +67,6 @@ query:
     - [[116.5, 40.5], [117.6, 40.5], [117.6, 41.4], [116.5, 41.4]]
     - [[116.5, 40.5], [117.6, 40.5], [117.6, 41.4], [116.5, 41.4]]
   
-  outputTopicName: "output"
   thresholds:
     trajDeletion: 1000
     outOfOrderTuples: 1

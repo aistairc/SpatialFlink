@@ -47,13 +47,9 @@ public class Params {
     public String inputDelimiter2;
     public String charset2;
 
-    /* Stream1 Output */
-    public String outputTopicName1;
-    public String outputDelimiter1;
-
-    /* Stream2 Output */
-    public String outputTopicName2;
-    public String outputDelimiter2;
+    /* Output Stream */
+    public String outputTopicName;
+    public String outputDelimiter;
 
     /* Query */
     public int queryOption = Integer.MIN_VALUE;
@@ -66,7 +62,6 @@ public class Params {
     public List<Coordinate> queryPoints = new ArrayList<>();
     public List<List<Coordinate>> queryPolygons = new ArrayList<>();
     public List<List<Coordinate>> queryLineStrings = new ArrayList<>();
-    public String queryOutputTopicName;
     public long queryTrajDeletion = Long.MIN_VALUE;
     public int queryOutOfOrderTuples = Integer.MIN_VALUE;
 
@@ -283,40 +278,22 @@ public class Params {
             throw new IllegalArgumentException("charset2 : " + e);
         }
 
-        /* Stream1 Output */
+        /* Output Stream */
         try {
-            if ((outputTopicName1 = (String)config.getOutputStream1().get("topicName")) == null) {
-                throw new NullPointerException("outputTopicName1 is " + config.getOutputStream1().get("topicName"));
+            if ((outputTopicName = (String)config.getOutputStream().get("topicName")) == null) {
+                throw new NullPointerException("outputTopicName is " + config.getOutputStream().get("topicName"));
             }
         }
         catch (ClassCastException e) {
-            throw new IllegalArgumentException("outputTopicName1 : " + e);
+            throw new IllegalArgumentException("outputTopicName : " + e);
         }
         try {
-            if((outputDelimiter1 = (String)config.getOutputStream1().get("delimiter")) == null) {
-                throw new NullPointerException("outputDelimiter1 is " + config.getOutputStream1().get("delimiter"));
+            if((outputDelimiter = (String)config.getOutputStream().get("delimiter")) == null) {
+                throw new NullPointerException("outputDelimiter is " + config.getOutputStream().get("delimiter"));
             }
         }
         catch (ClassCastException e) {
-            throw new IllegalArgumentException("outputDelimiter1 : " + e);
-        }
-
-        /* Stream2 Output */
-        try {
-            if ((inputTopicName2 = (String)config.getOutputStream2().get("topicName")) == null) {
-                throw new NullPointerException("outputTopicName1 is " + config.getOutputStream2().get("topicName"));
-            }
-        }
-        catch (ClassCastException e) {
-            throw new IllegalArgumentException("outputTopicName1 : " + e);
-        }
-        try {
-            if((outputDelimiter2 = (String)config.getOutputStream2().get("delimiter")) == null) {
-                throw new NullPointerException("outputDelimiter2 is " + config.getOutputStream2().get("delimiter"));
-            }
-        }
-        catch (ClassCastException e) {
-            throw new IllegalArgumentException("outputDelimiter2 : " + e);
+            throw new IllegalArgumentException("outputDelimiter : " + e);
         }
 
         /* Query */
@@ -455,14 +432,6 @@ public class Params {
             throw new IllegalArgumentException("queryLineStrings : " + e);
         }
         try {
-            if((queryOutputTopicName = (String)config.getQuery().get("outputTopicName")) == null) {
-                throw new NullPointerException("outputTopicName is " + config.getQuery().get("outputTopicName"));
-            }
-        }
-        catch (ClassCastException e) {
-            throw new IllegalArgumentException("outputTopicName : " + e);
-        }
-        try {
             Map<String, Object> thresholds;
             if((thresholds = (Map<String, Object>)config.getQuery().get("thresholds")) == null) {
                 throw new NullPointerException("thresholds is " + config.getQuery().get("thresholds"));
@@ -564,11 +533,8 @@ public class Params {
                 "inputDelimiter2 = " + inputDelimiter2 + ", " +
                 "charset2 = " + charset2 + ", " +
                 "\n" +
-                "outputTopicName1 = " + outputTopicName1 + ", " +
-                "outputDelimiter1 = " + outputDelimiter1 + ", " +
-                "\n" +
-                "outputTopicName2 = " + inputTopicName2 + ", " +
-                "outputDelimiter2 = " + outputDelimiter2 + ", " +
+                "outputTopicName = " + outputTopicName + ", " +
+                "outputDelimiter = " + outputDelimiter + ", " +
                 "\n" +
                 "queryOption = " + queryOption + ", " +
                 "queryApproximate = " + queryApproximate + ", " +
@@ -580,7 +546,6 @@ public class Params {
                 "queryPoints = " + queryPoints + ", " +
                 "queryPolygons = " + queryPolygons + ", " +
                 "queryLineStrings = " + queryLineStrings + ", " +
-                "queryOutputTopicName = " + queryOutputTopicName + ", " +
                 "queryTrajDeletion = " + queryTrajDeletion + ", " +
                 "queryOutOfOrderTuples = " + queryOutOfOrderTuples + ", " +
                 "\n" +

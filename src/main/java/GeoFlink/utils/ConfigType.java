@@ -7,8 +7,7 @@ public class ConfigType {
     private String kafkaBootStrapServers;
     private Map<String, Object> inputStream1;
     private Map<String, Object> inputStream2;
-    private Map<String, Object> outputStream1;
-    private Map<String, Object> outputStream2;
+    private Map<String, Object> outputStream;
     private Map<String, Object> query;
     private Map<String, Object> window;
     public boolean isClusterMode() {
@@ -43,20 +42,12 @@ public class ConfigType {
         this.inputStream2 = inputStream2;
     }
 
-    public Map<String, Object> getOutputStream1() {
-        return outputStream1;
+    public Map<String, Object> getOutputStream() {
+        return outputStream;
     }
 
-    public void setOutputStream1(Map<String, Object> outputStream1) {
-        this.outputStream1 = outputStream1;
-    }
-
-    public Map<String, Object> getOutputStream2() {
-        return outputStream2;
-    }
-
-    public void setOutputStream2(Map<String, Object> stream2Output) {
-        this.outputStream2 = stream2Output;
+    public void setOutputStream(Map<String, Object> outputStream) {
+        this.outputStream = outputStream;
     }
 
     public Map<String, Object> getQuery() {
@@ -78,7 +69,7 @@ public class ConfigType {
     @Override
     public String toString() {
         return "clusterMode=" + clusterMode + ", kafkaBootStrapServers=" + kafkaBootStrapServers + ", inputStream1=" + inputStream1 +
-                ", inputStream2=" + inputStream2 + ", outputStream1=" + outputStream1 + ", outputStream2=" + outputStream2 +
+                ", inputStream2=" + inputStream2 + ", outputStream=" + outputStream +
                 ", query=" + query + ", window=" + window;
     }
 }
