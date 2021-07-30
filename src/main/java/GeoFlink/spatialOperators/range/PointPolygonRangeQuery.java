@@ -44,7 +44,7 @@ public class PointPolygonRangeQuery extends RangeQuery<Point, Polygon> {
                 }
             }).startNewChain();
 
-            DataStream<Point> rangeQueryNeighbours = filteredPoints.keyBy(new KeySelector<Point, String>() {
+            return filteredPoints.keyBy(new KeySelector<Point, String>() {
                 @Override
                 public String getKey(Point p) throws Exception {
                     return p.gridID;
@@ -58,7 +58,7 @@ public class PointPolygonRangeQuery extends RangeQuery<Point, Polygon> {
                     }
                     else {
 
-                        Double distance;
+                        double distance;
                         if(approximateQuery) {
                             distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(point, queryPolygon);
                         }else{
@@ -71,8 +71,6 @@ public class PointPolygonRangeQuery extends RangeQuery<Point, Polygon> {
 
                 }
             }).name("Real-time - POLYGON - POINT");
-
-            return rangeQueryNeighbours;
         }
         //--------------- Window-based - POLYGON - POINT -----------------//
         else if (this.getQueryConfiguration().getQueryType() == QueryType.WindowBased) {
@@ -97,7 +95,7 @@ public class PointPolygonRangeQuery extends RangeQuery<Point, Polygon> {
                 }
             });
 
-            DataStream<Point> rangeQueryNeighbours = filteredPoints.keyBy(new KeySelector<Point, String>() {
+            return filteredPoints.keyBy(new KeySelector<Point, String>() {
                 @Override
                 public String getKey(Point p) throws Exception {
                     return p.gridID;
@@ -111,7 +109,7 @@ public class PointPolygonRangeQuery extends RangeQuery<Point, Polygon> {
                                     neighbors.collect(point);
                                 else {
 
-                                    Double distance;
+                                    double distance;
                                     if(approximateQuery) {
                                         distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(point, queryPolygon);
                                     }else{
@@ -124,8 +122,6 @@ public class PointPolygonRangeQuery extends RangeQuery<Point, Polygon> {
                             }
                         }
                     }).name("Window-based - POLYGON - POINT");
-
-            return rangeQueryNeighbours;
         } else {
             throw new IllegalArgumentException("Not yet support");
         }
@@ -151,7 +147,7 @@ public class PointPolygonRangeQuery extends RangeQuery<Point, Polygon> {
                 }
             }).startNewChain();
 
-            DataStream<Long> rangeQueryNeighbours = filteredPoints.keyBy(new KeySelector<Point, String>() {
+            return filteredPoints.keyBy(new KeySelector<Point, String>() {
                 @Override
                 public String getKey(Point p) throws Exception {
                     return p.gridID;
@@ -166,13 +162,6 @@ public class PointPolygonRangeQuery extends RangeQuery<Point, Polygon> {
                         collector.collect(latency);
                     }
                     else {
-
-                        Double distance;
-                        if(approximateQuery) {
-                            distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(point, queryPolygon);
-                        }else{
-                            distance = DistanceFunctions.getDistance(point, queryPolygon);
-                        }
                         Date date = new Date();
                         Long latency = date.getTime() -  point.timeStampMillisec;
                         collector.collect(latency);
@@ -180,8 +169,6 @@ public class PointPolygonRangeQuery extends RangeQuery<Point, Polygon> {
 
                 }
             }).name("Real-time - POLYGON - POINT");
-
-            return rangeQueryNeighbours;
         }
         //--------------- Window-based - POLYGON - POINT -----------------//
         else if (this.getQueryConfiguration().getQueryType() == QueryType.WindowBased) {
@@ -201,12 +188,12 @@ public class PointPolygonRangeQuery extends RangeQuery<Point, Polygon> {
 
             DataStream<Point> filteredPoints = pointStreamWithTsAndWm.filter(new FilterFunction<Point>() {
                 @Override
-                public boolean filter(Point point) throws Exception {
+                public boolean filter(Point point) {
                     return ((candidateNeighboringCells.contains(point.gridID)) || (guaranteedNeighboringCells.contains(point.gridID)));
                 }
             });
 
-            DataStream<Long> rangeQueryNeighbours = filteredPoints.keyBy(new KeySelector<Point, String>() {
+            return filteredPoints.keyBy(new KeySelector<Point, String>() {
                 @Override
                 public String getKey(Point p) throws Exception {
                     return p.gridID;
@@ -222,13 +209,6 @@ public class PointPolygonRangeQuery extends RangeQuery<Point, Polygon> {
                                     neighbors.collect(latency);
                                 }
                                 else {
-
-                                    Double distance;
-                                    if(approximateQuery) {
-                                        distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(point, queryPolygon);
-                                    }else{
-                                        distance = DistanceFunctions.getDistance(point, queryPolygon);
-                                    }
                                     Date date = new Date();
                                     Long latency = date.getTime() -  point.timeStampMillisec;
                                     neighbors.collect(latency);
@@ -236,10 +216,8 @@ public class PointPolygonRangeQuery extends RangeQuery<Point, Polygon> {
                             }
                         }
                     }).name("Window-based - POLYGON - POINT");
-
-            return rangeQueryNeighbours;
         } else {
-            throw new IllegalArgumentException("Not yet support");
+            throw new IllegalArgumentException("Not yet supported");
         }
     }
 }

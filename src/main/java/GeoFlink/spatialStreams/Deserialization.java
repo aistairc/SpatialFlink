@@ -1538,7 +1538,6 @@ public class Deserialization implements Serializable {
                         pos = i;
                     }
                     searchLayer++;
-                    continue;
                 }
                 else if (target.charAt(i) == end) {
                     searchLayer--;

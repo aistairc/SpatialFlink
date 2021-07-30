@@ -39,7 +39,7 @@ public class LineStringLineStringRangeQuery extends RangeQuery<LineString, LineS
 
             DataStream<LineString> filteredLineStrings = lineStringStream.flatMap(new CellBasedLineStringFlatMap(neighboringCells)).startNewChain();
 
-            DataStream<LineString> rangeQueryNeighbours = filteredLineStrings.keyBy(new KeySelector<LineString, String>() {
+            return filteredLineStrings.keyBy(new KeySelector<LineString, String>() {
                 @Override
                 public String getKey(LineString lineString) throws Exception {
                     return lineString.gridID;
@@ -57,7 +57,7 @@ public class LineStringLineStringRangeQuery extends RangeQuery<LineString, LineS
                                 collector.collect(lineString);
                             }
                         } else { // candidate neighbors
-                            Double distance;
+                            double distance;
                             if (approximateQuery) {
                                 distance = DistanceFunctions.getBBoxBBoxMinEuclideanDistance(queryLineString.boundingBox, lineString.boundingBox);
                             } else {
@@ -73,8 +73,6 @@ public class LineStringLineStringRangeQuery extends RangeQuery<LineString, LineS
 
                 }
             }).name("Real-time - LINESTRING - LINESTRING");
-
-            return rangeQueryNeighbours;
         }
 
         //--------------- WINDOW-based - LINESTRING - LINESTRING -----------------//
@@ -96,7 +94,7 @@ public class LineStringLineStringRangeQuery extends RangeQuery<LineString, LineS
 
             DataStream<LineString> filteredLineStrings = streamWithTsAndWm.flatMap(new CellBasedLineStringFlatMap(neighboringCells));
 
-            DataStream<LineString> rangeQueryNeighbours = filteredLineStrings.keyBy(new KeySelector<LineString, String>() {
+            return filteredLineStrings.keyBy(new KeySelector<LineString, String>() {
                 @Override
                 public String getKey(LineString lineString) throws Exception {
                     return lineString.gridID;
@@ -116,7 +114,7 @@ public class LineStringLineStringRangeQuery extends RangeQuery<LineString, LineS
                                             neighbors.collect(lineString);
                                         }
                                     } else { // candidate neighbors
-                                        Double distance;
+                                        double distance;
                                         if (approximateQuery) {
                                             distance = DistanceFunctions.getBBoxBBoxMinEuclideanDistance(queryLineString.boundingBox, lineString.boundingBox);
                                         } else {
@@ -132,8 +130,6 @@ public class LineStringLineStringRangeQuery extends RangeQuery<LineString, LineS
                             }
                         }
                     }).name("Window-based - LINESTRING - LINESTRING");
-
-            return rangeQueryNeighbours;
         }else{
             throw new IllegalArgumentException("Not yet support");
         }

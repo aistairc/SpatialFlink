@@ -68,7 +68,6 @@ public abstract class KNNQuery<T extends SpatialObject, K extends SpatialObject>
             Set<String> objIDs = new HashSet<String>();
 
             kNNPQWinAll.clear();
-            objIDs.clear();
             // Iterate through all PriorityQueues
             for (PriorityQueue<Tuple2<LineString, Double>> pq : input) {
                 for(Tuple2<LineString, Double> candidPQTuple: pq) {
@@ -81,7 +80,7 @@ public abstract class KNNQuery<T extends SpatialObject, K extends SpatialObject>
                         }else{
                             // (To avoid duplicate addition of an object in kNN) Object is already in PQ, check the existing object's distance compared to current object
                             for (Tuple2<LineString, Double> existingPQTuple : kNNPQWinAll){
-                                if(existingPQTuple.f0.objID == candidPQTuple.f0.objID && existingPQTuple.f1 > candidPQTuple.f1){
+                                if(existingPQTuple.f0.objID.equals(candidPQTuple.f0.objID) && existingPQTuple.f1 > candidPQTuple.f1){
                                     kNNPQWinAll.remove(existingPQTuple);
                                     kNNPQWinAll.offer(candidPQTuple);
                                     break;
@@ -91,12 +90,14 @@ public abstract class KNNQuery<T extends SpatialObject, K extends SpatialObject>
                     }
                     // If there are already required (k) number of tuples in kNNPQWinAll
                     else{
+                        assert kNNPQWinAll.peek() != null;
                         double largestDistInkNNPQ = kNNPQWinAll.peek().f1;
                         if (largestDistInkNNPQ > candidPQTuple.f1) {
                             // Add an object if it is not already there
                             if(!objIDs.contains(candidPQTuple.f0.objID)) {
                                 // remove element with the largest distance and add the new element
                                 kNNPQWinAll.poll();
+                                assert kNNPQWinAll.peek() != null;
                                 objIDs.remove(kNNPQWinAll.peek().f0.objID);
 
                                 kNNPQWinAll.offer(candidPQTuple);
@@ -105,7 +106,7 @@ public abstract class KNNQuery<T extends SpatialObject, K extends SpatialObject>
                             else {
                                 // (To avoid duplicate addition of an object in kNN) Object is already in PQ, check the existing object's distance compared to current object
                                 for (Tuple2<LineString, Double> existingPQTuple : kNNPQWinAll) {
-                                    if (existingPQTuple.f0.objID == candidPQTuple.f0.objID && existingPQTuple.f1 > candidPQTuple.f1) {
+                                    if (existingPQTuple.f0.objID.equals(candidPQTuple.f0.objID) && existingPQTuple.f1 > candidPQTuple.f1) {
                                         kNNPQWinAll.remove(existingPQTuple);
                                         kNNPQWinAll.offer(candidPQTuple);
                                         break;
@@ -144,7 +145,6 @@ public abstract class KNNQuery<T extends SpatialObject, K extends SpatialObject>
             Set<String> objIDs = new HashSet<String>();
 
             kNNPQWinAll.clear();
-            objIDs.clear();
             // Iterate through all PriorityQueues
             for (PriorityQueue<Tuple2<Polygon, Double>> pq : input) {
                 for(Tuple2<Polygon, Double> candidPQTuple: pq) {
@@ -157,7 +157,7 @@ public abstract class KNNQuery<T extends SpatialObject, K extends SpatialObject>
                         }else{
                             // (To avoid duplicate addition of an object in kNN) Object is already in PQ, check the existing object's distance compared to current object
                             for (Tuple2<Polygon, Double> existingPQTuple : kNNPQWinAll){
-                                if(existingPQTuple.f0.objID == candidPQTuple.f0.objID && existingPQTuple.f1 > candidPQTuple.f1){
+                                if(existingPQTuple.f0.objID.equals(candidPQTuple.f0.objID) && existingPQTuple.f1 > candidPQTuple.f1){
                                     kNNPQWinAll.remove(existingPQTuple);
                                     kNNPQWinAll.offer(candidPQTuple);
                                     break;
@@ -167,12 +167,14 @@ public abstract class KNNQuery<T extends SpatialObject, K extends SpatialObject>
                     }
                     // If there are already required (k) number of tuples in kNNPQWinAll
                     else{
+                        assert kNNPQWinAll.peek() != null;
                         double largestDistInkNNPQ = kNNPQWinAll.peek().f1;
                         if (largestDistInkNNPQ > candidPQTuple.f1) {
                             // Add an object if it is not already there
                             if(!objIDs.contains(candidPQTuple.f0.objID)) {
                                 // remove element with the largest distance and add the new element
                                 kNNPQWinAll.poll();
+                                assert kNNPQWinAll.peek() != null;
                                 objIDs.remove(kNNPQWinAll.peek().f0.objID);
 
                                 kNNPQWinAll.offer(candidPQTuple);
@@ -181,7 +183,7 @@ public abstract class KNNQuery<T extends SpatialObject, K extends SpatialObject>
                             else {
                                 // (To avoid duplicate addition of an object in kNN) Object is already in PQ, check the existing object's distance compared to current object
                                 for (Tuple2<Polygon, Double> existingPQTuple : kNNPQWinAll) {
-                                    if (existingPQTuple.f0.objID == candidPQTuple.f0.objID && existingPQTuple.f1 > candidPQTuple.f1) {
+                                    if (existingPQTuple.f0.objID.equals(candidPQTuple.f0.objID) && existingPQTuple.f1 > candidPQTuple.f1) {
                                         kNNPQWinAll.remove(existingPQTuple);
                                         kNNPQWinAll.offer(candidPQTuple);
                                         break;
@@ -203,11 +205,9 @@ public abstract class KNNQuery<T extends SpatialObject, K extends SpatialObject>
 
         //ctor
         public kNNWinAllEvaluationPointStream(){}
-
         public kNNWinAllEvaluationPointStream(Integer k){
             this.k = k;
         }
-
         Integer k;
 
         @Override
@@ -217,7 +217,6 @@ public abstract class KNNQuery<T extends SpatialObject, K extends SpatialObject>
             Set<String> objIDs = new HashSet<String>();
 
             kNNPQWinAll.clear();
-            objIDs.clear();
             // Iterate through all PriorityQueues
             for (PriorityQueue<Tuple2<Point, Double>> pq : input) {
                 for(Tuple2<Point, Double> candidPQTuple: pq) {
@@ -225,14 +224,14 @@ public abstract class KNNQuery<T extends SpatialObject, K extends SpatialObject>
                     if (kNNPQWinAll.size() < k) {
                         // Add an object if it is not already there
                         if(!objIDs.contains(candidPQTuple.f0.objID)) {
-                            kNNPQWinAll.offer(candidPQTuple);
+                            kNNPQWinAll.add(candidPQTuple);
                             objIDs.add(candidPQTuple.f0.objID);
                         }else{
                             // If the object already exist (To avoid duplicate addition of an object in kNN) Object is already in PQ, check the existing object's distance compared to current object
                             for (Tuple2<Point, Double> existingPQTuple : kNNPQWinAll){
-                                if(existingPQTuple.f0.objID == candidPQTuple.f0.objID && existingPQTuple.f1 > candidPQTuple.f1){
+                                if(existingPQTuple.f0.objID.equals(candidPQTuple.f0.objID) && existingPQTuple.f1 > candidPQTuple.f1){
                                     kNNPQWinAll.remove(existingPQTuple);
-                                    kNNPQWinAll.offer(candidPQTuple);
+                                    kNNPQWinAll.add(candidPQTuple);
                                     break;
                                 }
                             }
@@ -240,12 +239,15 @@ public abstract class KNNQuery<T extends SpatialObject, K extends SpatialObject>
                     }
                     // If there are already required (k) number of tuples in kNNPQWinAll
                     else{
+                        assert kNNPQWinAll.peek() != null;
                         double largestDistInkNNPQ = kNNPQWinAll.peek().f1; // get the largest distance
+
                         if (largestDistInkNNPQ > candidPQTuple.f1) {
                             // Add an object if it is not already there
                             if(!objIDs.contains(candidPQTuple.f0.objID)) {
                                 // remove element with the largest distance and add the new element
                                 kNNPQWinAll.poll();
+                                assert kNNPQWinAll.peek() != null;
                                 objIDs.remove(kNNPQWinAll.peek().f0.objID);
 
                                 kNNPQWinAll.offer(candidPQTuple);
@@ -254,7 +256,7 @@ public abstract class KNNQuery<T extends SpatialObject, K extends SpatialObject>
                             else {
                                 // If the object already exist (To avoid duplicate addition of an object in kNN) Object is already in PQ, check the existing object's distance compared to current object
                                 for (Tuple2<Point, Double> existingPQTuple : kNNPQWinAll) {
-                                    if (existingPQTuple.f0.objID == candidPQTuple.f0.objID && existingPQTuple.f1 > candidPQTuple.f1) {
+                                    if (existingPQTuple.f0.objID.equals(candidPQTuple.f0.objID) && existingPQTuple.f1 > candidPQTuple.f1) {
                                         kNNPQWinAll.remove(existingPQTuple);
                                         kNNPQWinAll.offer(candidPQTuple);
                                         break;

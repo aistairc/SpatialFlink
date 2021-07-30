@@ -87,7 +87,7 @@ public class PolygonPolygonJoinQuery extends JoinQuery<Polygon, Polygon> {
                     @Override
                     public Tuple2<Polygon, Polygon> join(Polygon poly, Polygon q) {
 
-                        Double distance;
+                        double distance;
                         if(approximateQuery) {
                             distance = DistanceFunctions.getPolygonPolygonBBoxMinEuclideanDistance(q, poly);
                         }else{
@@ -151,7 +151,7 @@ public class PolygonPolygonJoinQuery extends JoinQuery<Polygon, Polygon> {
                     @Override
                     public Tuple2<Polygon, Polygon> join(Polygon poly, Polygon q) {
 
-                        Double distance;
+                        double distance;
                         if(approximateQuery) {
                             distance = DistanceFunctions.getPolygonPolygonBBoxMinEuclideanDistance(q, poly);
                         }else{

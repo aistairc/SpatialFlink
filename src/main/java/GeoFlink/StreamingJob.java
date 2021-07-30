@@ -152,13 +152,13 @@ public class StreamingJob implements Serializable {
 
 
 		double gridMinX = gridBBox1.get(0);
-		double gridMaxX = gridBBox1.get(2);
 		double gridMinY = gridBBox1.get(1);
+		double gridMaxX = gridBBox1.get(2);
 		double gridMaxY = gridBBox1.get(3);
 
 		double qGridMinX = gridBBox2.get(0);
-		double qGridMaxX = gridBBox2.get(2);
 		double qGridMinY = gridBBox2.get(1);
+		double qGridMaxX = gridBBox2.get(2);
 		double qGridMaxY = gridBBox2.get(3);
 
 
@@ -656,7 +656,7 @@ public class StreamingJob implements Serializable {
 				// Converting GeoJSON,CSV stream to point spatial data stream
 				DataStream<Point> spatialPointStream = Deserialization.TrajectoryStream(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
 				DataStream < Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> kNNPQStream = new PointPointKNNQuery(windowConf, uGrid).run(spatialPointStream, qPoint, radius, k);
-				//kNNPQStream.print();
+				kNNPQStream.print();
 				break;}
 
 			case 52: { // KNN (Real-time) - Point-Stream-Point-Query

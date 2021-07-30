@@ -46,7 +46,7 @@ public class LineStringPointRangeQuery extends RangeQuery<LineString, Point> {
             // Filtering out the linestrings which lie greater than queryRadius of the query point
             DataStream<LineString> filteredLineStrings = lineStringStream.flatMap(new CellBasedLineStringFlatMap(neighboringCells)).startNewChain();
 
-            DataStream<LineString> rangeQueryNeighbours = filteredLineStrings.keyBy(new KeySelector<LineString, String>() {
+            return filteredLineStrings.keyBy(new KeySelector<LineString, String>() {
                 @Override
                 public String getKey(LineString lineString) throws Exception {
                     return lineString.gridID;
@@ -65,7 +65,7 @@ public class LineStringPointRangeQuery extends RangeQuery<LineString, Point> {
                             }
                         } else { // candidate neighbors
 
-                            Double distance;
+                            double distance;
                             if (approximateQuery) {
                                 distance = DistanceFunctions.getPointLineStringBBoxMinEuclideanDistance(queryPoint, lineString);
                             } else {
@@ -81,8 +81,6 @@ public class LineStringPointRangeQuery extends RangeQuery<LineString, Point> {
 
                 }
             }).name("Real-time - POINT - LINESTRING");
-
-            return rangeQueryNeighbours;
         }
         //--------------- Window-based - POINT - LineString -----------------//
         else if (this.getQueryConfiguration().getQueryType() == QueryType.WindowBased) {
@@ -103,7 +101,7 @@ public class LineStringPointRangeQuery extends RangeQuery<LineString, Point> {
             // Filtering out the linestrings which lie greater than queryRadius of the query point
             DataStream<LineString> filteredLineStrings = streamWithTsAndWm.flatMap(new CellBasedLineStringFlatMap(neighboringCells));
 
-            DataStream<LineString> rangeQueryNeighbours = filteredLineStrings.keyBy(new KeySelector<LineString, String>() {
+            return filteredLineStrings.keyBy(new KeySelector<LineString, String>() {
                 @Override
                 public String getKey(LineString lineString) throws Exception {
                     return lineString.gridID;
@@ -123,7 +121,7 @@ public class LineStringPointRangeQuery extends RangeQuery<LineString, Point> {
                                         }
                                     } else { // candidate neighbors
 
-                                        Double distance;
+                                        double distance;
                                         if (approximateQuery) {
                                             distance = DistanceFunctions.getPointLineStringBBoxMinEuclideanDistance(queryPoint, lineString);
                                         } else {
@@ -139,8 +137,6 @@ public class LineStringPointRangeQuery extends RangeQuery<LineString, Point> {
                             }
                         }
                     }).name("Window-based - POINT - LINESTRING");
-
-            return rangeQueryNeighbours;
         } else {
             throw new IllegalArgumentException("Not yet support");
         }
@@ -169,7 +165,7 @@ public class LineStringPointRangeQuery extends RangeQuery<LineString, Point> {
         // Filtering out the linestrings which lie greater than queryRadius of the query point
         DataStream<LineString> filteredLineStrings = streamWithTsAndWm.flatMap(new CellBasedLineStringFlatMap(neighboringCells));
 
-        DataStream<LineString> rangeQueryNeighbours = filteredLineStrings.keyBy(new KeySelector<LineString, String>() {
+        return filteredLineStrings.keyBy(new KeySelector<LineString, String>() {
             @Override
             public String getKey(LineString lineString) throws Exception {
                 return lineString.gridID;
@@ -202,7 +198,7 @@ public class LineStringPointRangeQuery extends RangeQuery<LineString, Point> {
                             neighbors.collect(obj);
 
                             // Storing objects useful for next window
-                            if(obj.timeStampMillisec >= (timeWindow.getStart() + (slideStep * 1000))) {
+                            if(obj.timeStampMillisec >= (timeWindow.getStart() + (slideStep * 1000L))) {
                                 nextWindowUsefulOutputFromPastWindow.add(obj);
                             }
                         }
@@ -214,7 +210,7 @@ public class LineStringPointRangeQuery extends RangeQuery<LineString, Point> {
 
                         for (LineString lineString : objIterator) {
                             // Check for Range Query only for new objects
-                            if(lineString.timeStampMillisec >= (timeWindow.getEnd() - (slideStep * 1000))) {
+                            if(lineString.timeStampMillisec >= (timeWindow.getEnd() - (slideStep * 1000L))) {
 
                                 int cellIDCounter = 0;
                                 for (String lineStringGridID : lineString.gridIDsSet) {
@@ -227,7 +223,7 @@ public class LineStringPointRangeQuery extends RangeQuery<LineString, Point> {
                                         }
                                     } else { // candidate neighbors
 
-                                        Double distance;
+                                        double distance;
                                         if (approximateQuery) {
                                             distance = DistanceFunctions.getPointLineStringBBoxMinEuclideanDistance(queryPoint, lineString);
                                         } else {
@@ -245,7 +241,5 @@ public class LineStringPointRangeQuery extends RangeQuery<LineString, Point> {
                         }
                     }
                 }).name("Window-based - POINT - LINESTRING - Incremental");
-
-        return rangeQueryNeighbours;
     }
 }

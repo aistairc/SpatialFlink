@@ -15,6 +15,7 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrdernessTimestampExtractor;
 import org.apache.flink.streaming.api.functions.windowing.WindowFunction;
 import org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindows;
+import org.apache.flink.streaming.api.windowing.assigners.SlidingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
@@ -96,6 +97,7 @@ public class PointPointKNNQuery extends KNNQuery<Point, Point> {
                             } else {
                                 double distance = DistanceFunctions.getDistance(queryPoint, p);
                                 // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
+                                assert kNNPQ.peek() != null;
                                 double largestDistInPQ = kNNPQ.peek().f1;
 
                                 if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
@@ -112,12 +114,11 @@ public class PointPointKNNQuery extends KNNQuery<Point, Point> {
 
 
         // windowAll to Generate integrated kNN -
-        DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> windowAllKNN = windowedKNN
-                .windowAll(TumblingEventTimeWindows.of(Time.seconds(omegaJoinDurationSeconds)))
-                .apply(new kNNWinAllEvaluationPointStream(k));
 
         //Output kNN Stream
-        return windowAllKNN;
+        return windowedKNN
+                .windowAll(TumblingEventTimeWindows.of(Time.seconds(omegaJoinDurationSeconds)))
+                .apply(new kNNWinAllEvaluationPointStream(k));
     }
 
     // WINDOW BASED
@@ -141,12 +142,13 @@ public class PointPointKNNQuery extends KNNQuery<Point, Point> {
             }
         });
 
+        //filteredPoints.print();
         DataStream<PriorityQueue<Tuple2<Point, Double>>> windowedKNN = filteredPoints.keyBy(new KeySelector<Point, String>() {
             @Override
             public String getKey(Point p) throws Exception {
                 return p.gridID;
             }
-        }).window(SlidingEventTimeWindows.of(Time.seconds(windowSize), Time.seconds(windowSlideStep)))
+        }).window(SlidingProcessingTimeWindows.of(Time.seconds(windowSize), Time.seconds(windowSlideStep)))
                 .apply(new WindowFunction<Point, PriorityQueue<Tuple2<Point, Double>>, String, TimeWindow>() {
 
                     PriorityQueue<Tuple2<Point, Double>> kNNPQ = new PriorityQueue<Tuple2<Point, Double>>(k, new Comparators.inTuplePointDistanceComparator());
@@ -160,11 +162,13 @@ public class PointPointKNNQuery extends KNNQuery<Point, Point> {
                             if (kNNPQ.size() < k) {
                                 double distance = DistanceFunctions.getDistance(queryPoint, p);
                                 kNNPQ.offer(new Tuple2<Point, Double>(p, distance));
+                                //System.out.println(p + ", dist: " + distance);
                             } else {
                                 double distance = DistanceFunctions.getDistance(queryPoint, p);
                                 // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
-                                double largestDistInPQ = kNNPQ.peek().f1;
 
+                                assert kNNPQ.peek() != null;
+                                double largestDistInPQ = kNNPQ.peek().f1;
                                 if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
                                     kNNPQ.poll();
                                     kNNPQ.offer(new Tuple2<Point, Double>(p, distance));
@@ -177,14 +181,13 @@ public class PointPointKNNQuery extends KNNQuery<Point, Point> {
                     }
                 }).name("Windowed (Apply) Grid Based");
 
-
+        //windowedKNN.print();
         // windowAll to Generate integrated kNN -
-        DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> windowAllKNN = windowedKNN
-                .windowAll(SlidingEventTimeWindows.of(Time.seconds(windowSize),Time.seconds(windowSlideStep)))
-                .apply(new kNNWinAllEvaluationPointStream(k));
 
         //Output kNN Stream
-        return windowAllKNN;
+        return windowedKNN
+                .windowAll(SlidingProcessingTimeWindows.of(Time.seconds(windowSize),Time.seconds(windowSlideStep)))
+                .apply(new kNNWinAllEvaluationPointStream(k));
     }
 }
 

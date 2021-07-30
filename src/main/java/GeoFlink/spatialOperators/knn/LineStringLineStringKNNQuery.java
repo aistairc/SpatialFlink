@@ -105,6 +105,7 @@ public class LineStringLineStringKNNQuery extends KNNQuery<LineString, LineStrin
                                 }
                                 //double largestDistInPQ = HelperClass.getPointPolygonMinEuclideanDistance(queryPoint, kNNPQ.peek().f0);
                                 // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
+                                assert kNNPQ.peek() != null;
                                 double largestDistInPQ = kNNPQ.peek().f1;
 
                                 if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
@@ -123,12 +124,11 @@ public class LineStringLineStringKNNQuery extends KNNQuery<LineString, LineStrin
 
 
         // windowAll to Generate integrated kNN -
-        DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<LineString, Double>>>> windowAllKNN = windowedKNN
-                .windowAll(TumblingEventTimeWindows.of(Time.seconds(omegaJoinDurationSeconds)))
-                .apply(new kNNWinAllEvaluationLineStringStream(k));
 
         //Output kNN Stream
-        return windowAllKNN;
+        return windowedKNN
+                .windowAll(TumblingEventTimeWindows.of(Time.seconds(omegaJoinDurationSeconds)))
+                .apply(new kNNWinAllEvaluationLineStringStream(k));
     }
 
     // WINDOW BASED
@@ -181,6 +181,7 @@ public class LineStringLineStringKNNQuery extends KNNQuery<LineString, LineStrin
                                 }
                                 //double largestDistInPQ = HelperClass.getPointPolygonMinEuclideanDistance(queryPoint, kNNPQ.peek().f0);
                                 // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
+                                assert kNNPQ.peek() != null;
                                 double largestDistInPQ = kNNPQ.peek().f1;
 
                                 if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
@@ -199,11 +200,10 @@ public class LineStringLineStringKNNQuery extends KNNQuery<LineString, LineStrin
 
 
         // windowAll to Generate integrated kNN -
-        DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<LineString, Double>>>> windowAllKNN = windowedKNN
-                .windowAll(SlidingEventTimeWindows.of(Time.seconds(windowSize),Time.seconds(windowSlideStep)))
-                .apply(new kNNWinAllEvaluationLineStringStream(k));
 
         //Output kNN Stream
-        return windowAllKNN;
+        return windowedKNN
+                .windowAll(SlidingEventTimeWindows.of(Time.seconds(windowSize),Time.seconds(windowSlideStep)))
+                .apply(new kNNWinAllEvaluationLineStringStream(k));
     }
 }

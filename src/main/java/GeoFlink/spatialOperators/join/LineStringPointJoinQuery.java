@@ -88,7 +88,7 @@ public class LineStringPointJoinQuery extends JoinQuery<LineString, Point> {
                     @Override
                     public Tuple2<LineString, Point> join(LineString ls, Point q) {
 
-                        Double distance;
+                        double distance;
                         if(approximateQuery) {
                             distance = DistanceFunctions.getPointLineStringBBoxMinEuclideanDistance(q, ls);
                         }else{
@@ -151,7 +151,7 @@ public class LineStringPointJoinQuery extends JoinQuery<LineString, Point> {
                     @Override
                     public Tuple2<LineString, Point> join(LineString ls, Point q) {
 
-                        Double distance;
+                        double distance;
                         if(approximateQuery) {
                             distance = DistanceFunctions.getPointLineStringBBoxMinEuclideanDistance(q, ls);
                         }else{

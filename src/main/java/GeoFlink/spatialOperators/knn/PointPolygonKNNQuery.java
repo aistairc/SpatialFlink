@@ -134,6 +134,7 @@ public class PointPolygonKNNQuery extends KNNQuery<Point, Polygon> {
                                     distance = DistanceFunctions.getDistance(point, queryPolygon);
                                 }
                                 // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
+                                assert kNNPQ.peek() != null;
                                 double largestDistInPQ = kNNPQ.peek().f1;
 
                                 if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
@@ -150,12 +151,11 @@ public class PointPolygonKNNQuery extends KNNQuery<Point, Polygon> {
 
 
         // windowAll to Generate integrated kNN -
-        DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> windowAllKNN = windowedKNN
-                .windowAll(TumblingEventTimeWindows.of(Time.seconds(omegaJoinDurationSeconds)))
-                .apply(new kNNWinAllEvaluationPointStream(k));
 
         //Output kNN Stream
-        return windowAllKNN;
+        return windowedKNN
+                .windowAll(TumblingEventTimeWindows.of(Time.seconds(omegaJoinDurationSeconds)))
+                .apply(new kNNWinAllEvaluationPointStream(k));
     }
 
     // WINDOW BASED
@@ -211,6 +211,7 @@ public class PointPolygonKNNQuery extends KNNQuery<Point, Polygon> {
                                     distance = DistanceFunctions.getDistance(point, queryPolygon);
                                 }
                                 // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
+                                assert kNNPQ.peek() != null;
                                 double largestDistInPQ = kNNPQ.peek().f1;
 
                                 if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
@@ -227,12 +228,11 @@ public class PointPolygonKNNQuery extends KNNQuery<Point, Polygon> {
 
 
         // windowAll to Generate integrated kNN -
-        DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> windowAllKNN = windowedKNN
-                .windowAll(SlidingEventTimeWindows.of(Time.seconds(windowSize),Time.seconds(windowSlideStep)))
-                .apply(new kNNWinAllEvaluationPointStream(k));
 
         //Output kNN Stream
-        return windowAllKNN;
+        return windowedKNN
+                .windowAll(SlidingEventTimeWindows.of(Time.seconds(windowSize),Time.seconds(windowSlideStep)))
+                .apply(new kNNWinAllEvaluationPointStream(k));
     }
 
     // REAL-TIME
@@ -333,7 +333,8 @@ public class PointPolygonKNNQuery extends KNNQuery<Point, Polygon> {
             }
         });
 
-        DataStream<Long> windowedKNN = filteredPoints.keyBy(new KeySelector<Point, String>() {
+        //Output kNN Stream
+        return filteredPoints.keyBy(new KeySelector<Point, String>() {
             @Override
             public String getKey(Point point) throws Exception {
                 return point.gridID;
@@ -369,6 +370,7 @@ public class PointPolygonKNNQuery extends KNNQuery<Point, Polygon> {
                                     distance = DistanceFunctions.getDistance(point, queryPolygon);
                                 }
                                 // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
+                                assert kNNPQ.peek() != null;
                                 double largestDistInPQ = kNNPQ.peek().f1;
 
                                 if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
@@ -383,9 +385,6 @@ public class PointPolygonKNNQuery extends KNNQuery<Point, Polygon> {
                         }
                     }
                 }).name("Windowed (Apply) Grid Based");
-
-        //Output kNN Stream
-        return windowedKNN;
     }
 }
 

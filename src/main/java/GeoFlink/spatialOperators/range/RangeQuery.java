@@ -76,43 +76,28 @@ public abstract class RangeQuery<T extends SpatialObject, K extends SpatialObjec
         public TriggerResult onElement(Polygon polygon, long l, TimeWindow timeWindow, TriggerContext triggerContext) throws Exception {
 
             ValueState<Boolean> firstWindow = triggerContext.getPartitionedState(firstWindowDesc);
-
-
-
-
             //Using states manage the first window, so that all the tuples can be processed
             if(firstWindow.value() == null){
-
-                if(true) {
-                    firstWindow.update(false);
-                }
-
+                firstWindow.update(false);
                 return TriggerResult.CONTINUE;
-
-
-
             }
             else {
-                if (polygon.timeStampMillisec >= (timeWindow.getEnd() - (slideStep * 1000)))
+                if (polygon.timeStampMillisec >= (timeWindow.getEnd() - (slideStep * 1000L)))
                     return TriggerResult.CONTINUE; // Do nothing
                 else
                     return TriggerResult.PURGE; // Delete
             }
         }
-
         @Override
         public TriggerResult onProcessingTime(long l, TimeWindow timeWindow, TriggerContext triggerContext) throws Exception {
             return TriggerResult.FIRE;
         }
-
         @Override
         public TriggerResult onEventTime(long l, TimeWindow timeWindow, TriggerContext triggerContext) throws Exception {
             return TriggerResult.FIRE;
         }
-
         @Override
         public void clear(TimeWindow timeWindow, TriggerContext triggerContext) throws Exception {
-
         }
     }
 

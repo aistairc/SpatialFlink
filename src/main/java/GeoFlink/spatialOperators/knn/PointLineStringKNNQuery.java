@@ -107,6 +107,7 @@ public class PointLineStringKNNQuery extends KNNQuery<Point, LineString> {
                                     distance = DistanceFunctions.getDistance(point, queryLineString);
                                 }
                                 // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
+                                assert kNNPQ.peek() != null;
                                 double largestDistInPQ = kNNPQ.peek().f1;
 
                                 if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
@@ -123,12 +124,11 @@ public class PointLineStringKNNQuery extends KNNQuery<Point, LineString> {
 
 
         // windowAll to Generate integrated kNN -
-        DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> windowAllKNN = windowedKNN
-                .windowAll(TumblingEventTimeWindows.of(Time.seconds(omegaJoinDurationSeconds)))
-                .apply(new kNNWinAllEvaluationPointStream(k));
 
         //Output kNN Stream
-        return windowAllKNN;
+        return windowedKNN
+                .windowAll(TumblingEventTimeWindows.of(Time.seconds(omegaJoinDurationSeconds)))
+                .apply(new kNNWinAllEvaluationPointStream(k));
     }
 
     // WINDOW BASED
@@ -184,6 +184,7 @@ public class PointLineStringKNNQuery extends KNNQuery<Point, LineString> {
                                     distance = DistanceFunctions.getDistance(point, queryLineString);
                                 }
                                 // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
+                                assert kNNPQ.peek() != null;
                                 double largestDistInPQ = kNNPQ.peek().f1;
 
                                 if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
@@ -200,11 +201,10 @@ public class PointLineStringKNNQuery extends KNNQuery<Point, LineString> {
 
 
         // windowAll to Generate integrated kNN -
-        DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> windowAllKNN = windowedKNN
-                .windowAll(SlidingEventTimeWindows.of(Time.seconds(windowSize),Time.seconds(windowSlideStep)))
-                .apply(new kNNWinAllEvaluationPointStream(k));
 
         //Output kNN Stream
-        return windowAllKNN;
+        return windowedKNN
+                .windowAll(SlidingEventTimeWindows.of(Time.seconds(windowSize),Time.seconds(windowSlideStep)))
+                .apply(new kNNWinAllEvaluationPointStream(k));
     }
 }

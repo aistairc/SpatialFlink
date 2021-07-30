@@ -159,7 +159,6 @@ public class PointPointJoinQuery extends JoinQuery<Point, Point> {
                             } else {
                                 return Tuple2.of(null, null);
                             }
-
                         }
                     }
                 });

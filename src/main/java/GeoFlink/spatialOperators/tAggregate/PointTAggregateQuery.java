@@ -53,11 +53,10 @@ public class PointTAggregateQuery extends TAggregateQuery<Point> {
         });
 
         //DataStream<Tuple3<String, Integer, HashMap<String, Long>>> cWindowedCellBasedStayTime = spatialStreamWithoutNullCellID
-        DataStream<Tuple4<String, Integer, HashMap<String, Long>, Long>> cWindowedCellBasedStayTime = spatialStreamWithoutNullCellID
+
+        return spatialStreamWithoutNullCellID
                 .keyBy(new gridCellKeySelector())
                 .map(new THeatmapAggregateQueryMapFunction(aggregateFunction, inactiveTrajDeletionThreshold));
-
-        return cWindowedCellBasedStayTime;
     }
 
     // WINDOW BASED
@@ -83,23 +82,19 @@ public class PointTAggregateQuery extends TAggregateQuery<Point> {
 
         if(windowType.equalsIgnoreCase("COUNT")){
 
-            DataStream<Tuple5<String, Integer, Long, Long, HashMap<String, Long>>> cWindowedCellBasedStayTime = spatialStreamWithTsAndWm
+            return spatialStreamWithTsAndWm
                     .keyBy(new gridCellKeySelector())
                     .countWindow(windowSize, windowSlideStep)
                     .process(new CountWindowProcessFunction(aggregateFunction)).name("Count Window");
 
-            return cWindowedCellBasedStayTime;
-
         }
         else { // Default TIME Window
 
-            DataStream<Tuple5<String, Integer, Long, Long, HashMap<String, Long>>> tWindowedCellBasedStayTime = spatialStreamWithTsAndWm
+            return spatialStreamWithTsAndWm
                     .keyBy(new gridCellKeySelector())
                     //.window(SlidingProcessingTimeWindows.of(Time.seconds(windowSize), Time.seconds(windowSlideStep)))
                     .window(SlidingEventTimeWindows.of(Time.seconds(windowSize), Time.seconds(windowSlideStep)))
                     .process(new TimeWindowProcessFunction(aggregateFunction)).name("Time Window");
-
-            return tWindowedCellBasedStayTime;
         }
     }
 }

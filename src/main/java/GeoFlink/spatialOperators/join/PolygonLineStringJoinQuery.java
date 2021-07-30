@@ -88,7 +88,7 @@ public class PolygonLineStringJoinQuery extends JoinQuery<Polygon, LineString> {
                     @Override
                     public Tuple2<Polygon, LineString> join(Polygon poly, LineString q) {
 
-                        Double distance;
+                        double distance;
                         if(approximateQuery) {
                             distance = DistanceFunctions.getPolygonLineStringBBoxMinEuclideanDistance(poly, q);
                         }else{
@@ -152,7 +152,7 @@ public class PolygonLineStringJoinQuery extends JoinQuery<Polygon, LineString> {
                     @Override
                     public Tuple2<Polygon, LineString> join(Polygon poly, LineString q) {
 
-                        Double distance;
+                        double distance;
                         if(approximateQuery) {
                             distance = DistanceFunctions.getPolygonLineStringBBoxMinEuclideanDistance(poly, q);
                         }else{
@@ -164,7 +164,6 @@ public class PolygonLineStringJoinQuery extends JoinQuery<Polygon, LineString> {
                         } else {
                             return Tuple2.of(null, null);
                         }
-
                     }
                 });
 

@@ -153,7 +153,7 @@ public class HelperClass {
         while (matcher.find()) {
             try {
                 String[] arr = matcher.group(1).trim().split("\\s*,\\s*");
-                list.add(new Coordinate(Double.valueOf(arr[0]), Double.valueOf(arr[1])));
+                list.add(new Coordinate(Double.parseDouble(arr[0]), Double.parseDouble(arr[1])));
             }
             catch (Exception e) {}
         }
@@ -281,7 +281,7 @@ public class HelperClass {
         ArrayList<Integer> cellIndices = getIntCellIndices(cellID);
         Integer cellLayer;
 
-        if((queryCellIndices.get(0) == cellIndices.get(0)) && (queryCellIndices.get(1) == cellIndices.get(1))) {
+        if((queryCellIndices.get(0).equals(cellIndices.get(0))) && (queryCellIndices.get(1).equals(cellIndices.get(1)))) {
             return 0; // cell layer is 0
         }
         else if ( Math.abs(queryCellIndices.get(0) - cellIndices.get(0)) == 0){

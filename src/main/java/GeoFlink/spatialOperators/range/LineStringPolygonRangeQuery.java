@@ -40,7 +40,7 @@ public class LineStringPolygonRangeQuery extends RangeQuery<LineString, Polygon>
 
             DataStream<LineString> filteredLineStrings = lineStringStream.flatMap(new CellBasedLineStringFlatMap(neighboringCells)).startNewChain();
 
-            DataStream<LineString> rangeQueryNeighbours = filteredLineStrings.keyBy(new KeySelector<LineString, String>() {
+            return filteredLineStrings.keyBy(new KeySelector<LineString, String>() {
                 @Override
                 public String getKey(LineString lineString) throws Exception {
                     return lineString.gridID;
@@ -59,7 +59,7 @@ public class LineStringPolygonRangeQuery extends RangeQuery<LineString, Polygon>
                             }
                         }
                         else { // candidate neighbors
-                            Double distance;
+                            double distance;
                             if(approximateQuery) {
                                 distance = DistanceFunctions.getBBoxBBoxMinEuclideanDistance(queryPolygon.boundingBox, lineString.boundingBox);
                             }else{
@@ -75,8 +75,6 @@ public class LineStringPolygonRangeQuery extends RangeQuery<LineString, Polygon>
 
                 }
             }).name("Real-time - LINESTRING - POLYGON");
-
-            return rangeQueryNeighbours;
         }
         //--------------- Real-time - LINESTRING - POLYGON -----------------//
         else if (this.getQueryConfiguration().getQueryType() == QueryType.WindowBased) {
@@ -97,7 +95,7 @@ public class LineStringPolygonRangeQuery extends RangeQuery<LineString, Polygon>
 
             DataStream<LineString> filteredLineStrings = streamWithTsAndWm.flatMap(new CellBasedLineStringFlatMap(neighboringCells));
 
-            DataStream<LineString> rangeQueryNeighbours = filteredLineStrings.keyBy(new KeySelector<LineString, String>() {
+            return filteredLineStrings.keyBy(new KeySelector<LineString, String>() {
                 @Override
                 public String getKey(LineString lineString) throws Exception {
                     return lineString.gridID;
@@ -118,7 +116,7 @@ public class LineStringPolygonRangeQuery extends RangeQuery<LineString, Polygon>
                                         }
                                     }
                                     else { // candidate neighbors
-                                        Double distance;
+                                        double distance;
                                         if(approximateQuery) {
                                             distance = DistanceFunctions.getBBoxBBoxMinEuclideanDistance(queryPolygon.boundingBox, lineString.boundingBox);
                                         }else{
@@ -135,8 +133,6 @@ public class LineStringPolygonRangeQuery extends RangeQuery<LineString, Polygon>
 
                         }
                     }).name("Window-based - LINESTRING - POLYGON");
-
-            return rangeQueryNeighbours;
         } else {
             throw new IllegalArgumentException("Not yet support");
         }

@@ -126,7 +126,6 @@ public class PointPolygonJoinQuery extends JoinQuery<Point, Polygon> {
                             } else {
                                 return Tuple2.of(null, null);
                             }
-
                         }
                     }
                 });
@@ -189,7 +188,6 @@ public class PointPolygonJoinQuery extends JoinQuery<Point, Polygon> {
                             } else {
                                 return Tuple2.of(null, null);
                             }
-
                         }
                     }
                 });
@@ -227,7 +225,7 @@ public class PointPolygonJoinQuery extends JoinQuery<Point, Polygon> {
                     }
                 }).startNewChain();
 
-        DataStream<Long> joinOutput = pointStreamWithTsAndWm.join(replicatedQueryStreamWithTsAndWm)
+        return pointStreamWithTsAndWm.join(replicatedQueryStreamWithTsAndWm)
                 .where(new KeySelector<Point, String>() {
                     @Override
                     public String getKey(Point p) throws Exception {
@@ -245,24 +243,19 @@ public class PointPolygonJoinQuery extends JoinQuery<Point, Polygon> {
 
                         if (approximateQuery) { // all the candidate neighbors are sent to output
                             Date date = new Date();
-                            Long latency = date.getTime() -  p.timeStampMillisec;
-                            return latency;
+                            return date.getTime() -  p.timeStampMillisec;
                         } else {
 
                             if (DistanceFunctions.getDistance(p, q) <= queryRadius) {
                                 Date date = new Date();
-                                Long latency = date.getTime() -  p.timeStampMillisec;
-                                return latency;
+                                return date.getTime() -  p.timeStampMillisec;
                             }
                             else{
                                 Date date = new Date();
-                                Long latency = date.getTime() -  p.timeStampMillisec;
-                                return latency;
+                                return date.getTime() -  p.timeStampMillisec;
                             }
                         }
                     }
                 });
-
-        return joinOutput;
     }
 }

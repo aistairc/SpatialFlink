@@ -42,7 +42,7 @@ public class PointLineStringRangeQuery extends RangeQuery<Point, LineString> {
                 }
             }).startNewChain();
 
-            DataStream<Point> rangeQueryNeighbours = filteredPoints.keyBy(new KeySelector<Point, String>() {
+            return filteredPoints.keyBy(new KeySelector<Point, String>() {
                 @Override
                 public String getKey(Point p) throws Exception {
                     return p.gridID;
@@ -55,7 +55,7 @@ public class PointLineStringRangeQuery extends RangeQuery<Point, LineString> {
                         collector.collect(point);
                     else {
 
-                        Double distance;
+                        double distance;
                         if (approximateQuery) {
                             distance = DistanceFunctions.getPointLineStringBBoxMinEuclideanDistance(point, queryLineString);
                         } else {
@@ -68,8 +68,6 @@ public class PointLineStringRangeQuery extends RangeQuery<Point, LineString> {
                     }
                 }
             }).name("Real-time - LINESTRING - POINT");
-
-            return rangeQueryNeighbours;
         }
         //--------------- Window-based - LINESTRING - POINT -----------------//
         else if (this.getQueryConfiguration().getQueryType() == QueryType.WindowBased) {
@@ -94,7 +92,7 @@ public class PointLineStringRangeQuery extends RangeQuery<Point, LineString> {
                 }
             });
 
-            DataStream<Point> rangeQueryNeighbours = filteredPoints.keyBy(new KeySelector<Point, String>() {
+            return filteredPoints.keyBy(new KeySelector<Point, String>() {
                 @Override
                 public String getKey(Point p) throws Exception {
                     return p.gridID;
@@ -108,7 +106,7 @@ public class PointLineStringRangeQuery extends RangeQuery<Point, LineString> {
                                     neighbors.collect(point);
                                 else {
 
-                                    Double distance;
+                                    double distance;
                                     if (approximateQuery) {
                                         distance = DistanceFunctions.getPointLineStringBBoxMinEuclideanDistance(point, queryLineString);
                                     } else {
@@ -122,8 +120,6 @@ public class PointLineStringRangeQuery extends RangeQuery<Point, LineString> {
                             }
                         }
                     }).name("Window-based - LINESTRING - POINT");
-
-            return rangeQueryNeighbours;
         } else {
             throw new IllegalArgumentException("Not yet support");
         }

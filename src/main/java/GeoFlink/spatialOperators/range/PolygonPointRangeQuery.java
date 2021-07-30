@@ -46,7 +46,7 @@ public class PolygonPointRangeQuery extends RangeQuery<Polygon, Point> {
             // Filtering out the polygons which lie greater than queryRadius of the query point
             DataStream<Polygon> filteredPolygons = polygonStream.flatMap(new HelperClass.cellBasedPolygonFlatMap(neighboringCells)).startNewChain();
 
-            DataStream<Polygon> rangeQueryNeighbours = filteredPolygons.keyBy(new KeySelector<Polygon, String>() {
+            return filteredPolygons.keyBy(new KeySelector<Polygon, String>() {
                 @Override
                 public String getKey(Polygon poly) throws Exception {
                     return poly.gridID;
@@ -69,7 +69,7 @@ public class PolygonPointRangeQuery extends RangeQuery<Polygon, Point> {
                         }
                         else { // candidate neighbors
 
-                            Double distance;
+                            double distance;
                             if(approximateQuery) {
                                 distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(queryPoint, poly);
                             }else{
@@ -85,8 +85,6 @@ public class PolygonPointRangeQuery extends RangeQuery<Polygon, Point> {
 
                 }
             }).name("Real-time - POINT - POLYGON");
-
-            return rangeQueryNeighbours;
         }
         //--------------- Window-based - POINT - POLYGON -----------------//
         else if (this.getQueryConfiguration().getQueryType() == QueryType.WindowBased) {
@@ -108,7 +106,7 @@ public class PolygonPointRangeQuery extends RangeQuery<Polygon, Point> {
             // Filtering out the polygons which lie greater than queryRadius of the query point
             DataStream<Polygon> filteredPolygons = streamWithTsAndWm.flatMap(new HelperClass.cellBasedPolygonFlatMap(neighboringCells));
 
-            DataStream<Polygon> rangeQueryNeighbours = filteredPolygons.keyBy(new KeySelector<Polygon, String>() {
+            return filteredPolygons.keyBy(new KeySelector<Polygon, String>() {
                 @Override
                 public String getKey(Polygon poly) throws Exception {
                     return poly.gridID;
@@ -130,7 +128,7 @@ public class PolygonPointRangeQuery extends RangeQuery<Polygon, Point> {
                                     }
                                     else { // candidate neighbors
 
-                                        Double distance;
+                                        double distance;
                                         if(approximateQuery) {
                                             distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(queryPoint, poly);
                                         }else{
@@ -151,8 +149,6 @@ public class PolygonPointRangeQuery extends RangeQuery<Polygon, Point> {
                             }
                         }
                     }).name("Window-based - POINT - POLYGON");
-
-            return rangeQueryNeighbours;
         } else {
             throw new IllegalArgumentException("Not yet support");
         }
@@ -180,7 +176,8 @@ public class PolygonPointRangeQuery extends RangeQuery<Polygon, Point> {
 
         // Filtering out the polygons which lie greater than queryRadius of the query point
         DataStream<Polygon> filteredPolygons = streamWithTsAndWm.flatMap(new HelperClass.cellBasedPolygonFlatMap(neighboringCells));
-        DataStream<Polygon> rangeQueryNeighbours = filteredPolygons.keyBy(new KeySelector<Polygon, String>() {
+
+        return filteredPolygons.keyBy(new KeySelector<Polygon, String>() {
             @Override
             public String getKey(Polygon poly) throws Exception {
                 return poly.gridID;
@@ -216,7 +213,7 @@ public class PolygonPointRangeQuery extends RangeQuery<Polygon, Point> {
                             neighbors.collect(obj);
 
                             // Storing points useful for next window
-                            if(obj.timeStampMillisec >= (timeWindow.getStart() + (slideStep * 1000))) {
+                            if(obj.timeStampMillisec >= (timeWindow.getStart() + (slideStep * 1000L))) {
                                 nextWindowUsefulOutputFromPastWindow.add(obj);
                             }
                         }
@@ -229,7 +226,7 @@ public class PolygonPointRangeQuery extends RangeQuery<Polygon, Point> {
                         for (Polygon poly : pointIterator) {
                             //System.out.println(poly);
                             // Check for Range Query only for new objects
-                            if(poly.timeStampMillisec >= (timeWindow.getEnd() - (slideStep * 1000))) {
+                            if(poly.timeStampMillisec >= (timeWindow.getEnd() - (slideStep * 1000L))) {
                                 //if(true) {
 
                                 int cellIDCounter = 0;
@@ -244,7 +241,7 @@ public class PolygonPointRangeQuery extends RangeQuery<Polygon, Point> {
                                         }
                                     } else { // candidate neighbors
 
-                                        Double distance;
+                                        double distance;
                                         if (approximateQuery) {
                                             distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(queryPoint, poly);
                                         } else {
@@ -264,7 +261,5 @@ public class PolygonPointRangeQuery extends RangeQuery<Polygon, Point> {
                         }
                     }
                 }).name("Window-based - POINT - POLYGON");
-
-        return rangeQueryNeighbours;
     }
 }

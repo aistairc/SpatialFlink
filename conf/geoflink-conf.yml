@@ -4,20 +4,20 @@
 # Cluster
 clusterMode: False
 #kafkaBootStrapServers: "172.16.0.64:9092, 172.16.0.81:9092"
-#kafkaBootStrapServers: "150.82.97.204:9092"
-kafkaBootStrapServers: "localhost:9092"
+kafkaBootStrapServers: "150.82.97.204:9092"
+#kafkaBootStrapServers: "localhost:9092"
 
 # Input Stream1
 inputStream1:
-  topicName: "NYCBuildingsPolygons"
+  topicName: "knnTestTopic"
   # format : GeoJSON or WKT or CSV or TSV
-  format: "WKT"
+  format: "GeoJSON"
   dateFormat: "yyyy-MM-dd HH:mm:ss"
   geoJSONSchemaAttr: ["oID", "timestamp"]
 
   csvTsvSchemaAttr: [1, 4, 5, 6]
   # csvTsvSchemaAttr : object ID, timestamp, coordinate-x, coordinate-y (Point only)
-  gridBBox: [115.5, 117.6, 39.6, 41.1]
+  gridBBox: [115.5, 39.6, 117.6, 41.1]
   numGridCells: 100 
   cellLength: 0
   # delimiter : CSV = ",", TSV separeted by TAB character = "	" or "\t", TSV separeted by \t = "\\\\t"
@@ -47,11 +47,11 @@ outputStream:
 
 # Query parameters
 query:
-  option: 906 #2011 or 211
+  option: 51 #2011 or 211
   approximate: False
   radius: 0.005
   aggregateFunction: "SUM"
-  k: 100
+  k: 10
   omegaDuration: 10
   trajIDs: [123, 231]
   

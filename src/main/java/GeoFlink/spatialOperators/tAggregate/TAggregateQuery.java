@@ -171,7 +171,7 @@ public abstract class TAggregateQuery<T extends SpatialObject> extends SpatialOp
             else if(this.aggregateFunction.equalsIgnoreCase("SUM") || this.aggregateFunction.equalsIgnoreCase("AVG")){
 
                 trackerIDTrajLength.clear();
-                Long sumTrajLength = 0L;
+                long sumTrajLength = 0L;
                 int counter = 0;
                 for (Map.Entry<String, Long> entry : minTimestampTrackerIDMapState.entries()) {
                     String objID = entry.getKey();
@@ -200,7 +200,7 @@ public abstract class TAggregateQuery<T extends SpatialObject> extends SpatialOp
             }
             else if(this.aggregateFunction.equalsIgnoreCase("MIN")){
 
-                Long minTrajLength = Long.MAX_VALUE;
+                long minTrajLength = Long.MAX_VALUE;
                 String minTrajLengthObjID = "";
                 trackerIDTrajLength.clear();
                 int counter = 0;
@@ -212,7 +212,7 @@ public abstract class TAggregateQuery<T extends SpatialObject> extends SpatialOp
                     // Deleting halted trajectories
                     if(!deleteHaltedTrajectories(currMaxTimestamp, inactiveTrajDeletionThreshold, objID)) {
                         counter++;
-                        Long trajLength = currMaxTimestamp - currMinTimestamp;
+                        long trajLength = currMaxTimestamp - currMinTimestamp;
 
                         if (trajLength < minTrajLength) {
                             minTrajLength = trajLength;
@@ -227,7 +227,7 @@ public abstract class TAggregateQuery<T extends SpatialObject> extends SpatialOp
             }
             else if(this.aggregateFunction.equalsIgnoreCase("MAX")){
 
-                Long maxTrajLength = Long.MIN_VALUE;
+                long maxTrajLength = Long.MIN_VALUE;
                 String maxTrajLengthObjID = "";
                 trackerIDTrajLength.clear();
                 int counter = 0;
@@ -239,7 +239,7 @@ public abstract class TAggregateQuery<T extends SpatialObject> extends SpatialOp
                     // Deleting halted trajectories
                     if(!deleteHaltedTrajectories(currMaxTimestamp, inactiveTrajDeletionThreshold, objID)) {
                         counter++;
-                        Long trajLength = currMaxTimestamp - currMinTimestamp;
+                        long trajLength = currMaxTimestamp - currMinTimestamp;
 
                         if (trajLength > maxTrajLength) {
                             maxTrajLength = trajLength;
@@ -400,11 +400,11 @@ public abstract class TAggregateQuery<T extends SpatialObject> extends SpatialOp
             maxTimestampTrackerID.clear();
             trackerIDTrajLength.clear();
             trackerIDTrajLengthOutput.clear();
-            Long minTrajLength = Long.MAX_VALUE;
+            long minTrajLength = Long.MAX_VALUE;
             String minTrajLengthObjID = "";
-            Long maxTrajLength = Long.MIN_VALUE;
+            long maxTrajLength = Long.MIN_VALUE;
             String maxTrajLengthObjID = "";
-            Long sumTrajLength = 0L; // Maintains sum of all trajectories of a cell
+            long sumTrajLength = 0L; // Maintains sum of all trajectories of a cell
 
             for (Point p : input) {
                 Long currMinTimestamp = minTimestampTrackerID.get(p.objID);
@@ -517,11 +517,11 @@ public abstract class TAggregateQuery<T extends SpatialObject> extends SpatialOp
             maxTimestampTrackerID.clear();
             trackerIDTrajLength.clear();
             trackerIDTrajLengthOutput.clear();
-            Long minTrajLength = Long.MAX_VALUE;
+            long minTrajLength = Long.MAX_VALUE;
             String minTrajLengthObjID = "";
-            Long maxTrajLength = Long.MIN_VALUE;
+            long maxTrajLength = Long.MIN_VALUE;
             String maxTrajLengthObjID = "";
-            Long sumTrajLength = 0L;
+            long sumTrajLength = 0L;
 
             // Iterate through all the points corresponding to a single grid-cell within the scope of the window
             for (Point p : input) {

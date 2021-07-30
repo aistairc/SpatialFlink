@@ -54,7 +54,7 @@ public class PointPointRangeQuery extends RangeQuery<Point, Point> {
             }).startNewChain();
 
 
-            DataStream<Point> rangeQueryNeighbours = filteredPoints.keyBy(new KeySelector<Point, String>() {
+            return filteredPoints.keyBy(new KeySelector<Point, String>() {
                 @Override
                 public String getKey(Point p) throws Exception {
                     return p.gridID;
@@ -70,7 +70,7 @@ public class PointPointRangeQuery extends RangeQuery<Point, Point> {
                         if (approximateQuery) { // all the candidate neighbors are sent to output
                             collector.collect(point);
                         } else {
-                            Double distance = DistanceFunctions.getDistance(queryPoint, point);
+                            double distance = DistanceFunctions.getDistance(queryPoint, point);
 
                             if (distance <= queryRadius) {
                                 collector.collect(point);
@@ -80,8 +80,6 @@ public class PointPointRangeQuery extends RangeQuery<Point, Point> {
                     }
                 }
             }).name("Real-time - POINT - POINT");
-
-            return rangeQueryNeighbours;
         }
 
         //--------------- Window-based - POINT - POINT -----------------//
@@ -109,7 +107,8 @@ public class PointPointRangeQuery extends RangeQuery<Point, Point> {
             });
 
             //--------------- Window-based - POINT - POINT -----------------//
-            DataStream<Point> rangeQueryNeighbours = filteredPoints.keyBy(new KeySelector<Point, String>() {
+
+            return filteredPoints.keyBy(new KeySelector<Point, String>() {
                 @Override
                 public String getKey(Point p) throws Exception {
                     return p.gridID;
@@ -126,7 +125,7 @@ public class PointPointRangeQuery extends RangeQuery<Point, Point> {
                                     if(approximateQuery) { // all the candidate neighbors are sent to output
                                         neighbors.collect(point);
                                     }else{
-                                        Double distance = DistanceFunctions.getDistance(queryPoint, point);
+                                        double distance = DistanceFunctions.getDistance(queryPoint, point);
 
                                         if (distance <= queryRadius){
                                             neighbors.collect(point);
@@ -136,8 +135,6 @@ public class PointPointRangeQuery extends RangeQuery<Point, Point> {
                             }
                         }
                     }).name("Window-based - POINT - POINT");
-
-            return rangeQueryNeighbours;
         }else{
             throw new IllegalArgumentException("Not yet support");
         }
@@ -172,7 +169,7 @@ public class PointPointRangeQuery extends RangeQuery<Point, Point> {
             }
         });
 
-        DataStream<Point> rangeQueryNeighbours = filteredPoints.keyBy(new KeySelector<Point, String>() {
+        return filteredPoints.keyBy(new KeySelector<Point, String>() {
             @Override
             public String getKey(Point p) throws Exception {
                 return p.gridID;
@@ -207,7 +204,7 @@ public class PointPointRangeQuery extends RangeQuery<Point, Point> {
                             neighbors.collect(point);
 
                             // Storing points useful for next window
-                            if(point.timeStampMillisec >= (timeWindow.getStart() + (slideStep * 1000))) {
+                            if(point.timeStampMillisec >= (timeWindow.getStart() + (slideStep * 1000L))) {
                                 nextWindowUsefulOutputFromPastWindow.add(point);
                             }
                         }
@@ -219,7 +216,7 @@ public class PointPointRangeQuery extends RangeQuery<Point, Point> {
 
                         for (Point point : pointIterator) {
                             // Check for Range Query only for new objects
-                            if(point.timeStampMillisec >= (timeWindow.getEnd() - (slideStep * 1000))) {
+                            if(point.timeStampMillisec >= (timeWindow.getEnd() - (slideStep * 1000L))) {
 
                                 //System.out.println(point);
                                 if (guaranteedNeighboringCells.contains(point.gridID)) {
@@ -231,7 +228,7 @@ public class PointPointRangeQuery extends RangeQuery<Point, Point> {
                                         neighbors.collect(point);
                                         queryOutputListState.add(point); // add new output useful for next window
                                     } else {
-                                        Double distance = DistanceFunctions.getDistance(queryPoint, point);
+                                        double distance = DistanceFunctions.getDistance(queryPoint, point);
                                         //System.out.println("distance " + distance);
 
                                         if (distance <= queryRadius) {
@@ -245,7 +242,5 @@ public class PointPointRangeQuery extends RangeQuery<Point, Point> {
                         }
                     }
                 }).name("Window-based - POINT - POINT");
-
-        return rangeQueryNeighbours;
     }
 }
