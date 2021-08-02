@@ -27,15 +27,15 @@ public class PolygonLineStringRangeQuery extends RangeQuery<Polygon, LineString>
         super.initializeRangeQuery(conf, index);
     }
 
-    public DataStream<Polygon> run(DataStream<Polygon> polygonStream, LineString queryLineString, double queryRadius) {
+    public DataStream<Polygon> run(DataStream<Polygon> polygonStream, Set<LineString> queryLineStringSet, double queryRadius) {
         boolean approximateQuery = this.getQueryConfiguration().isApproximateQuery();
         int allowedLateness = this.getQueryConfiguration().getAllowedLateness();
 
         UniformGrid uGrid = (UniformGrid) this.getSpatialIndex();
         //--------------- Real-time - LINESTRING - POLYGON -----------------//
         if (this.getQueryConfiguration().getQueryType() == QueryType.RealTime) {
-            Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryLineString);
-            Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryLineString, guaranteedNeighboringCells);
+            Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, ((LineString[])queryLineStringSet.toArray())[0]);
+            Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, ((LineString[])queryLineStringSet.toArray())[0], guaranteedNeighboringCells);
             Set<String> neighboringCells = Stream.concat(guaranteedNeighboringCells.stream(),candidateNeighboringCells.stream()).collect(Collectors.toSet());
 
             // Filtering out the polygons which lie greater than queryRadius of the query point
@@ -64,9 +64,9 @@ public class PolygonLineStringRangeQuery extends RangeQuery<Polygon, LineString>
 
                             double distance;
                             if(approximateQuery) {
-                                distance = DistanceFunctions.getBBoxBBoxMinEuclideanDistance(poly.boundingBox, queryLineString.boundingBox);
+                                distance = DistanceFunctions.getBBoxBBoxMinEuclideanDistance(poly.boundingBox, ((LineString[])queryLineStringSet.toArray())[0].boundingBox);
                             }else{
-                                distance = DistanceFunctions.getDistance(poly, queryLineString);
+                                distance = DistanceFunctions.getDistance(poly, ((LineString[])queryLineStringSet.toArray())[0]);
                             }
 
                             if (distance <= queryRadius){
@@ -84,8 +84,8 @@ public class PolygonLineStringRangeQuery extends RangeQuery<Polygon, LineString>
             int windowSize = this.getQueryConfiguration().getWindowSize();
             int slideStep = this.getQueryConfiguration().getSlideStep();
 
-            Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryLineString);
-            Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryLineString, guaranteedNeighboringCells);
+            Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, ((LineString[])queryLineStringSet.toArray())[0]);
+            Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, ((LineString[])queryLineStringSet.toArray())[0], guaranteedNeighboringCells);
             Set<String> neighboringCells = Stream.concat(guaranteedNeighboringCells.stream(),candidateNeighboringCells.stream()).collect(Collectors.toSet());
 
             DataStream<Polygon> streamWithTsAndWm =
@@ -124,9 +124,9 @@ public class PolygonLineStringRangeQuery extends RangeQuery<Polygon, LineString>
 
                                         double distance;
                                         if(approximateQuery) {
-                                            distance = DistanceFunctions.getBBoxBBoxMinEuclideanDistance(poly.boundingBox, queryLineString.boundingBox);
+                                            distance = DistanceFunctions.getBBoxBBoxMinEuclideanDistance(poly.boundingBox, ((LineString[])queryLineStringSet.toArray())[0].boundingBox);
                                         }else{
-                                            distance = DistanceFunctions.getDistance(poly, queryLineString);
+                                            distance = DistanceFunctions.getDistance(poly, ((LineString[])queryLineStringSet.toArray())[0]);
                                         }
 
                                         if (distance <= queryRadius){

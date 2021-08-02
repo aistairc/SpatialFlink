@@ -32,7 +32,7 @@ public class LineStringPointRangeQuery extends RangeQuery<LineString, Point> {
         super.initializeRangeQuery(conf, index);
     }
 
-    public DataStream<LineString> run(DataStream<LineString> lineStringStream, Point queryPoint, double queryRadius) {
+    public DataStream<LineString> run(DataStream<LineString> lineStringStream, Set<Point> queryPointSet, double queryRadius) {
         boolean approximateQuery = this.getQueryConfiguration().isApproximateQuery();
         int allowedLateness = this.getQueryConfiguration().getAllowedLateness();
 
@@ -40,8 +40,8 @@ public class LineStringPointRangeQuery extends RangeQuery<LineString, Point> {
 
         //--------------- Real-time - POINT - LineString -----------------//
         if (this.getQueryConfiguration().getQueryType() == QueryType.RealTime) {
-            Set<String> neighboringCells = uGrid.getNeighboringCells(queryRadius, queryPoint);
-            Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint.gridID);
+            Set<String> neighboringCells = uGrid.getNeighboringCells(queryRadius, ((Point[])queryPointSet.toArray())[0]);
+            Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, ((Point[])queryPointSet.toArray())[0].gridID);
 
             // Filtering out the linestrings which lie greater than queryRadius of the query point
             DataStream<LineString> filteredLineStrings = lineStringStream.flatMap(new CellBasedLineStringFlatMap(neighboringCells)).startNewChain();
@@ -67,9 +67,9 @@ public class LineStringPointRangeQuery extends RangeQuery<LineString, Point> {
 
                             double distance;
                             if (approximateQuery) {
-                                distance = DistanceFunctions.getPointLineStringBBoxMinEuclideanDistance(queryPoint, lineString);
+                                distance = DistanceFunctions.getPointLineStringBBoxMinEuclideanDistance(((Point[])queryPointSet.toArray())[0], lineString);
                             } else {
-                                distance = DistanceFunctions.getDistance(queryPoint, lineString);
+                                distance = DistanceFunctions.getDistance(((Point[])queryPointSet.toArray())[0], lineString);
                             }
 
                             if (distance <= queryRadius) {
@@ -87,8 +87,8 @@ public class LineStringPointRangeQuery extends RangeQuery<LineString, Point> {
             int windowSize = this.getQueryConfiguration().getWindowSize();
             int slideStep = this.getQueryConfiguration().getSlideStep();
 
-            Set<String> neighboringCells = uGrid.getNeighboringCells(queryRadius, queryPoint);
-            Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint.gridID);
+            Set<String> neighboringCells = uGrid.getNeighboringCells(queryRadius, ((Point[])queryPointSet.toArray())[0]);
+            Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, ((Point[])queryPointSet.toArray())[0].gridID);
 
             DataStream<LineString> streamWithTsAndWm =
                     lineStringStream.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<LineString>(Time.seconds(allowedLateness)) {
@@ -123,9 +123,9 @@ public class LineStringPointRangeQuery extends RangeQuery<LineString, Point> {
 
                                         double distance;
                                         if (approximateQuery) {
-                                            distance = DistanceFunctions.getPointLineStringBBoxMinEuclideanDistance(queryPoint, lineString);
+                                            distance = DistanceFunctions.getPointLineStringBBoxMinEuclideanDistance(((Point[])queryPointSet.toArray())[0], lineString);
                                         } else {
-                                            distance = DistanceFunctions.getDistance(queryPoint, lineString);
+                                            distance = DistanceFunctions.getDistance(((Point[])queryPointSet.toArray())[0], lineString);
                                         }
 
                                         if (distance <= queryRadius) {

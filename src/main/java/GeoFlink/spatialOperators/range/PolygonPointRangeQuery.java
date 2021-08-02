@@ -33,15 +33,15 @@ public class PolygonPointRangeQuery extends RangeQuery<Polygon, Point> {
         super.initializeRangeQuery(conf, index);
     }
 
-    public DataStream<Polygon> run(DataStream<Polygon> polygonStream, Point queryPoint, double queryRadius) {
+    public DataStream<Polygon> run(DataStream<Polygon> polygonStream, Set<Point> queryPointSet, double queryRadius) {
         boolean approximateQuery = this.getQueryConfiguration().isApproximateQuery();
         int allowedLateness = this.getQueryConfiguration().getAllowedLateness();
 
         UniformGrid uGrid = (UniformGrid) this.getSpatialIndex();
         //--------------- Real-time - POINT - POLYGON -----------------//
         if (this.getQueryConfiguration().getQueryType() == QueryType.RealTime) {
-            Set<String> neighboringCells = uGrid.getNeighboringCells(queryRadius, queryPoint);
-            Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint.gridID);
+            Set<String> neighboringCells = uGrid.getNeighboringCells(queryRadius, ((Point[])queryPointSet.toArray())[0]);
+            Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, ((Point[])queryPointSet.toArray())[0].gridID);
 
             // Filtering out the polygons which lie greater than queryRadius of the query point
             DataStream<Polygon> filteredPolygons = polygonStream.flatMap(new HelperClass.cellBasedPolygonFlatMap(neighboringCells)).startNewChain();
@@ -71,9 +71,9 @@ public class PolygonPointRangeQuery extends RangeQuery<Polygon, Point> {
 
                             double distance;
                             if(approximateQuery) {
-                                distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(queryPoint, poly);
+                                distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(((Point[])queryPointSet.toArray())[0], poly);
                             }else{
-                                distance = DistanceFunctions.getDistance(queryPoint, poly);
+                                distance = DistanceFunctions.getDistance(((Point[])queryPointSet.toArray())[0], poly);
                             }
 
                             if (distance <= queryRadius){
@@ -91,8 +91,8 @@ public class PolygonPointRangeQuery extends RangeQuery<Polygon, Point> {
             int windowSize = this.getQueryConfiguration().getWindowSize();
             int slideStep = this.getQueryConfiguration().getSlideStep();
 
-            Set<String> neighboringCells = uGrid.getNeighboringCells(queryRadius, queryPoint);
-            Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint.gridID);
+            Set<String> neighboringCells = uGrid.getNeighboringCells(queryRadius, ((Point[])queryPointSet.toArray())[0]);
+            Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, ((Point[])queryPointSet.toArray())[0].gridID);
 
             DataStream<Polygon> streamWithTsAndWm =
                     polygonStream.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Polygon>(Time.seconds(allowedLateness)) {
@@ -130,13 +130,13 @@ public class PolygonPointRangeQuery extends RangeQuery<Polygon, Point> {
 
                                         double distance;
                                         if(approximateQuery) {
-                                            distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(queryPoint, poly);
+                                            distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(((Point[])queryPointSet.toArray())[0], poly);
                                         }else{
                                             //distance = HelperClass.getPointPolygonMinEuclideanDistance(queryPoint, poly);
                                             //System.out.println("HelperClass Dist: " + distance);
                                             // https://locationtech.github.io/jts/javadoc/ (Euclidean Distance)
                                             //distance = poly.polygon.distance(queryPoint.point);
-                                            distance = DistanceFunctions.getDistance(queryPoint, poly);
+                                            distance = DistanceFunctions.getDistance(((Point[])queryPointSet.toArray())[0], poly);
                                             //System.out.println("LocationTech Dist: " + distance);
                                         }
 
