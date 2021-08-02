@@ -18,7 +18,7 @@ inputStream1:
   csvTsvSchemaAttr: [1, 4, 5, 6]
   # csvTsvSchemaAttr : object ID, timestamp, coordinate-x, coordinate-y (Point only)
   gridBBox: [115.5, 39.6, 117.6, 41.1]
-  numGridCells: 100 
+  numGridCells: 100
   cellLength: 0
   # delimiter : CSV = ",", TSV separeted by TAB character = "	" or "\t", TSV separeted by \t = "\\\\t"
   delimiter: "	"
@@ -47,12 +47,12 @@ outputStream:
 
 # Query parameters
 query:
-  option: 7 #2011 or 211
+  option: 57 #2011 or 211
   approximate: False
-  radius: 0.005
+  radius: 0.0005
   aggregateFunction: "SUM"
-  k: 10
-  omegaDuration: 10
+  k: 100
+  omegaDuration: 1
   trajIDs: [123, 231]
   
   queryPoints: 

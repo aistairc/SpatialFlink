@@ -97,27 +97,27 @@ public class PolygonLineStringKNNQuery extends KNNQuery<Polygon, LineString> {
                                 }else{
                                     distance = DistanceFunctions.getDistance(poly, queryLineString);
                                 }
-
-                                kNNPQ.offer(new Tuple2<Polygon, Double>(poly, distance));
+                                if(distance <= queryRadius) {
+                                    kNNPQ.offer(new Tuple2<Polygon, Double>(poly, distance));
+                                }
                             } else {
                                 if(approximateQuery) {
                                     distance = DistanceFunctions.getBBoxBBoxMinEuclideanDistance(queryLineString.boundingBox, poly.boundingBox);
                                 }else{
                                     distance = DistanceFunctions.getDistance(poly, queryLineString);
                                 }
-                                //double largestDistInPQ = HelperClass.getPointPolygonMinEuclideanDistance(queryPoint, kNNPQ.peek().f0);
-                                // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
-                                assert kNNPQ.peek() != null;
-                                double largestDistInPQ = kNNPQ.peek().f1;
+                                if(distance <= queryRadius) {
+                                    // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
+                                    assert kNNPQ.peek() != null;
+                                    double largestDistInPQ = kNNPQ.peek().f1;
 
-                                if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
-                                    kNNPQ.poll();
-                                    kNNPQ.offer(new Tuple2<Polygon, Double>(poly, distance));
+                                    if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
+                                        kNNPQ.poll();
+                                        kNNPQ.offer(new Tuple2<Polygon, Double>(poly, distance));
+                                    }
                                 }
                             }
                         }
-
-
 
                         // Output stream
                         outputStream.collect(kNNPQ);
@@ -175,21 +175,25 @@ public class PolygonLineStringKNNQuery extends KNNQuery<Polygon, LineString> {
                                     distance = DistanceFunctions.getDistance(poly, queryLineString);
                                 }
 
-                                kNNPQ.offer(new Tuple2<Polygon, Double>(poly, distance));
+                                if(distance <= queryRadius) {
+                                    kNNPQ.offer(new Tuple2<Polygon, Double>(poly, distance));
+                                }
                             } else {
                                 if(approximateQuery) {
                                     distance = DistanceFunctions.getBBoxBBoxMinEuclideanDistance(queryLineString.boundingBox, poly.boundingBox);
                                 }else{
                                     distance = DistanceFunctions.getDistance(poly, queryLineString);
                                 }
-                                //double largestDistInPQ = HelperClass.getPointPolygonMinEuclideanDistance(queryPoint, kNNPQ.peek().f0);
-                                // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
-                                assert kNNPQ.peek() != null;
-                                double largestDistInPQ = kNNPQ.peek().f1;
 
-                                if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
-                                    kNNPQ.poll();
-                                    kNNPQ.offer(new Tuple2<Polygon, Double>(poly, distance));
+                                if(distance <= queryRadius) {
+                                    // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
+                                    assert kNNPQ.peek() != null;
+                                    double largestDistInPQ = kNNPQ.peek().f1;
+
+                                    if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
+                                        kNNPQ.poll();
+                                        kNNPQ.offer(new Tuple2<Polygon, Double>(poly, distance));
+                                    }
                                 }
                             }
                         }

@@ -17,12 +17,14 @@ import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrderness
 import org.apache.flink.streaming.api.functions.windowing.WindowFunction;
 import org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
+import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 
 import java.io.IOException;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.PriorityQueue;
 import java.util.Set;
 
@@ -41,6 +43,12 @@ public class PointPolygonKNNQuery extends KNNQuery<Point, Polygon> {
         if (this.getQueryConfiguration().getQueryType() == QueryType.RealTime) {
             int omegaJoinDurationSeconds = this.getQueryConfiguration().getWindowSize();
             return realTime(pointStream, queryPolygon, queryRadius, k, omegaJoinDurationSeconds, uGrid, allowedLateness, approximateQuery);
+        }
+
+        //--------------- Real-time Naive - POINT - POLYGON -----------------//
+        if (this.getQueryConfiguration().getQueryType() == QueryType.RealTimeNaive) {
+            int omegaJoinDurationSeconds = this.getQueryConfiguration().getWindowSize();
+            return realTimeNaive(pointStream, queryPolygon, queryRadius, k, omegaJoinDurationSeconds, uGrid, allowedLateness, approximateQuery);
         }
 
         //--------------- Window-based - POINT - POLYGON -----------------//
@@ -79,36 +87,35 @@ public class PointPolygonKNNQuery extends KNNQuery<Point, Polygon> {
         }
     }
 
-
-
-
     // REAL-TIME
     private DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> realTime(DataStream<Point> pointStream, Polygon queryPolygon, double queryRadius, Integer k, int omegaJoinDurationSeconds, UniformGrid uGrid, int allowedLateness, boolean approximateQuery) throws IOException {
 
-        Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPolygon);
-        Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryPolygon, guaranteedNeighboringCells);
+        HashSet<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPolygon);
+        HashSet<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryPolygon, guaranteedNeighboringCells);
+        candidateNeighboringCells.addAll(guaranteedNeighboringCells);
 
-        DataStream<Point> pointStreamWithTsAndWm =
-                pointStream.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Point>(Time.seconds(allowedLateness)) {
+        DataStream<Point> filteredPoints = pointStream.filter(new FilterFunction<Point>() {
+            @Override
+            public boolean filter(Point point) throws Exception {
+                //return ((candidateNeighboringCells.contains(point.gridID)) || (guaranteedNeighboringCells.contains(point.gridID)));
+                return (candidateNeighboringCells.contains(point.gridID));
+            }
+        }).startNewChain();
+
+        DataStream<Point> filteredPointStreamWithTsAndWm =
+                filteredPoints.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Point>(Time.seconds(allowedLateness)) {
                     @Override
                     public long extractTimestamp(Point p) {
                         return p.timeStampMillisec;
                     }
-                }).startNewChain();
+                });
 
-        DataStream<Point> filteredPoints = pointStreamWithTsAndWm.filter(new FilterFunction<Point>() {
-            @Override
-            public boolean filter(Point point) throws Exception {
-                return ((candidateNeighboringCells.contains(point.gridID)) || (guaranteedNeighboringCells.contains(point.gridID)));
-            }
-        });
-
-        DataStream<PriorityQueue<Tuple2<Point, Double>>> windowedKNN = filteredPoints.keyBy(new KeySelector<Point, String>() {
+        DataStream<PriorityQueue<Tuple2<Point, Double>>> windowedKNN = filteredPointStreamWithTsAndWm.keyBy(new KeySelector<Point, String>() {
             @Override
             public String getKey(Point point) throws Exception {
                 return point.gridID;
             }
-        }).window(TumblingEventTimeWindows.of(Time.seconds(omegaJoinDurationSeconds)))
+        }).window(TumblingProcessingTimeWindows.of(Time.seconds(omegaJoinDurationSeconds)))
                 .apply(new WindowFunction<Point, PriorityQueue<Tuple2<Point, Double>>, String, TimeWindow>() {
 
                     PriorityQueue<Tuple2<Point, Double>> kNNPQ = new PriorityQueue<Tuple2<Point, Double>>(k, new Comparators.inTuplePointDistanceComparator());
@@ -126,20 +133,25 @@ public class PointPolygonKNNQuery extends KNNQuery<Point, Polygon> {
                                     distance = DistanceFunctions.getDistance(point, queryPolygon);
                                 }
 
-                                kNNPQ.offer(new Tuple2<Point, Double>(point, distance));
+                                if(distance <= queryRadius) {
+                                    kNNPQ.offer(new Tuple2<Point, Double>(point, distance));
+                                }
                             } else {
                                 if (approximateQuery) {
                                     distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(point, queryPolygon);
                                 } else {
                                     distance = DistanceFunctions.getDistance(point, queryPolygon);
                                 }
-                                // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
-                                assert kNNPQ.peek() != null;
-                                double largestDistInPQ = kNNPQ.peek().f1;
 
-                                if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
-                                    kNNPQ.poll();
-                                    kNNPQ.offer(new Tuple2<Point, Double>(point, distance));
+                                if(distance <= queryRadius) {
+                                    // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
+                                    assert kNNPQ.peek() != null;
+                                    double largestDistInPQ = kNNPQ.peek().f1;
+
+                                    if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
+                                        kNNPQ.poll();
+                                        kNNPQ.offer(new Tuple2<Point, Double>(point, distance));
+                                    }
                                 }
                             }
                         }
@@ -151,10 +163,79 @@ public class PointPolygonKNNQuery extends KNNQuery<Point, Polygon> {
 
 
         // windowAll to Generate integrated kNN -
-
         //Output kNN Stream
         return windowedKNN
-                .windowAll(TumblingEventTimeWindows.of(Time.seconds(omegaJoinDurationSeconds)))
+                .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(omegaJoinDurationSeconds)))
+                .apply(new kNNWinAllEvaluationPointStream(k));
+    }
+
+    // REAL-TIME Naive
+    private DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> realTimeNaive(DataStream<Point> pointStream, Polygon queryPolygon, double queryRadius, Integer k, int omegaJoinDurationSeconds, UniformGrid uGrid, int allowedLateness, boolean approximateQuery) throws IOException {
+
+        DataStream<Point> pointStreamWithTsAndWm =
+                pointStream.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Point>(Time.seconds(allowedLateness)) {
+                    @Override
+                    public long extractTimestamp(Point p) {
+                        return p.timeStampMillisec;
+                    }
+                }).startNewChain();
+
+        DataStream<PriorityQueue<Tuple2<Point, Double>>> windowedKNN = pointStreamWithTsAndWm.keyBy(new KeySelector<Point, String>() {
+            @Override
+            public String getKey(Point point) throws Exception {
+                return point.gridID;
+            }
+        }).window(TumblingProcessingTimeWindows.of(Time.seconds(omegaJoinDurationSeconds)))
+                .apply(new WindowFunction<Point, PriorityQueue<Tuple2<Point, Double>>, String, TimeWindow>() {
+
+                    PriorityQueue<Tuple2<Point, Double>> kNNPQ = new PriorityQueue<Tuple2<Point, Double>>(k, new Comparators.inTuplePointDistanceComparator());
+
+                    @Override
+                    public void apply(String gridID, TimeWindow timeWindow, Iterable<Point> inputTuples, Collector<PriorityQueue<Tuple2<Point, Double>>> outputStream) throws Exception {
+                        kNNPQ.clear();
+
+                        for (Point point : inputTuples) {
+                            double distance;
+                            if (kNNPQ.size() < k) {
+                                if (approximateQuery) {
+                                    distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(point, queryPolygon);
+                                } else {
+                                    distance = DistanceFunctions.getDistance(point, queryPolygon);
+                                }
+
+                                if(distance <= queryRadius) {
+                                    kNNPQ.offer(new Tuple2<Point, Double>(point, distance));
+                                }
+                            } else {
+                                if (approximateQuery) {
+                                    distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(point, queryPolygon);
+                                } else {
+                                    distance = DistanceFunctions.getDistance(point, queryPolygon);
+                                }
+
+                                if(distance <= queryRadius) {
+                                    // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
+                                    assert kNNPQ.peek() != null;
+                                    double largestDistInPQ = kNNPQ.peek().f1;
+
+                                    if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
+                                        kNNPQ.poll();
+                                        kNNPQ.offer(new Tuple2<Point, Double>(point, distance));
+                                    }
+                                }
+                            }
+                        }
+
+                        // Output stream
+                        outputStream.collect(kNNPQ);
+                    }
+                }).name("Windowed (Apply) Grid Based");
+
+
+        // windowAll to Generate integrated kNN -
+        //Output kNN Stream
+        return windowedKNN
+                .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(omegaJoinDurationSeconds)))
                 .apply(new kNNWinAllEvaluationPointStream(k));
     }
 
@@ -203,20 +284,24 @@ public class PointPolygonKNNQuery extends KNNQuery<Point, Polygon> {
                                     distance = DistanceFunctions.getDistance(point, queryPolygon);
                                 }
 
-                                kNNPQ.offer(new Tuple2<Point, Double>(point, distance));
+                                if(distance <= queryRadius) {
+                                    kNNPQ.offer(new Tuple2<Point, Double>(point, distance));
+                                }
                             } else {
                                 if(approximateQuery) {
                                     distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(point, queryPolygon);
                                 }else{
                                     distance = DistanceFunctions.getDistance(point, queryPolygon);
                                 }
-                                // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
-                                assert kNNPQ.peek() != null;
-                                double largestDistInPQ = kNNPQ.peek().f1;
+                                if(distance <= queryRadius) {
+                                    // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
+                                    assert kNNPQ.peek() != null;
+                                    double largestDistInPQ = kNNPQ.peek().f1;
 
-                                if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
-                                    kNNPQ.poll();
-                                    kNNPQ.offer(new Tuple2<Point, Double>(point, distance));
+                                    if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
+                                        kNNPQ.poll();
+                                        kNNPQ.offer(new Tuple2<Point, Double>(point, distance));
+                                    }
                                 }
                             }
                         }
@@ -235,7 +320,7 @@ public class PointPolygonKNNQuery extends KNNQuery<Point, Polygon> {
                 .apply(new kNNWinAllEvaluationPointStream(k));
     }
 
-    // REAL-TIME
+    // REAL-TIME Latency
     private DataStream<Long> realTimeLatency(DataStream<Point> pointStream, Polygon queryPolygon, double queryRadius, Integer k, int omegaJoinDurationSeconds, UniformGrid uGrid, int allowedLateness, boolean approximateQuery) throws IOException {
 
         Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPolygon);
@@ -278,7 +363,10 @@ public class PointPolygonKNNQuery extends KNNQuery<Point, Polygon> {
                                 }else{
                                     distance = DistanceFunctions.getDistance(point, queryPolygon);
                                 }
-                                kNNPQ.offer(new Tuple2<Point, Double>(point, distance));
+
+                                if(distance <= queryRadius) {
+                                    kNNPQ.offer(new Tuple2<Point, Double>(point, distance));
+                                }
 
                                 Date date = new Date();
                                 Long latency = date.getTime() -  point.timeStampMillisec;
@@ -290,16 +378,20 @@ public class PointPolygonKNNQuery extends KNNQuery<Point, Polygon> {
                                 }else{
                                     distance = DistanceFunctions.getDistance(point, queryPolygon);
                                 }
-                                // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
-                                double largestDistInPQ = kNNPQ.peek().f1;
 
-                                if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
-                                    kNNPQ.poll();
-                                    kNNPQ.offer(new Tuple2<Point, Double>(point, distance));
+                                if(distance <= queryRadius) {
 
-                                    Date date = new Date();
-                                    Long latency = date.getTime() -  point.timeStampMillisec;
-                                    outputStream.collect(latency);
+                                    // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
+                                    double largestDistInPQ = kNNPQ.peek().f1;
+
+                                    if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
+                                        kNNPQ.poll();
+                                        kNNPQ.offer(new Tuple2<Point, Double>(point, distance));
+
+                                        Date date = new Date();
+                                        Long latency = date.getTime() - point.timeStampMillisec;
+                                        outputStream.collect(latency);
+                                    }
                                 }
                             }
                         }
@@ -311,7 +403,7 @@ public class PointPolygonKNNQuery extends KNNQuery<Point, Polygon> {
         return windowedKNN;
     }
 
-    // WINDOW BASED
+    // WINDOW BASED Latency
     private DataStream<Long> windowBasedLatency(DataStream<Point> pointStream, Polygon queryPolygon, double queryRadius, Integer k, int windowSize, int windowSlideStep, UniformGrid uGrid, int allowedLateness, boolean approximateQuery) throws IOException {
 
         Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPolygon);
@@ -357,7 +449,9 @@ public class PointPolygonKNNQuery extends KNNQuery<Point, Polygon> {
                                     distance = DistanceFunctions.getDistance(point, queryPolygon);
                                 }
 
-                                kNNPQ.offer(new Tuple2<Point, Double>(point, distance));
+                                if(distance <= queryRadius) {
+                                    kNNPQ.offer(new Tuple2<Point, Double>(point, distance));
+                                }
 
                                 Date date = new Date();
                                 Long latency = date.getTime() -  point.timeStampMillisec;
@@ -369,17 +463,19 @@ public class PointPolygonKNNQuery extends KNNQuery<Point, Polygon> {
                                 }else{
                                     distance = DistanceFunctions.getDistance(point, queryPolygon);
                                 }
-                                // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
-                                assert kNNPQ.peek() != null;
-                                double largestDistInPQ = kNNPQ.peek().f1;
+                                if(distance <= queryRadius) {
+                                    // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
+                                    assert kNNPQ.peek() != null;
+                                    double largestDistInPQ = kNNPQ.peek().f1;
 
-                                if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
-                                    kNNPQ.poll();
-                                    kNNPQ.offer(new Tuple2<Point, Double>(point, distance));
+                                    if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
+                                        kNNPQ.poll();
+                                        kNNPQ.offer(new Tuple2<Point, Double>(point, distance));
 
-                                    Date date = new Date();
-                                    Long latency = date.getTime() -  point.timeStampMillisec;
-                                    outputStream.collect(latency);
+                                        Date date = new Date();
+                                        Long latency = date.getTime() - point.timeStampMillisec;
+                                        outputStream.collect(latency);
+                                    }
                                 }
                             }
                         }
