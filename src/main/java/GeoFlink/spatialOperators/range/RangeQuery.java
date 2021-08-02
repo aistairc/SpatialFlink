@@ -59,7 +59,7 @@ public abstract class RangeQuery<T extends SpatialObject, K extends SpatialObjec
         this.setSpatialIndex(index);
     }
 
-    public abstract DataStream<T> run(DataStream<T> stream, K obj, double queryRadius);
+    public abstract DataStream<T> run(DataStream<T> stream, Set<K> obj, double queryRadius);
 
     protected class PolygonTrigger extends Trigger<Polygon, TimeWindow> {
 

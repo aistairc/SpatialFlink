@@ -33,7 +33,7 @@ public class PointPointRangeQuery extends RangeQuery<Point, Point> {
         super.initializeRangeQuery(conf, index);
     }
 
-    public DataStream<Point> run(DataStream<Point> pointStream, Point queryPoint, double queryRadius) {
+    public DataStream<Point> run(DataStream<Point> pointStream, Set<Point> queryPointSet, double queryRadius) {
         boolean approximateQuery = this.getQueryConfiguration().isApproximateQuery();
         int allowedLateness = this.getQueryConfiguration().getAllowedLateness();
 
@@ -42,8 +42,8 @@ public class PointPointRangeQuery extends RangeQuery<Point, Point> {
         //--------------- Real-time - POINT - POINT -----------------//
         if(this.getQueryConfiguration().getQueryType() == QueryType.RealTime)
         {
-            Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint.gridID);
-            Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryPoint.gridID, guaranteedNeighboringCells);
+            Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, ((Point[])queryPointSet.toArray())[0].gridID);
+            Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, ((Point[])queryPointSet.toArray())[0].gridID, guaranteedNeighboringCells);
 
             //pointStream.print();
             DataStream<Point> filteredPoints = pointStream.filter(new FilterFunction<Point>() {
@@ -70,7 +70,7 @@ public class PointPointRangeQuery extends RangeQuery<Point, Point> {
                         if (approximateQuery) { // all the candidate neighbors are sent to output
                             collector.collect(point);
                         } else {
-                            double distance = DistanceFunctions.getDistance(queryPoint, point);
+                            double distance = DistanceFunctions.getDistance(((Point[])queryPointSet.toArray())[0], point);
 
                             if (distance <= queryRadius) {
                                 collector.collect(point);
@@ -88,8 +88,8 @@ public class PointPointRangeQuery extends RangeQuery<Point, Point> {
             int windowSize = this.getQueryConfiguration().getWindowSize();
             int slideStep = this.getQueryConfiguration().getSlideStep();
 
-            Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint.gridID);
-            Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryPoint.gridID, guaranteedNeighboringCells);
+            Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, ((Point[])queryPointSet.toArray())[0].gridID);
+            Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, ((Point[])queryPointSet.toArray())[0].gridID, guaranteedNeighboringCells);
 
             DataStream<Point> pointStreamWithTsAndWm =
                     pointStream.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Point>(Time.seconds(allowedLateness)) {
@@ -125,7 +125,7 @@ public class PointPointRangeQuery extends RangeQuery<Point, Point> {
                                     if(approximateQuery) { // all the candidate neighbors are sent to output
                                         neighbors.collect(point);
                                     }else{
-                                        double distance = DistanceFunctions.getDistance(queryPoint, point);
+                                        double distance = DistanceFunctions.getDistance(((Point[])queryPointSet.toArray())[0], point);
 
                                         if (distance <= queryRadius){
                                             neighbors.collect(point);

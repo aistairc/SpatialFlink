@@ -25,7 +25,7 @@ public class LineStringLineStringRangeQuery extends RangeQuery<LineString, LineS
         super.initializeRangeQuery(conf, index);
     }
 
-    public DataStream<LineString> run(DataStream<LineString> lineStringStream, LineString queryLineString, double queryRadius) {
+    public DataStream<LineString> run(DataStream<LineString> lineStringStream, Set<LineString> queryLineStringSet, double queryRadius) {
         boolean approximateQuery = this.getQueryConfiguration().isApproximateQuery();
         int allowedLateness = this.getQueryConfiguration().getAllowedLateness();
 
@@ -33,8 +33,8 @@ public class LineStringLineStringRangeQuery extends RangeQuery<LineString, LineS
 
         //--------------- Real-time - LINESTRING - LINESTRING -----------------//
         if (this.getQueryConfiguration().getQueryType() == QueryType.RealTime) {
-            Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryLineString);
-            Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryLineString, guaranteedNeighboringCells);
+            Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, ((LineString[])queryLineStringSet.toArray())[0]);
+            Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, ((LineString[])queryLineStringSet.toArray())[0], guaranteedNeighboringCells);
             Set<String> neighboringCells = Stream.concat(guaranteedNeighboringCells.stream(), candidateNeighboringCells.stream()).collect(Collectors.toSet());
 
             DataStream<LineString> filteredLineStrings = lineStringStream.flatMap(new CellBasedLineStringFlatMap(neighboringCells)).startNewChain();
@@ -59,9 +59,9 @@ public class LineStringLineStringRangeQuery extends RangeQuery<LineString, LineS
                         } else { // candidate neighbors
                             double distance;
                             if (approximateQuery) {
-                                distance = DistanceFunctions.getBBoxBBoxMinEuclideanDistance(queryLineString.boundingBox, lineString.boundingBox);
+                                distance = DistanceFunctions.getBBoxBBoxMinEuclideanDistance(((LineString[])queryLineStringSet.toArray())[0].boundingBox, lineString.boundingBox);
                             } else {
-                                distance = DistanceFunctions.getDistance(queryLineString, lineString);
+                                distance = DistanceFunctions.getDistance(((LineString[])queryLineStringSet.toArray())[0], lineString);
                             }
 
                             if (distance <= queryRadius) {
@@ -80,8 +80,8 @@ public class LineStringLineStringRangeQuery extends RangeQuery<LineString, LineS
             int windowSize = this.getQueryConfiguration().getWindowSize();
             int slideStep = this.getQueryConfiguration().getSlideStep();
 
-            Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryLineString);
-            Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, queryLineString, guaranteedNeighboringCells);
+            Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, ((LineString[])queryLineStringSet.toArray())[0]);
+            Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, ((LineString[])queryLineStringSet.toArray())[0], guaranteedNeighboringCells);
             Set<String> neighboringCells = Stream.concat(guaranteedNeighboringCells.stream(), candidateNeighboringCells.stream()).collect(Collectors.toSet());
 
             DataStream<LineString> streamWithTsAndWm =
@@ -116,9 +116,9 @@ public class LineStringLineStringRangeQuery extends RangeQuery<LineString, LineS
                                     } else { // candidate neighbors
                                         double distance;
                                         if (approximateQuery) {
-                                            distance = DistanceFunctions.getBBoxBBoxMinEuclideanDistance(queryLineString.boundingBox, lineString.boundingBox);
+                                            distance = DistanceFunctions.getBBoxBBoxMinEuclideanDistance(((LineString[])queryLineStringSet.toArray())[0].boundingBox, lineString.boundingBox);
                                         } else {
-                                            distance = DistanceFunctions.getDistance(lineString, queryLineString);
+                                            distance = DistanceFunctions.getDistance(lineString, ((LineString[])queryLineStringSet.toArray())[0]);
                                         }
 
                                         if (distance <= queryRadius) {
