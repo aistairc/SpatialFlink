@@ -384,26 +384,26 @@ public class HelperClass {
         return distance;
     }
 
-    public static Set<Polygon> generateQueryPolygons(int numQueryPolygons, UniformGrid uGrid){
+    public static Set<Polygon> generateQueryPolygons(int numQueryPolygons, double minX, double minY, double maxX, double maxY, UniformGrid uGrid){
 
         // Generating random polygons for testing
         int gridSize = 100; // 25, 50, 100
         int numQPolygons = numQueryPolygons;
         Set<Polygon> qPolygonSet = new HashSet<>();
 
-        double polyLength1 = (117.6 - 115.5)/gridSize;
-        double polyLength2 = (41.1 - 39.6)/gridSize;
+        double polyLength1 = (maxX - minX)/gridSize;
+        double polyLength2 = (maxY - minY)/gridSize;
         double polyLength;
         if(polyLength2 < polyLength1)
             polyLength = polyLength2;
         else
             polyLength = polyLength1;
 
-        for (double i = 115.5; i < 117.6; i+= polyLength) {
+        for (double i = minX; i < maxX; i+= polyLength) {
             if(qPolygonSet.size() >= numQPolygons)
                 break;
 
-            for (double j = 39.6; j < 41.1; j+= polyLength) {
+            for (double j = minY; j < maxY; j+= polyLength) {
 
                 List<Coordinate> qPolygonCoordinates = new ArrayList<Coordinate>();
 

@@ -505,7 +505,7 @@ public class StreamingJob implements Serializable {
 			case 7: { // Range Query (Real-time) - Point-Stream-Polygon-Query
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to point spatial data stream
-				polygonSet = HelperClass.generateQueryPolygons(k, uGrid);
+				polygonSet = HelperClass.generateQueryPolygons(k, gridMinX, gridMinY, gridMaxX, gridMaxY, uGrid);
 				DataStream<Point> spatialPointStream = Deserialization.TrajectoryStream(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
 				DataStream<Point> rNeighbors = new PointPolygonRangeQuery(realtimeConf, uGrid).run(spatialPointStream, queryPolygon, radius);
 				//rNeighbors.print();
@@ -1197,7 +1197,7 @@ public class StreamingJob implements Serializable {
 				//System.out.println(qPolygonSet);
 				//System.out.println(qPolygonSet.size());
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
-				polygonSet = HelperClass.generateQueryPolygons(k, uGrid);
+				polygonSet = HelperClass.generateQueryPolygons(k, gridMinX, gridMinY, gridMaxX, gridMaxY, uGrid);
 				DataStream<Point> outputStream = (DataStream<Point>)new PointPolygonTRangeQuery(realtimeConf).run(spatialTrajectoryStream, polygonSet);
 				//outputStream.print();
 				//outputStream.addSink(new FlinkKafkaProducer<>(outputTopicName, new HelperClass.LatencySinkPoint(queryOption, outputTopicName), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
@@ -1205,7 +1205,7 @@ public class StreamingJob implements Serializable {
 			}
 			case 2030:{ // TRangeQuery Real-time Naive
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
-				polygonSet = HelperClass.generateQueryPolygons(k, uGrid);
+				polygonSet = HelperClass.generateQueryPolygons(k, gridMinX, gridMinY, gridMaxX, gridMaxY, uGrid);
 				//Naive
 				DataStream<Point> outputStream = TRangeQuery.realTimeNaive(polygonSet, spatialTrajectoryStream);
 				break;
