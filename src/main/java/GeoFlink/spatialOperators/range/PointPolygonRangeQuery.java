@@ -72,6 +72,33 @@ public class PointPolygonRangeQuery extends RangeQuery<Point, Polygon> {
                 }
             }).name("Real-time - POLYGON - POINT");
         }
+
+        //--------------- Real-time Naive - POLYGON - POINT -----------------//
+        if (this.getQueryConfiguration().getQueryType() == QueryType.RealTimeNaive) {
+
+            return pointStream.keyBy(new KeySelector<Point, String>() {
+                @Override
+                public String getKey(Point p) throws Exception {
+                    return p.objID;
+                }
+            }).flatMap(new FlatMapFunction<Point, Point>() {
+                @Override
+                public void flatMap(Point point, Collector<Point> collector) throws Exception {
+
+                        double distance;
+                        if(approximateQuery) {
+                            distance = DistanceFunctions.getPointPolygonBBoxMinEuclideanDistance(point, queryPolygon);
+                        }else{
+                            distance = DistanceFunctions.getDistance(point, queryPolygon);
+                        }
+
+                        if (distance <= queryRadius)
+                        { collector.collect(point);}
+
+                }
+            }).name("Real-time - POLYGON - POINT");
+        }
+
         //--------------- Window-based - POLYGON - POINT -----------------//
         else if (this.getQueryConfiguration().getQueryType() == QueryType.WindowBased) {
             int windowSize = this.getQueryConfiguration().getWindowSize();

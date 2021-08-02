@@ -461,6 +461,12 @@ public class StreamingJob implements Serializable {
 		realtimeConf.setApproximateQuery(approximateQuery);
 		realtimeConf.setWindowSize(omegaDuration);
 
+
+		QueryConfiguration realtimeNaiveConf = new QueryConfiguration(QueryType.RealTimeNaive);
+		realtimeNaiveConf.setApproximateQuery(approximateQuery);
+		realtimeNaiveConf.setWindowSize(omegaDuration);
+
+
 		QueryConfiguration windowConf = new QueryConfiguration(QueryType.WindowBased);
 		windowConf.setApproximateQuery(approximateQuery);
 		windowConf.setAllowedLateness(allowedLateness);
@@ -499,10 +505,20 @@ public class StreamingJob implements Serializable {
 			case 7: { // Range Query (Real-time) - Point-Stream-Polygon-Query
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to point spatial data stream
+				polygonSet = HelperClass.generateQueryPolygons(k, uGrid);
 				DataStream<Point> spatialPointStream = Deserialization.TrajectoryStream(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
 				DataStream<Point> rNeighbors = new PointPolygonRangeQuery(realtimeConf, uGrid).run(spatialPointStream, queryPolygon, radius);
 				//rNeighbors.print();
 				break;}
+
+			case 70: { // Range Query (Real-time) - Point-Stream-Polygon-Query - Naive
+				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				// Converting GeoJSON,CSV stream to point spatial data stream
+				DataStream<Point> spatialPointStream = Deserialization.TrajectoryStream(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
+				DataStream<Point> rNeighbors = new PointPolygonRangeQuery(realtimeNaiveConf, uGrid).run(spatialPointStream, queryPolygon, radius);
+				//rNeighbors.print();
+				break;}
+
 			case 8: { // Range Query (Window-based) - Point-Stream-Polygon-Query
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to point spatial data stream

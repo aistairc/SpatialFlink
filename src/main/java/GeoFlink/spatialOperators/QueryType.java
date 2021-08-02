@@ -4,4 +4,5 @@ public enum QueryType {
     RealTime,
     WindowBased,
     CountBased,
+    RealTimeNaive,
 }
