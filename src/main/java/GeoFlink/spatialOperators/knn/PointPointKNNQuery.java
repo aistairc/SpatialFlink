@@ -39,7 +39,8 @@ public class PointPointKNNQuery extends KNNQuery<Point, Point> {
         //--------------- Real-time - POINT - POINT -----------------//
         if (this.getQueryConfiguration().getQueryType() == QueryType.RealTime) {
             int omegaJoinDurationSeconds = this.getQueryConfiguration().getWindowSize();
-            return realTime(pointStream, queryPoint, queryRadius, k, uGrid, omegaJoinDurationSeconds, allowedLateness);
+            //return realTime(pointStream, queryPoint, queryRadius, k, uGrid, omegaJoinDurationSeconds, allowedLateness);
+            return windowBased(pointStream, queryPoint, queryRadius, k, uGrid, omegaJoinDurationSeconds, omegaJoinDurationSeconds, allowedLateness);
         }
 
         //--------------- Window-based - POINT - POINT -----------------//
@@ -55,6 +56,7 @@ public class PointPointKNNQuery extends KNNQuery<Point, Point> {
     }
 
     // REAL-TIME
+    /*
     private DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> realTime(DataStream<Point> pointStream, Point queryPoint, double queryRadius, Integer k, UniformGrid uGrid, int omegaJoinDurationSeconds, int allowedLateness) throws IOException {
 
         Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPoint.gridID);
@@ -124,6 +126,7 @@ public class PointPointKNNQuery extends KNNQuery<Point, Point> {
                 .windowAll(TumblingEventTimeWindows.of(Time.seconds(omegaJoinDurationSeconds)))
                 .apply(new kNNWinAllEvaluationPointStream(k));
     }
+     */
 
     // WINDOW BASED
     private DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> windowBased(DataStream<Point> pointStream, Point queryPoint, double queryRadius, Integer k, UniformGrid uGrid, int windowSize, int windowSlideStep, int allowedLateness) throws IOException {

@@ -42,11 +42,12 @@ public class PointPolygonKNNQuery extends KNNQuery<Point, Polygon> {
         //--------------- Real-time - POINT - POLYGON -----------------//
         if (this.getQueryConfiguration().getQueryType() == QueryType.RealTime) {
             int omegaJoinDurationSeconds = this.getQueryConfiguration().getWindowSize();
-            return realTime(pointStream, queryPolygon, queryRadius, k, omegaJoinDurationSeconds, uGrid, allowedLateness, approximateQuery);
+            //return realTime(pointStream, queryPolygon, queryRadius, k, omegaJoinDurationSeconds, uGrid, allowedLateness, approximateQuery);
+            return windowBased(pointStream, queryPolygon, queryRadius, k, omegaJoinDurationSeconds, omegaJoinDurationSeconds, uGrid, allowedLateness, approximateQuery);
         }
 
         //--------------- Real-time Naive - POINT - POLYGON -----------------//
-        if (this.getQueryConfiguration().getQueryType() == QueryType.RealTimeNaive) {
+        else if (this.getQueryConfiguration().getQueryType() == QueryType.RealTimeNaive) {
             int omegaJoinDurationSeconds = this.getQueryConfiguration().getWindowSize();
             return realTimeNaive(pointStream, queryPolygon, queryRadius, k, omegaJoinDurationSeconds, uGrid, allowedLateness, approximateQuery);
         }
@@ -88,6 +89,7 @@ public class PointPolygonKNNQuery extends KNNQuery<Point, Polygon> {
     }
 
     // REAL-TIME
+    /*
     private DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> realTime(DataStream<Point> pointStream, Polygon queryPolygon, double queryRadius, Integer k, int omegaJoinDurationSeconds, UniformGrid uGrid, int allowedLateness, boolean approximateQuery) throws IOException {
 
         HashSet<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPolygon);
@@ -167,7 +169,7 @@ public class PointPolygonKNNQuery extends KNNQuery<Point, Polygon> {
         return windowedKNN
                 .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(omegaJoinDurationSeconds)))
                 .apply(new kNNWinAllEvaluationPointStream(k));
-    }
+    }*/
 
     // REAL-TIME Naive
     private DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> realTimeNaive(DataStream<Point> pointStream, Polygon queryPolygon, double queryRadius, Integer k, int omegaJoinDurationSeconds, UniformGrid uGrid, int allowedLateness, boolean approximateQuery) throws IOException {

@@ -41,7 +41,8 @@ public class LineStringPolygonKNNQuery extends KNNQuery<LineString, Polygon> {
         //--------------- Real-time - LINESTRING - POLYGON -----------------//
         if (this.getQueryConfiguration().getQueryType() == QueryType.RealTime) {
             int omegaJoinDurationSeconds = this.getQueryConfiguration().getWindowSize();
-            return realTime(lineStringStream, queryPolygon, queryRadius, k, uGrid, omegaJoinDurationSeconds, allowedLateness, approximateQuery);
+            //return realTime(lineStringStream, queryPolygon, queryRadius, k, uGrid, omegaJoinDurationSeconds, allowedLateness, approximateQuery);
+            return windowBased(lineStringStream, queryPolygon, queryRadius, k, uGrid, omegaJoinDurationSeconds, omegaJoinDurationSeconds, allowedLateness, approximateQuery);
         }
 
         //--------------- Window-based - LINESTRING - POLYGON -----------------//
@@ -57,6 +58,7 @@ public class LineStringPolygonKNNQuery extends KNNQuery<LineString, Polygon> {
     }
 
     // REAL-TIME
+    /*
     private DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<LineString, Double>>>> realTime(DataStream<LineString> lineStringStream, Polygon queryPolygon, double queryRadius, Integer k, UniformGrid uGrid, int omegaJoinDurationSeconds, int allowedLateness, boolean approximateQuery) throws IOException {
 
         Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryPolygon);
@@ -134,7 +136,7 @@ public class LineStringPolygonKNNQuery extends KNNQuery<LineString, Polygon> {
         return windowedKNN
                 .windowAll(TumblingEventTimeWindows.of(Time.seconds(omegaJoinDurationSeconds)))
                 .apply(new kNNWinAllEvaluationLineStringStream(k));
-    }
+    }*/
 
     // WINDOW BASED
     private DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<LineString, Double>>>> windowBased(DataStream<LineString> lineStringStream, Polygon queryPolygon, double queryRadius, Integer k, UniformGrid uGrid, int windowSize, int windowSlideStep, int allowedLateness, boolean approximateQuery) throws IOException {

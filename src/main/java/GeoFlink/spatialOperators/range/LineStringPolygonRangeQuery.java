@@ -17,6 +17,7 @@ import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -34,9 +35,21 @@ public class LineStringPolygonRangeQuery extends RangeQuery<LineString, Polygon>
 
         //--------------- Real-time - LINESTRING - POLYGON -----------------//
         if (this.getQueryConfiguration().getQueryType() == QueryType.RealTime) {
-            Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, ((Polygon[])queryPolygonSet.toArray())[0]);
-            Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, ((Polygon[])queryPolygonSet.toArray())[0], guaranteedNeighboringCells);
-            Set<String> neighboringCells = Stream.concat(guaranteedNeighboringCells.stream(),candidateNeighboringCells.stream()).collect(Collectors.toSet());
+            //Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, ((Polygon[])queryPolygonSet.toArray())[0]);
+            //Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, ((Polygon[])queryPolygonSet.toArray())[0], guaranteedNeighboringCells);
+            //Set<String> neighboringCells = Stream.concat(guaranteedNeighboringCells.stream(),candidateNeighboringCells.stream()).collect(Collectors.toSet());
+
+            HashSet<String> candidateNeighboringCells = new HashSet<>();
+            HashSet<String> guaranteedNeighboringCells = new HashSet<>();
+
+            for(Polygon polygon:queryPolygonSet) {
+                //Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, ((Polygon[]) queryPolygonSet.toArray())[0]);
+                //Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, ((Polygon[]) queryPolygonSet.toArray())[0], guaranteedNeighboringCells);
+                guaranteedNeighboringCells.addAll(uGrid.getGuaranteedNeighboringCells(queryRadius, polygon));
+                candidateNeighboringCells.addAll(uGrid.getCandidateNeighboringCells(queryRadius, polygon, guaranteedNeighboringCells));
+                //candidateNeighboringCells.addAll(guaranteedNeighboringCells);
+            }
+            Set<String> neighboringCells = Stream.concat(guaranteedNeighboringCells.stream(), candidateNeighboringCells.stream()).collect(Collectors.toSet());
 
             DataStream<LineString> filteredLineStrings = lineStringStream.flatMap(new CellBasedLineStringFlatMap(neighboringCells)).startNewChain();
 
@@ -60,7 +73,22 @@ public class LineStringPolygonRangeQuery extends RangeQuery<LineString, Polygon>
                         }
                         else { // candidate neighbors
                             double distance;
-                            if(approximateQuery) {
+
+                            for(Polygon polygon:queryPolygonSet) {
+
+                                if (approximateQuery) {
+                                    distance = DistanceFunctions.getBBoxBBoxMinEuclideanDistance(polygon.boundingBox, lineString.boundingBox);
+                                } else {
+                                    distance = DistanceFunctions.getDistance(polygon, lineString);
+                                }
+
+                                if (distance <= queryRadius) {
+                                    collector.collect(lineString);
+                                    break;
+                                }
+
+                                /*
+                                if(approximateQuery) {
                                 distance = DistanceFunctions.getBBoxBBoxMinEuclideanDistance(((Polygon[])queryPolygonSet.toArray())[0].boundingBox, lineString.boundingBox);
                             }else{
                                 distance = DistanceFunctions.getDistance(((Polygon[])queryPolygonSet.toArray())[0], lineString);
@@ -68,6 +96,8 @@ public class LineStringPolygonRangeQuery extends RangeQuery<LineString, Polygon>
 
                             if (distance <= queryRadius) {
                                 collector.collect(lineString);
+                            }*/
+
                             }
                             break;
                         }
@@ -81,9 +111,21 @@ public class LineStringPolygonRangeQuery extends RangeQuery<LineString, Polygon>
             int windowSize = this.getQueryConfiguration().getWindowSize();
             int slideStep = this.getQueryConfiguration().getSlideStep();
 
-            Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, ((Polygon[])queryPolygonSet.toArray())[0]);
-            Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, ((Polygon[])queryPolygonSet.toArray())[0], guaranteedNeighboringCells);
-            Set<String> neighboringCells = Stream.concat(guaranteedNeighboringCells.stream(),candidateNeighboringCells.stream()).collect(Collectors.toSet());
+            //Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, ((Polygon[])queryPolygonSet.toArray())[0]);
+            //Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, ((Polygon[])queryPolygonSet.toArray())[0], guaranteedNeighboringCells);
+            //Set<String> neighboringCells = Stream.concat(guaranteedNeighboringCells.stream(),candidateNeighboringCells.stream()).collect(Collectors.toSet());
+
+            HashSet<String> candidateNeighboringCells = new HashSet<>();
+            HashSet<String> guaranteedNeighboringCells = new HashSet<>();
+
+            for(Polygon polygon:queryPolygonSet) {
+                //Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, ((Polygon[]) queryPolygonSet.toArray())[0]);
+                //Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, ((Polygon[]) queryPolygonSet.toArray())[0], guaranteedNeighboringCells);
+                guaranteedNeighboringCells.addAll(uGrid.getGuaranteedNeighboringCells(queryRadius, polygon));
+                candidateNeighboringCells.addAll(uGrid.getCandidateNeighboringCells(queryRadius, polygon, guaranteedNeighboringCells));
+                //candidateNeighboringCells.addAll(guaranteedNeighboringCells);
+            }
+            Set<String> neighboringCells = Stream.concat(guaranteedNeighboringCells.stream(), candidateNeighboringCells.stream()).collect(Collectors.toSet());
 
             DataStream<LineString> streamWithTsAndWm =
                     lineStringStream.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<LineString>(Time.seconds(allowedLateness)) {
@@ -117,14 +159,30 @@ public class LineStringPolygonRangeQuery extends RangeQuery<LineString, Polygon>
                                     }
                                     else { // candidate neighbors
                                         double distance;
-                                        if(approximateQuery) {
-                                            distance = DistanceFunctions.getBBoxBBoxMinEuclideanDistance(((Polygon[])queryPolygonSet.toArray())[0].boundingBox, lineString.boundingBox);
-                                        }else{
-                                            distance = DistanceFunctions.getDistance(((Polygon[])queryPolygonSet.toArray())[0], lineString);
-                                        }
+                                        for(Polygon polygon:queryPolygonSet) {
 
-                                        if (distance <= queryRadius) {
-                                            neighbors.collect(lineString);
+                                            if (approximateQuery) {
+                                                distance = DistanceFunctions.getBBoxBBoxMinEuclideanDistance(polygon.boundingBox, lineString.boundingBox);
+                                            } else {
+                                                distance = DistanceFunctions.getDistance(polygon, lineString);
+                                            }
+
+                                            if (distance <= queryRadius) {
+                                                neighbors.collect(lineString);
+                                                break;
+                                            }
+
+                                /*
+                                if(approximateQuery) {
+                                distance = DistanceFunctions.getBBoxBBoxMinEuclideanDistance(((Polygon[])queryPolygonSet.toArray())[0].boundingBox, lineString.boundingBox);
+                            }else{
+                                distance = DistanceFunctions.getDistance(((Polygon[])queryPolygonSet.toArray())[0], lineString);
+                            }
+
+                            if (distance <= queryRadius) {
+                                collector.collect(lineString);
+                            }*/
+
                                         }
                                         break;
                                     }

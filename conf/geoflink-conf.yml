@@ -47,9 +47,9 @@ outputStream:
 
 # Query parameters
 query:
-  option: 57 #2011 or 211
+  option: 1020 #2011 or 211
   approximate: False
-  radius: 0.0005
+  radius: 0.005
   aggregateFunction: "SUM"
   k: 100
   omegaDuration: 1

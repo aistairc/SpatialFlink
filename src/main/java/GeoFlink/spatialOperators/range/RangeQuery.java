@@ -144,4 +144,3 @@ public abstract class RangeQuery<T extends SpatialObject, K extends SpatialObjec
         }
     }
 }
-

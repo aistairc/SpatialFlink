@@ -18,6 +18,7 @@ import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 
+import java.util.HashSet;
 import java.util.Set;
 
 public class PointLineStringRangeQuery extends RangeQuery<Point, LineString> {
@@ -32,8 +33,19 @@ public class PointLineStringRangeQuery extends RangeQuery<Point, LineString> {
         UniformGrid uGrid = (UniformGrid) this.getSpatialIndex();
         //--------------- Real-time - LINESTRING - POINT -----------------//
         if (this.getQueryConfiguration().getQueryType() == QueryType.RealTime) {
-            Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, ((LineString[])queryLineStringSet.toArray())[0]);
-            Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, ((LineString[])queryLineStringSet.toArray())[0], guaranteedNeighboringCells);
+            //Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, ((LineString[])queryLineStringSet.toArray())[0]);
+            //Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, ((LineString[])queryLineStringSet.toArray())[0], guaranteedNeighboringCells);
+
+            HashSet<String> candidateNeighboringCells = new HashSet<>();
+            HashSet<String> guaranteedNeighboringCells = new HashSet<>();
+
+            for(LineString lineString:queryLineStringSet) {
+                //Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, ((Polygon[]) queryPolygonSet.toArray())[0]);
+                //Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, ((Polygon[]) queryPolygonSet.toArray())[0], guaranteedNeighboringCells);
+                guaranteedNeighboringCells.addAll(uGrid.getGuaranteedNeighboringCells(queryRadius, lineString));
+                candidateNeighboringCells.addAll(uGrid.getCandidateNeighboringCells(queryRadius, lineString, guaranteedNeighboringCells));
+                //candidateNeighboringCells.addAll(guaranteedNeighboringCells);
+            }
 
             DataStream<Point> filteredPoints = pointStream.filter(new FilterFunction<Point>() {
                 @Override
@@ -56,14 +68,29 @@ public class PointLineStringRangeQuery extends RangeQuery<Point, LineString> {
                     else {
 
                         double distance;
-                        if (approximateQuery) {
-                            distance = DistanceFunctions.getPointLineStringBBoxMinEuclideanDistance(point, ((LineString[])queryLineStringSet.toArray())[0]);
-                        } else {
-                            distance = DistanceFunctions.getDistance(point, ((LineString[])queryLineStringSet.toArray())[0]);
-                        }
+                        for(LineString ls:queryLineStringSet) {
 
-                        if (distance <= queryRadius) {
-                            collector.collect(point);
+                            if (approximateQuery) {
+                                distance = DistanceFunctions.getPointLineStringBBoxMinEuclideanDistance(point, ls);
+                            } else {
+                                distance = DistanceFunctions.getDistance(point, ls);
+                            }
+
+                            if (distance <= queryRadius) {
+                                collector.collect(point);
+                                break;
+                            }
+
+                                /*
+                                if (approximateQuery) {
+                                    distance = DistanceFunctions.getBBoxBBoxMinEuclideanDistance(((LineString[]) queryLineStringSet.toArray())[0].boundingBox, lineString.boundingBox);
+                                } else {
+                                    distance = DistanceFunctions.getDistance(((LineString[]) queryLineStringSet.toArray())[0], lineString);
+                                }
+
+                                if (distance <= queryRadius) {
+                                    collector.collect(lineString);
+                                }*/
                         }
                     }
                 }
@@ -74,8 +101,16 @@ public class PointLineStringRangeQuery extends RangeQuery<Point, LineString> {
             int windowSize = this.getQueryConfiguration().getWindowSize();
             int slideStep = this.getQueryConfiguration().getSlideStep();
 
-            Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, ((LineString[])queryLineStringSet.toArray())[0]);
-            Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, ((LineString[])queryLineStringSet.toArray())[0], guaranteedNeighboringCells);
+            HashSet<String> candidateNeighboringCells = new HashSet<>();
+            HashSet<String> guaranteedNeighboringCells = new HashSet<>();
+
+            for(LineString lineString:queryLineStringSet) {
+                //Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, ((Polygon[]) queryPolygonSet.toArray())[0]);
+                //Set<String> candidateNeighboringCells = uGrid.getCandidateNeighboringCells(queryRadius, ((Polygon[]) queryPolygonSet.toArray())[0], guaranteedNeighboringCells);
+                guaranteedNeighboringCells.addAll(uGrid.getGuaranteedNeighboringCells(queryRadius, lineString));
+                candidateNeighboringCells.addAll(uGrid.getCandidateNeighboringCells(queryRadius, lineString, guaranteedNeighboringCells));
+                //candidateNeighboringCells.addAll(guaranteedNeighboringCells);
+            }
 
             DataStream<Point> pointStreamWithTsAndWm =
                     pointStream.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Point>(Time.seconds(allowedLateness)) {
@@ -107,14 +142,29 @@ public class PointLineStringRangeQuery extends RangeQuery<Point, LineString> {
                                 else {
 
                                     double distance;
-                                    if (approximateQuery) {
-                                        distance = DistanceFunctions.getPointLineStringBBoxMinEuclideanDistance(point, ((LineString[])queryLineStringSet.toArray())[0]);
-                                    } else {
-                                        distance = DistanceFunctions.getDistance(point, ((LineString[])queryLineStringSet.toArray())[0]);
-                                    }
+                                    for(LineString ls:queryLineStringSet) {
 
-                                    if (distance <= queryRadius) {
-                                        neighbors.collect(point);
+                                        if (approximateQuery) {
+                                            distance = DistanceFunctions.getPointLineStringBBoxMinEuclideanDistance(point, ls);
+                                        } else {
+                                            distance = DistanceFunctions.getDistance(point, ls);
+                                        }
+
+                                        if (distance <= queryRadius) {
+                                            neighbors.collect(point);
+                                            break;
+                                        }
+
+                                /*
+                                if (approximateQuery) {
+                                    distance = DistanceFunctions.getBBoxBBoxMinEuclideanDistance(((LineString[]) queryLineStringSet.toArray())[0].boundingBox, lineString.boundingBox);
+                                } else {
+                                    distance = DistanceFunctions.getDistance(((LineString[]) queryLineStringSet.toArray())[0], lineString);
+                                }
+
+                                if (distance <= queryRadius) {
+                                    collector.collect(lineString);
+                                }*/
                                     }
                                 }
                             }
