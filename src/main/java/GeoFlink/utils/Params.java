@@ -21,6 +21,7 @@ public class Params {
      */
     /* Cluster */
     public boolean clusterMode = false;
+    public int parallelism = 1;
     public String kafkaBootStrapServers;
 
     /* Stream1 Input */
@@ -79,7 +80,6 @@ public class Params {
         if ((kafkaBootStrapServers = config.getKafkaBootStrapServers()) == null) {
             throw new NullPointerException("kafkaBootStrapServers is " + config.getKafkaBootStrapServers());
         }
-
         /* Input Stream1  */
         try {
             if ((inputTopicName1 = (String)config.getInputStream1().get("topicName")) == null) {
@@ -308,6 +308,18 @@ public class Params {
         catch (ClassCastException e) {
             throw new IllegalArgumentException("option : " + e);
         }
+        try {
+            if(config.getQuery().get("parallelism") == null) {
+                throw new NullPointerException("parallelism is " + config.getQuery().get("parallelism"));
+            }
+            else {
+                parallelism = (int)config.getQuery().get("parallelism");
+            }
+        }
+        catch (ClassCastException e) {
+            throw new IllegalArgumentException("parallelism : " + e);
+        }
+
         try {
             if(config.getQuery().get("approximate") == null) {
                 throw new NullPointerException("approximate is " + config.getQuery().get("approximate"));

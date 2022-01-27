@@ -9,15 +9,18 @@ kafkaBootStrapServers: "150.82.97.204:9092"
 
 # Input Stream1
 inputStream1:
-  topicName: "TaxiDrive17MillionGeoJSON"
+  topicName: "randPointUniform"
+  #topicName: "TaxiDrive17MillionGeoJSON"
   # format : GeoJSON or WKT or CSV or TSV
   format: "GeoJSON"
+  #dateFormat: "null" if timestamp is already in epoch milliseconds
   dateFormat: "yyyy-MM-dd HH:mm:ss"
+  #dateFormat: "null"
   geoJSONSchemaAttr: ["oID", "timestamp"]
-
   csvTsvSchemaAttr: [1, 4, 5, 6]
   # csvTsvSchemaAttr : object ID, timestamp, coordinate-x, coordinate-y (Point only)
   gridBBox: [115.5, 39.6, 117.6, 41.1]
+  #gridBBox: [-41543.0, -27825.0, 48431.0, 24224.0]
   numGridCells: 100
   cellLength: 0
   # delimiter : CSV = ",", TSV separeted by TAB character = "	" or "\t", TSV separeted by \t = "\\\\t"
@@ -37,19 +40,21 @@ inputStream2:
   numGridCells: 100
   cellLength: 0
   # delimiter : CSV = ",", TSV separeted by TAB character = "	" or "\t", TSV separeted by \t = "\\\\t"
-  delimiter: "\\\\t"
+  #delimiter: "\\\\t"
+  delimiter: ","
   charset: "UTF-8"
 
 # Output Stream
 outputStream:
-  topicName: "output"
-  delimiter: "	"
+  topicName: "GeoJSONToCSV"
+  delimiter: ","
 
 # Query parameters
 query:
-  option: 1020 #2011 or 211
+  option: 2 #2011 or 211
+  parallelism: 15
   approximate: False
-  radius: 0.005
+  radius: 10.5
   aggregateFunction: "SUM"
   k: 100
   omegaDuration: 1
@@ -62,6 +67,7 @@ query:
   queryPolygons:
     - [[116.5, 40.5], [117.6, 40.5], [117.6, 41.4], [116.5, 41.4], [116.5, 40.5]]
     - [[116.5, 40.5], [117.6, 40.5], [117.6, 41.4], [116.5, 41.4], [116.5, 40.5]]
+    #- [[-41543.0, -8046.37999999997],[-41022.51, -8046.37999999997],[-41022.51, -7525.88999999997],[-41543.0, -7525.88999999997],[-41543.0, -8046.37999999997]]
   
   queryLineStrings: 
     - [[116.5, 40.5], [117.6, 40.5], [117.6, 41.4], [116.5, 41.4]]

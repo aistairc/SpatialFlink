@@ -186,6 +186,9 @@ public class Deserialization implements Serializable {
                     if (nodeTime != null && dateFormat != null) {
                         time = dateFormat.parse(nodeTime.textValue()).getTime();
                     }
+                    else if(nodeTime != null){
+                        time = Long.parseLong(String.valueOf(nodeTime));
+                    }
                 }
                 catch (ParseException e) {}
                 JsonNode nodeOId = jsonObj.get("value").get("properties").get(propertyObjID);
@@ -406,6 +409,9 @@ public class Deserialization implements Serializable {
                 try {
                     if (nodeTime != null && dateFormat != null) {
                         time = dateFormat.parse(nodeTime.textValue()).getTime();
+                    }
+                    else if(nodeTime != null){
+                        time = Long.parseLong(String.valueOf(nodeTime));
                     }
                 }
                 catch (ParseException e) {}
@@ -698,6 +704,9 @@ public class Deserialization implements Serializable {
                     if (nodeTime != null && dateFormat != null) {
                         time = dateFormat.parse(nodeTime.textValue()).getTime();
                     }
+                    else if(nodeTime != null){
+                        time = Long.parseLong(String.valueOf(nodeTime));
+                    }
                 }
                 catch (ParseException e) {}
                 JsonNode nodeOId = jsonObj.get("value").get("properties").get(propertyObjID);
@@ -963,6 +972,9 @@ public class Deserialization implements Serializable {
                 try {
                     if (nodeTime != null && dateFormat != null) {
                         time = dateFormat.parse(nodeTime.textValue()).getTime();
+                    }
+                    else if(nodeTime != null){
+                        time = Long.parseLong(String.valueOf(nodeTime));
                     }
                 } catch (ParseException e) {
                 }
@@ -1279,6 +1291,9 @@ public class Deserialization implements Serializable {
                 try {
                     if (nodeTime != null && dateFormat != null) {
                         time = dateFormat.parse(nodeTime.textValue()).getTime();
+                    }
+                    else if(nodeTime != null){
+                        time = Long.parseLong(String.valueOf(nodeTime));
                     }
                 }
                 catch (ParseException e) {}
