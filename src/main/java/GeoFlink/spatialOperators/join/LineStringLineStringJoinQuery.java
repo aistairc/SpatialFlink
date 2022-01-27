@@ -32,7 +32,8 @@ public class LineStringLineStringJoinQuery extends JoinQuery<LineString, LineStr
         //--------------- Real-time - LINESTRING - LINESTRING -----------------//
         if(this.getQueryConfiguration().getQueryType() == QueryType.RealTime) {
             int omegaJoinDurationSeconds = this.getQueryConfiguration().getWindowSize();
-            return realTime(lineStringStream, queryStream, queryRadius, uGrid, qGrid, omegaJoinDurationSeconds, allowedLateness, approximateQuery);
+            //return realTime(lineStringStream, queryStream, queryRadius, uGrid, qGrid, omegaJoinDurationSeconds, allowedLateness, approximateQuery);
+            return windowBased(lineStringStream, queryStream, queryRadius, uGrid, qGrid, omegaJoinDurationSeconds, omegaJoinDurationSeconds, allowedLateness, approximateQuery);
         }
 
         //--------------- Window-based - LINESTRING - LINESTRING -----------------//
@@ -48,6 +49,7 @@ public class LineStringLineStringJoinQuery extends JoinQuery<LineString, LineStr
     }
 
     // REAL-TIME
+    /*
     private DataStream<Tuple2<LineString, LineString>> realTime(DataStream<LineString> lineStringStream, DataStream<LineString> queryStream, double queryRadius, UniformGrid uGrid, UniformGrid qGrid, int omegaJoinDurationSeconds, int allowedLateness, boolean approximateQuery){
 
         // Spatial stream with Timestamps and Watermarks
@@ -109,6 +111,7 @@ public class LineStringLineStringJoinQuery extends JoinQuery<LineString, LineStr
             }
         });
     }
+     */
 
     // WINDOW BASED
     private DataStream<Tuple2<LineString, LineString>> windowBased(DataStream<LineString> lineStringStream, DataStream<LineString> queryStream, double queryRadius, UniformGrid uGrid, UniformGrid qGrid, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery){

@@ -301,6 +301,7 @@ public class UniformGrid implements SpatialIndex {
         }
 
         String queryCellID = queryPolygon.gridID;
+        System.out.println("queryCellID " + queryCellID);
         HashSet<String> neighboringCellsSet = new HashSet<String>();
         int numNeighboringLayers = getCandidateNeighboringLayers(queryRadius);
 

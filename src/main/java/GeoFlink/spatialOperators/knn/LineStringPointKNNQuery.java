@@ -39,7 +39,8 @@ public class LineStringPointKNNQuery extends KNNQuery<LineString, Point> {
         //--------------- Real-time - LINESTRING - POINT -----------------//
         if (this.getQueryConfiguration().getQueryType() == QueryType.RealTime) {
             int omegaJoinDurationSeconds = this.getQueryConfiguration().getWindowSize();
-            return realTime(lineStringStream, queryPoint, queryRadius, k, uGrid, omegaJoinDurationSeconds, allowedLateness, approximateQuery);
+            //return realTime(lineStringStream, queryPoint, queryRadius, k, uGrid, omegaJoinDurationSeconds, allowedLateness, approximateQuery);
+            return windowBased(lineStringStream, queryPoint, queryRadius, k, uGrid, omegaJoinDurationSeconds, omegaJoinDurationSeconds, allowedLateness, approximateQuery);
         }
 
         //--------------- Window-based - LINESTRING - POINT -----------------//
@@ -55,6 +56,7 @@ public class LineStringPointKNNQuery extends KNNQuery<LineString, Point> {
     }
 
     // REAL-TIME
+    /*
     private DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<LineString, Double>>>> realTime(DataStream<LineString> lineStringStream, Point queryPoint, double queryRadius, Integer k, UniformGrid uGrid, int omegaJoinDurationSeconds, int allowedLateness, boolean approximateQuery) throws IOException {
 
         Set<String> neighboringCells = uGrid.getNeighboringCells(queryRadius, queryPoint);
@@ -93,20 +95,24 @@ public class LineStringPointKNNQuery extends KNNQuery<LineString, Point> {
                                 }else{
                                     distance = DistanceFunctions.getDistance(queryPoint, lineString);
                                 }
-                                kNNPQ.offer(new Tuple2<LineString, Double>(lineString, distance));
+                                if(distance <= queryRadius) {
+                                    kNNPQ.offer(new Tuple2<LineString, Double>(lineString, distance));
+                                }
                             } else {
                                 if(approximateQuery) {
                                     distance = DistanceFunctions.getPointLineStringBBoxMinEuclideanDistance(queryPoint, lineString);
                                 }else{
                                     distance = DistanceFunctions.getDistance(queryPoint, lineString);
                                 }
-                                // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
-                                assert kNNPQ.peek() != null;
-                                double largestDistInPQ = kNNPQ.peek().f1;
+                                if(distance <= queryRadius) {
+                                    // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
+                                    assert kNNPQ.peek() != null;
+                                    double largestDistInPQ = kNNPQ.peek().f1;
 
-                                if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
-                                    kNNPQ.poll();
-                                    kNNPQ.offer(new Tuple2<LineString, Double>(lineString, distance));
+                                    if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
+                                        kNNPQ.poll();
+                                        kNNPQ.offer(new Tuple2<LineString, Double>(lineString, distance));
+                                    }
                                 }
                             }
                         }
@@ -123,7 +129,7 @@ public class LineStringPointKNNQuery extends KNNQuery<LineString, Point> {
         return windowedKNN
                 .windowAll(TumblingEventTimeWindows.of(Time.seconds(omegaJoinDurationSeconds)))
                 .apply(new kNNWinAllEvaluationLineStringStream(k));
-    }
+    }*/
 
     // WINDOW BASED
     private DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<LineString, Double>>>> windowBased(DataStream<LineString> lineStringStream, Point queryPoint, double queryRadius, Integer k, UniformGrid uGrid, int windowSize, int windowSlideStep, int allowedLateness, boolean approximateQuery) throws IOException {
@@ -164,20 +170,24 @@ public class LineStringPointKNNQuery extends KNNQuery<LineString, Point> {
                                 }else{
                                     distance = DistanceFunctions.getDistance(queryPoint, lineString);
                                 }
-                                kNNPQ.offer(new Tuple2<LineString, Double>(lineString, distance));
+                                if(distance <= queryRadius) {
+                                    kNNPQ.offer(new Tuple2<LineString, Double>(lineString, distance));
+                                }
                             } else {
                                 if(approximateQuery) {
                                     distance = DistanceFunctions.getPointLineStringBBoxMinEuclideanDistance(queryPoint, lineString);
                                 }else{
                                     distance = DistanceFunctions.getDistance(queryPoint, lineString);
                                 }
-                                // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
-                                assert kNNPQ.peek() != null;
-                                double largestDistInPQ = kNNPQ.peek().f1;
+                                if(distance <= queryRadius) {
+                                    // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
+                                    assert kNNPQ.peek() != null;
+                                    double largestDistInPQ = kNNPQ.peek().f1;
 
-                                if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
-                                    kNNPQ.poll();
-                                    kNNPQ.offer(new Tuple2<LineString, Double>(lineString, distance));
+                                    if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
+                                        kNNPQ.poll();
+                                        kNNPQ.offer(new Tuple2<LineString, Double>(lineString, distance));
+                                    }
                                 }
                             }
                         }

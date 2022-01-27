@@ -32,7 +32,8 @@ public class PolygonPolygonJoinQuery extends JoinQuery<Polygon, Polygon> {
         //--------------- Real-time - POLYGON - POLYGON -----------------//
         if(this.getQueryConfiguration().getQueryType() == QueryType.RealTime) {
             int omegaJoinDurationSeconds = this.getQueryConfiguration().getWindowSize();
-            return realTime(polygonStream, queryPolygonStream, uGrid, qGrid, queryRadius, omegaJoinDurationSeconds, allowedLateness, approximateQuery);
+            //return realTime(polygonStream, queryPolygonStream, uGrid, qGrid, queryRadius, omegaJoinDurationSeconds, allowedLateness, approximateQuery);
+            return windowBased(polygonStream, queryPolygonStream, uGrid, qGrid, queryRadius, omegaJoinDurationSeconds, omegaJoinDurationSeconds, allowedLateness, approximateQuery);
         }
 
         //--------------- Window-based - POLYGON - POLYGON -----------------//
@@ -48,6 +49,7 @@ public class PolygonPolygonJoinQuery extends JoinQuery<Polygon, Polygon> {
     }
 
     // REAL-TIME
+    /*
     private DataStream<Tuple2<Polygon, Polygon>> realTime(DataStream<Polygon> polygonStream, DataStream<Polygon> queryPolygonStream, UniformGrid uGrid, UniformGrid qGrid, double queryRadius, int omegaJoinDurationSeconds, int allowedLateness, boolean approximateQuery){
 
         // Spatial stream with Timestamps and Watermarks
@@ -110,6 +112,7 @@ public class PolygonPolygonJoinQuery extends JoinQuery<Polygon, Polygon> {
             }
         });
     }
+    */
 
     // WINDOW BASED
     private DataStream<Tuple2<Polygon, Polygon>> windowBased(DataStream<Polygon> polygonStream, DataStream<Polygon> queryPolygonStream, UniformGrid uGrid, UniformGrid qGrid, double queryRadius, int windowSize, int slideStep, int allowedLateness, boolean approximateQuery){

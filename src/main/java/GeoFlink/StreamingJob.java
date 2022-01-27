@@ -130,6 +130,7 @@ public class StreamingJob implements Serializable {
 
 		/* Query */
 		int queryOption = params.queryOption;
+		int parallelism = params.parallelism;
 		boolean approximateQuery = params.queryApproximate;
 		double radius = params.queryRadius; // Default 10x10 Grid
 		String aggregateFunction = params.queryAggregateFunction;    // "ALL", "SUM", "AVG", "MIN", "MAX" (Default = ALL)
@@ -147,10 +148,7 @@ public class StreamingJob implements Serializable {
 		int windowSize = params.windowInterval;
 		int windowSlideStep = params.windowStep;
 
-
 		//String dataset = parameters.get("dataset"); // TDriveBeijing, ATCShoppingMall
-
-
 		double gridMinX = gridBBox1.get(0);
 		double gridMinY = gridBBox1.get(1);
 		double gridMaxX = gridBBox1.get(2);
@@ -160,8 +158,6 @@ public class StreamingJob implements Serializable {
 		double qGridMinY = gridBBox2.get(1);
 		double qGridMaxX = gridBBox2.get(2);
 		double qGridMaxY = gridBBox2.get(3);
-
-
 
 		List<Coordinate> queryLineStringCoordinates = queryLineStrings.get(0);
 		List<Coordinate> queryPolygonCoordinates = queryPolygons.get(0);
@@ -218,7 +214,7 @@ public class StreamingJob implements Serializable {
 		}
 		env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 		//env.setStreamTimeCharacteristic(TimeCharacteristic.ProcessingTime);
-		env.setParallelism(30);
+		env.setParallelism(parallelism);
 
 		/*
 		// Boundaries for Taxi Drive dataset
@@ -298,10 +294,10 @@ public class StreamingJob implements Serializable {
 
 		// Dataset-specific Parameters
 		// TDriveBeijing, ATCShoppingMall, NYCBuildingsPolygon
-		Set<Polygon> polygonSet;
-		Point qPoint;
-		Polygon queryPolygon;
-		LineString queryLineString;
+		//Set<Polygon> polygonSet;
+		Set<Point> qPointSet;
+		Set<Polygon> queryPolygonSet;
+		Set<LineString> queryLineStringSet;
 		Set<MultiPoint> multiPointSet = new HashSet<MultiPoint>();
 		Set<MultiPolygon> multiPolygonSet = new HashSet<MultiPolygon>();
 		Set<MultiLineString> multiLineStringSet = new HashSet<MultiLineString>();
@@ -314,14 +310,14 @@ public class StreamingJob implements Serializable {
 			qGrid = new UniformGrid(uniformGridSize2, qGridMinX, qGridMaxX, qGridMinY, qGridMaxY);
 		}
 
-		qPoint = new Point(queryPointCoordinates.get(0).x, queryPointCoordinates.get(0).y, uGrid);
+		qPointSet = Stream.of(new Point(queryPointCoordinates.get(0).x, queryPointCoordinates.get(0).y, uGrid)).collect(Collectors.toSet());
 
 		List<List<Coordinate>> listCoordinatePolygon = new ArrayList<List<Coordinate>>();
 		listCoordinatePolygon.add(queryPolygonCoordinates);
-		queryPolygon = new Polygon(listCoordinatePolygon, uGrid);
+		queryPolygonSet = Stream.of(new Polygon(listCoordinatePolygon, uGrid)).collect(Collectors.toSet());
 
-		polygonSet = Stream.of(queryPolygon).collect(Collectors.toSet());
-		queryLineString = new LineString(queryLineStringCoordinates, uGrid);
+		//polygonSet = queryPolygonSet;
+		queryLineStringSet =  Stream.of(new LineString(queryLineStringCoordinates, uGrid)).collect(Collectors.toSet());
 
 		for (List<Coordinate> l : queryPointSetCoordinates) {
 			multiPointSet.add(new MultiPoint(l, uGrid));
@@ -461,6 +457,12 @@ public class StreamingJob implements Serializable {
 		realtimeConf.setApproximateQuery(approximateQuery);
 		realtimeConf.setWindowSize(omegaDuration);
 
+
+		QueryConfiguration realtimeNaiveConf = new QueryConfiguration(QueryType.RealTimeNaive);
+		realtimeNaiveConf.setApproximateQuery(approximateQuery);
+		realtimeNaiveConf.setWindowSize(omegaDuration);
+
+
 		QueryConfiguration windowConf = new QueryConfiguration(QueryType.WindowBased);
 		windowConf.setApproximateQuery(approximateQuery);
 		windowConf.setAllowedLateness(allowedLateness);
@@ -475,16 +477,17 @@ public class StreamingJob implements Serializable {
 				//DataStream<Point> spatialPointStream = SpatialStream.PointStream(geoJSONStream, inputFormat, uGrid);
 				DataStream<Point> spatialPointStream = Deserialization.TrajectoryStream(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
 				//DataStream<Point> rNeighbors = RangeQuery.PointRangeQueryIncremental(spatialPointStream, qPoint, radius, uGrid, windowSize, windowSlideStep, allowedLateness, approximateQuery);
-				DataStream<Point> rNeighbors = new PointPointRangeQuery(windowConf, uGrid).run(spatialPointStream, qPoint, radius);
+				DataStream<Point> rNeighbors = new PointPointRangeQuery(windowConf, uGrid).run(spatialPointStream, qPointSet, radius);
 				//rNeighbors.print();
 				//DataStream<Point> rNeighbors= RangeQuery.PointRangeQuery(spatialPointStream, qPoint, radius, uGrid, windowSize, windowSlideStep);  // better than equivalent GB approach
 				//rNeighbors.print();
 				break;}
 			case 2: { // Range Query (Real-time) - Point-Stream-Point-Query
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				//geoJSONStream.print();
 				// Converting GeoJSON,CSV stream to point spatial data stream
 				DataStream<Point> spatialPointStream = Deserialization.TrajectoryStream(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
-				DataStream<Point> rNeighbors = new PointPointRangeQuery(realtimeConf, uGrid).run(spatialPointStream, qPoint, radius);
+				DataStream<Point> rNeighbors = new PointPointRangeQuery(realtimeConf, uGrid).run(spatialPointStream, qPointSet, radius);
 				//rNeighbors.print();
 				break;}
 
@@ -493,21 +496,35 @@ public class StreamingJob implements Serializable {
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to point spatial data stream
 				DataStream<Point> spatialPointStream = Deserialization.TrajectoryStream(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
-				DataStream<Point> rNeighbors = new PointPolygonRangeQuery(windowConf, uGrid).run(spatialPointStream, queryPolygon, radius);
+				DataStream<Point> rNeighbors = new PointPolygonRangeQuery(windowConf, uGrid).run(spatialPointStream, queryPolygonSet, radius);
 				//rNeighbors.print();
 				break;}
 			case 7: { // Range Query (Real-time) - Point-Stream-Polygon-Query
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to point spatial data stream
+				queryPolygonSet = HelperClass.generateQueryPolygons(k, gridMinX, gridMinY, gridMaxX, gridMaxY, uGrid);
 				DataStream<Point> spatialPointStream = Deserialization.TrajectoryStream(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
-				DataStream<Point> rNeighbors = new PointPolygonRangeQuery(realtimeConf, uGrid).run(spatialPointStream, queryPolygon, radius);
+				//spatialPointStream.print();
+				//DataStream<Point> rNeighbors = new PointPolygonRangeQuery(realtimeConf, uGrid).run(spatialPointStream, queryPolygonSet, radius);
+				DataStream<Point> rNeighbors = new PointPolygonRangeQuery(realtimeConf, uGrid).run(spatialPointStream, queryPolygonSet, radius);
 				//rNeighbors.print();
 				break;}
+
+			case 70: { // Range Query (Real-time) - Point-Stream-Polygon-Query - Naive
+				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				// Converting GeoJSON,CSV stream to point spatial data stream
+				queryPolygonSet = HelperClass.generateQueryPolygons(k, gridMinX, gridMinY, gridMaxX, gridMaxY, uGrid);
+				DataStream<Point> spatialPointStream = Deserialization.TrajectoryStream(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
+				//DataStream<Point> rNeighbors = new PointPolygonRangeQuery(realtimeNaiveConf, uGrid).run(spatialPointStream, queryPolygonSet, radius);
+				DataStream<Point> rNeighbors = new PointPolygonRangeQuery(realtimeNaiveConf, uGrid).run(spatialPointStream, queryPolygonSet, radius);
+				//rNeighbors.print();
+				break;}
+
 			case 8: { // Range Query (Window-based) - Point-Stream-Polygon-Query
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to point spatial data stream
 				DataStream<Point> spatialPointStream = Deserialization.TrajectoryStream(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
-				DataStream<Long> rNeighbors = new PointPolygonRangeQuery(windowConf, uGrid).queryLatency(spatialPointStream, queryPolygon, radius);
+				DataStream<Long> rNeighbors = new PointPolygonRangeQuery(windowConf, uGrid).queryLatency(spatialPointStream, ((Polygon[])queryPolygonSet.toArray())[0], radius);
 				//rNeighbors.print();
 				rNeighbors.addSink(new FlinkKafkaProducer<>(outputTopicName, new HelperClass.LatencySinkLong(outputTopicName), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;}
@@ -515,7 +532,7 @@ public class StreamingJob implements Serializable {
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to point spatial data stream
 				DataStream<Point> spatialPointStream = Deserialization.TrajectoryStream(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
-				DataStream<Long> rNeighbors = new PointPolygonRangeQuery(realtimeConf, uGrid).queryLatency(spatialPointStream, queryPolygon, radius);
+				DataStream<Long> rNeighbors = new PointPolygonRangeQuery(realtimeConf, uGrid).queryLatency(spatialPointStream, ((Polygon[])queryPolygonSet.toArray())[0], radius);
 				//rNeighbors.print();
 				rNeighbors.addSink(new FlinkKafkaProducer<>(outputTopicName, new HelperClass.LatencySinkLong(outputTopicName), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 
@@ -525,14 +542,14 @@ public class StreamingJob implements Serializable {
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to point spatial data stream
 				DataStream<Point> spatialPointStream = Deserialization.TrajectoryStream(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
-				DataStream<Point> rNeighbors = new PointLineStringRangeQuery(windowConf, uGrid).run(spatialPointStream, queryLineString, radius);
+				DataStream<Point> rNeighbors = new PointLineStringRangeQuery(windowConf, uGrid).run(spatialPointStream, queryLineStringSet, radius);
 				//rNeighbors.print();
 				break;}
 			case 12: { // Range Query (Real-time) - Point-Stream-LineString-Query
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to point spatial data stream
 				DataStream<Point> spatialPointStream = Deserialization.TrajectoryStream(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
-				DataStream<Point> rNeighbors = new PointLineStringRangeQuery(realtimeConf, uGrid).run(spatialPointStream, queryLineString, radius);
+				DataStream<Point> rNeighbors = new PointLineStringRangeQuery(realtimeConf, uGrid).run(spatialPointStream, queryLineStringSet, radius);
 				//rNeighbors.print();
 				break;}
 
@@ -542,7 +559,7 @@ public class StreamingJob implements Serializable {
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to polygon spatial data stream
 				DataStream<Polygon> spatialPolygonStream = Deserialization.TrajectoryStreamPolygon(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1,"timestamp", "oID", uGrid);
-				DataStream<Polygon> pointPolygonRangeQueryOutput = new PolygonPointRangeQuery(windowConf, uGrid).run(spatialPolygonStream, qPoint, radius);
+				DataStream<Polygon> pointPolygonRangeQueryOutput = new PolygonPointRangeQuery(windowConf, uGrid).run(spatialPolygonStream, qPointSet, radius);
 				//DataStream<Polygon> pointPolygonRangeQueryOutput = RangeQuery.PolygonRangeQueryIncremental(spatialPolygonStream, qPoint, radius, uGrid, windowSize, windowSlideStep, allowedLateness, approximateQuery);
 				//pointPolygonRangeQueryOutput.print();
 				break;}
@@ -552,7 +569,7 @@ public class StreamingJob implements Serializable {
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to polygon spatial data stream
 				DataStream<Polygon> spatialPolygonStream = Deserialization.TrajectoryStreamPolygon(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, "timestamp", "oID", uGrid);
-				DataStream<Polygon> pointPolygonRangeQueryOutput = new PolygonPointRangeQuery(realtimeConf, uGrid).run(spatialPolygonStream, qPoint, radius);
+				DataStream<Polygon> pointPolygonRangeQueryOutput = new PolygonPointRangeQuery(realtimeConf, uGrid).run(spatialPolygonStream, qPointSet, radius);
 				//pointPolygonRangeQueryOutput.print();
 				break;}
 
@@ -561,7 +578,7 @@ public class StreamingJob implements Serializable {
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to polygon spatial data stream
 				DataStream<Polygon> spatialPolygonStream = Deserialization.TrajectoryStreamPolygon(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, "timestamp", "oID", uGrid);
-				DataStream<Polygon> pointPolygonRangeQueryOutput = new PolygonPolygonRangeQuery(windowConf, uGrid).run(spatialPolygonStream, queryPolygon, radius);
+				DataStream<Polygon> pointPolygonRangeQueryOutput = new PolygonPolygonRangeQuery(windowConf, uGrid).run(spatialPolygonStream, queryPolygonSet, radius);
 				//DataStream<Polygon> pointPolygonRangeQueryOutput = RangeQuery.PolygonRangeQueryIncremental(spatialPolygonStream, qPoint, radius, uGrid, windowSize, windowSlideStep, allowedLateness, approximateQuery);
 				//pointPolygonRangeQueryOutput.print();
 				break;}
@@ -570,7 +587,7 @@ public class StreamingJob implements Serializable {
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to polygon spatial data stream
 				DataStream<Polygon> spatialPolygonStream = Deserialization.TrajectoryStreamPolygon(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, "timestamp", "oID", uGrid);
-				DataStream<Polygon> pointPolygonRangeQueryOutput = new PolygonPolygonRangeQuery(realtimeConf, uGrid).run(spatialPolygonStream, queryPolygon, radius);
+				DataStream<Polygon> pointPolygonRangeQueryOutput = new PolygonPolygonRangeQuery(realtimeConf, uGrid).run(spatialPolygonStream, queryPolygonSet, radius);
 				//pointPolygonRangeQueryOutput.print();
 				break;}
 
@@ -580,7 +597,7 @@ public class StreamingJob implements Serializable {
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to polygon spatial data stream
 				DataStream<Polygon> spatialPolygonStream = Deserialization.TrajectoryStreamPolygon(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, "timestamp", "oID", uGrid);
-				DataStream<Polygon> pointPolygonRangeQueryOutput = new PolygonLineStringRangeQuery(windowConf, uGrid).run(spatialPolygonStream, queryLineString, radius);
+				DataStream<Polygon> pointPolygonRangeQueryOutput = new PolygonLineStringRangeQuery(windowConf, uGrid).run(spatialPolygonStream, queryLineStringSet, radius);
 				//DataStream<Polygon> pointPolygonRangeQueryOutput = RangeQuery.PolygonRangeQueryIncremental(spatialPolygonStream, qPoint, radius, uGrid, windowSize, windowSlideStep, allowedLateness, approximateQuery);
 				//pointPolygonRangeQueryOutput.print();
 				break;}
@@ -590,7 +607,7 @@ public class StreamingJob implements Serializable {
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to polygon spatial data stream
 				DataStream<Polygon> spatialPolygonStream = Deserialization.TrajectoryStreamPolygon(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, "timestamp", "oID", uGrid);
-				DataStream<Polygon> pointPolygonRangeQueryOutput = new PolygonLineStringRangeQuery(realtimeConf, uGrid).run(spatialPolygonStream, queryLineString, radius);
+				DataStream<Polygon> pointPolygonRangeQueryOutput = new PolygonLineStringRangeQuery(realtimeConf, uGrid).run(spatialPolygonStream, queryLineStringSet, radius);
 				//pointPolygonRangeQueryOutput.print();
 				break;}
 
@@ -599,7 +616,7 @@ public class StreamingJob implements Serializable {
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to polygon spatial data stream
 				DataStream<LineString> spatialLineStringStream = Deserialization.TrajectoryStreamLineString(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1,"timestamp", "oID", uGrid);
-				DataStream<LineString> pointPolygonRangeQueryOutput = new LineStringPointRangeQuery(windowConf, uGrid).run(spatialLineStringStream, qPoint, radius);
+				DataStream<LineString> pointPolygonRangeQueryOutput = new LineStringPointRangeQuery(windowConf, uGrid).run(spatialLineStringStream, qPointSet, radius);
 				//DataStream<Polygon> pointPolygonRangeQueryOutput = RangeQuery.PolygonRangeQueryIncremental(spatialPolygonStream, qPoint, radius, uGrid, windowSize, windowSlideStep, allowedLateness, approximateQuery);
 				//pointPolygonRangeQueryOutput.print();
 				break;}
@@ -609,7 +626,7 @@ public class StreamingJob implements Serializable {
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to polygon spatial data stream
 				DataStream<LineString> spatialLineStringStream = Deserialization.TrajectoryStreamLineString(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, "timestamp", "oID", uGrid);
-				DataStream<LineString> pointPolygonRangeQueryOutput = new LineStringPointRangeQuery(realtimeConf, uGrid).run(spatialLineStringStream, qPoint, radius);
+				DataStream<LineString> pointPolygonRangeQueryOutput = new LineStringPointRangeQuery(realtimeConf, uGrid).run(spatialLineStringStream, qPointSet, radius);
 				//pointPolygonRangeQueryOutput.print();
 				break;}
 
@@ -618,7 +635,7 @@ public class StreamingJob implements Serializable {
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to polygon spatial data stream
 				DataStream<LineString> spatialLineStringStream = Deserialization.TrajectoryStreamLineString(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, "timestamp", "oID", uGrid);
-				DataStream<LineString> pointPolygonRangeQueryOutput = new LineStringPolygonRangeQuery(windowConf, uGrid).run(spatialLineStringStream, queryPolygon, radius);
+				DataStream<LineString> pointPolygonRangeQueryOutput = new LineStringPolygonRangeQuery(windowConf, uGrid).run(spatialLineStringStream, queryPolygonSet, radius);
 				//DataStream<Polygon> pointPolygonRangeQueryOutput = RangeQuery.PolygonRangeQueryIncremental(spatialPolygonStream, qPoint, radius, uGrid, windowSize, windowSlideStep, allowedLateness, approximateQuery);
 				//pointPolygonRangeQueryOutput.print();
 				break;}
@@ -627,7 +644,7 @@ public class StreamingJob implements Serializable {
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to polygon spatial data stream
 				DataStream<LineString> spatialLineStringStream = Deserialization.TrajectoryStreamLineString(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, "timestamp", "oID", uGrid);
-				DataStream<LineString> pointPolygonRangeQueryOutput = new LineStringPolygonRangeQuery(realtimeConf, uGrid).run(spatialLineStringStream, queryPolygon, radius);
+				DataStream<LineString> pointPolygonRangeQueryOutput = new LineStringPolygonRangeQuery(realtimeConf, uGrid).run(spatialLineStringStream, queryPolygonSet, radius);
 				//pointPolygonRangeQueryOutput.print();
 				break;}
 
@@ -637,7 +654,7 @@ public class StreamingJob implements Serializable {
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to polygon spatial data stream
 				DataStream<LineString> spatialLineStringStream = Deserialization.TrajectoryStreamLineString(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, "timestamp", "oID", uGrid);
-				DataStream<LineString> pointPolygonRangeQueryOutput = new LineStringLineStringRangeQuery(windowConf, uGrid).run(spatialLineStringStream, queryLineString, radius);
+				DataStream<LineString> pointPolygonRangeQueryOutput = new LineStringLineStringRangeQuery(windowConf, uGrid).run(spatialLineStringStream, queryLineStringSet, radius);
 				//DataStream<Polygon> pointPolygonRangeQueryOutput = RangeQuery.PolygonRangeQueryIncremental(spatialPolygonStream, qPoint, radius, uGrid, windowSize, windowSlideStep, allowedLateness, approximateQuery);
 				//pointPolygonRangeQueryOutput.print();
 				break;}
@@ -647,7 +664,7 @@ public class StreamingJob implements Serializable {
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to polygon spatial data stream
 				DataStream<LineString> spatialLineStringStream = Deserialization.TrajectoryStreamLineString(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, "timestamp", "oID", uGrid);
-				DataStream<LineString> pointPolygonRangeQueryOutput = new LineStringLineStringRangeQuery(realtimeConf, uGrid).run(spatialLineStringStream, queryLineString, radius);
+				DataStream<LineString> pointPolygonRangeQueryOutput = new LineStringLineStringRangeQuery(realtimeConf, uGrid).run(spatialLineStringStream, queryLineStringSet, radius);
 				//pointPolygonRangeQueryOutput.print();
 				break;}
 
@@ -655,7 +672,7 @@ public class StreamingJob implements Serializable {
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to point spatial data stream
 				DataStream<Point> spatialPointStream = Deserialization.TrajectoryStream(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
-				DataStream < Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> kNNPQStream = new PointPointKNNQuery(windowConf, uGrid).run(spatialPointStream, qPoint, radius, k);
+				DataStream < Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> kNNPQStream = new PointPointKNNQuery(windowConf, uGrid).run(spatialPointStream, (Point) (qPointSet.toArray())[0], radius, k);
 				kNNPQStream.print();
 				break;}
 
@@ -663,7 +680,7 @@ public class StreamingJob implements Serializable {
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to point spatial data stream
 				DataStream<Point> spatialPointStream = Deserialization.TrajectoryStream(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
-				DataStream < Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> kNNPQStream = new PointPointKNNQuery(realtimeConf, uGrid).run(spatialPointStream, qPoint, radius, k);
+				DataStream < Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> kNNPQStream = new PointPointKNNQuery(realtimeConf, uGrid).run(spatialPointStream, (Point) (qPointSet.toArray())[0], radius, k);
 				//kNNPQStream.print();
 				break;}
 
@@ -672,21 +689,28 @@ public class StreamingJob implements Serializable {
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to point spatial data stream
 				DataStream<Point> spatialPointStream = Deserialization.TrajectoryStream(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
-				DataStream < Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> kNNPQStream = new PointPolygonKNNQuery(windowConf, uGrid).run(spatialPointStream, queryPolygon, radius, k);
+				DataStream < Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> kNNPQStream = new PointPolygonKNNQuery(windowConf, uGrid).run(spatialPointStream, (Polygon) (queryPolygonSet.toArray())[0], radius, k);
 				//kNNPQStream.print();
 				break;}
 			case 57: { // KNN (Real-time) - Point-Stream-Polygon-Query
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to point spatial data stream
 				DataStream<Point> spatialPointStream = Deserialization.TrajectoryStream(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
-				DataStream < Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> kNNPQStream = new PointPolygonKNNQuery(realtimeConf, uGrid).run(spatialPointStream, queryPolygon, radius, k);
+				DataStream < Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> kNNPQStream = new PointPolygonKNNQuery(realtimeConf, uGrid).run(spatialPointStream, (Polygon) (queryPolygonSet.toArray())[0], radius, k);
+				//kNNPQStream.print();
+				break;}
+			case 570: { // KNN (Real-time Naive) - Point-Stream-Polygon-Query
+				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				// Converting GeoJSON,CSV stream to point spatial data stream
+				DataStream<Point> spatialPointStream = Deserialization.TrajectoryStream(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
+				DataStream < Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> kNNPQStream = new PointPolygonKNNQuery(realtimeNaiveConf, uGrid).run(spatialPointStream, (Polygon) (queryPolygonSet.toArray())[0], radius, k);
 				//kNNPQStream.print();
 				break;}
 			case 58: { // KNN (Window-based) - Point-Stream-Polygon-Query
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to point spatial data stream
 				DataStream<Point> spatialPointStream = Deserialization.TrajectoryStream(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
-				DataStream <Long> kNNPQStream = new PointPolygonKNNQuery(windowConf, uGrid).runLatency(spatialPointStream, queryPolygon, radius, k);
+				DataStream <Long> kNNPQStream = new PointPolygonKNNQuery(windowConf, uGrid).runLatency(spatialPointStream, (Polygon) (queryPolygonSet.toArray())[0], radius, k);
 				//kNNPQStream.print();
 				kNNPQStream.addSink(new FlinkKafkaProducer<>(outputTopicName, new HelperClass.LatencySinkLong(outputTopicName), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;}
@@ -694,7 +718,7 @@ public class StreamingJob implements Serializable {
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to point spatial data stream
 				DataStream<Point> spatialPointStream = Deserialization.TrajectoryStream(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
-				DataStream <Long> kNNPQStream = new PointPolygonKNNQuery(realtimeConf, uGrid).runLatency(spatialPointStream, queryPolygon, radius, k);
+				DataStream <Long> kNNPQStream = new PointPolygonKNNQuery(realtimeConf, uGrid).runLatency(spatialPointStream, (Polygon) (queryPolygonSet.toArray())[0], radius, k);
 				//kNNPQStream.print();
 				kNNPQStream.addSink(new FlinkKafkaProducer<>(outputTopicName, new HelperClass.LatencySinkLong(outputTopicName), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;}
@@ -704,14 +728,14 @@ public class StreamingJob implements Serializable {
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to point spatial data stream
 				DataStream<Point> spatialPointStream = Deserialization.TrajectoryStream(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
-				DataStream < Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> kNNPQStream = new PointLineStringKNNQuery(windowConf, uGrid).run(spatialPointStream, queryLineString, radius, k);
+				DataStream < Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> kNNPQStream = new PointLineStringKNNQuery(windowConf, uGrid).run(spatialPointStream, (LineString) (queryLineStringSet.toArray())[0], radius, k);
 				//kNNPQStream.print();
 				break;}
 			case 62: { // KNN (Real-time) - Point-Stream-LineString-Query
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to point spatial data stream
 				DataStream<Point> spatialPointStream = Deserialization.TrajectoryStream(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
-				DataStream < Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> kNNPQStream = new PointLineStringKNNQuery(realtimeConf, uGrid).run(spatialPointStream, queryLineString, radius, k);
+				DataStream < Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> kNNPQStream = new PointLineStringKNNQuery(realtimeConf, uGrid).run(spatialPointStream, (LineString) (queryLineStringSet.toArray())[0], radius, k);
 				//kNNPQStream.print();
 				break;}
 
@@ -721,7 +745,7 @@ public class StreamingJob implements Serializable {
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to polygon spatial data stream
 				DataStream<Polygon> spatialPolygonStream = Deserialization.TrajectoryStreamPolygon(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, "timestamp", "oID", uGrid);
-				DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Polygon, Double>>>> kNNPQStream = new PolygonPointKNNQuery(windowConf, uGrid).run(spatialPolygonStream, qPoint, radius, k);
+				DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Polygon, Double>>>> kNNPQStream = new PolygonPointKNNQuery(windowConf, uGrid).run(spatialPolygonStream, (Point) (qPointSet.toArray())[0], radius, k);
 				//kNNPQStream.print();
 				break;}
 			case 67: { // KNN (Real-time) - Polygon-Stream-Point-Query
@@ -729,7 +753,7 @@ public class StreamingJob implements Serializable {
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to polygon spatial data stream
 				DataStream<Polygon> spatialPolygonStream = Deserialization.TrajectoryStreamPolygon(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, "timestamp", "oID", uGrid);
-				DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Polygon, Double>>>> kNNPQStream = new PolygonPointKNNQuery(realtimeConf, uGrid).run(spatialPolygonStream, qPoint, radius, k);
+				DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Polygon, Double>>>> kNNPQStream = new PolygonPointKNNQuery(realtimeConf, uGrid).run(spatialPolygonStream, (Point) (qPointSet.toArray())[0], radius, k);
 				//kNNPQStream.print();
 				break;}
 
@@ -738,7 +762,7 @@ public class StreamingJob implements Serializable {
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to polygon spatial data stream
 				DataStream<Polygon> spatialPolygonStream = Deserialization.TrajectoryStreamPolygon(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, "timestamp", "oID", uGrid);
-				DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Polygon, Double>>>> kNNPQStream = new PolygonPolygonKNNQuery(windowConf, uGrid).run(spatialPolygonStream, queryPolygon, radius, k);
+				DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Polygon, Double>>>> kNNPQStream = new PolygonPolygonKNNQuery(windowConf, uGrid).run(spatialPolygonStream, (Polygon) (queryPolygonSet.toArray())[0], radius, k);
 				//kNNPQStream.print();
 				break;}
 
@@ -746,7 +770,7 @@ public class StreamingJob implements Serializable {
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to polygon spatial data stream
 				DataStream<Polygon> spatialPolygonStream = Deserialization.TrajectoryStreamPolygon(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, "timestamp", "oID", uGrid);
-				DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Polygon, Double>>>> kNNPQStream = new PolygonPolygonKNNQuery(realtimeConf, uGrid).run(spatialPolygonStream, queryPolygon, radius, k);
+				DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Polygon, Double>>>> kNNPQStream = new PolygonPolygonKNNQuery(realtimeConf, uGrid).run(spatialPolygonStream, (Polygon) (queryPolygonSet.toArray())[0], radius, k);
 				//kNNPQStream.print();
 				break;}
 
@@ -755,14 +779,14 @@ public class StreamingJob implements Serializable {
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to polygon spatial data stream
 				DataStream<Polygon> spatialPolygonStream = Deserialization.TrajectoryStreamPolygon(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, "timestamp", "oID", uGrid);
-				DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Polygon, Double>>>> kNNPQStream = new PolygonLineStringKNNQuery(windowConf, uGrid).run(spatialPolygonStream, queryLineString, radius, k);
+				DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Polygon, Double>>>> kNNPQStream = new PolygonLineStringKNNQuery(windowConf, uGrid).run(spatialPolygonStream, (LineString) (queryLineStringSet.toArray())[0], radius, k);
 				//kNNPQStream.print();
 				break;}
 			case 77: { // Range Query (Real-time) - Polygon-Stream-Polygon-Query
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to polygon spatial data stream
 				DataStream<Polygon> spatialPolygonStream = Deserialization.TrajectoryStreamPolygon(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, "timestamp", "oID", uGrid);
-				DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Polygon, Double>>>> kNNPQStream = new PolygonLineStringKNNQuery(realtimeConf, uGrid).run(spatialPolygonStream, queryLineString, radius, k);
+				DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Polygon, Double>>>> kNNPQStream = new PolygonLineStringKNNQuery(realtimeConf, uGrid).run(spatialPolygonStream, (LineString) (queryLineStringSet.toArray())[0], radius, k);
 				//kNNPQStream.print();
 				break;}
 
@@ -770,14 +794,14 @@ public class StreamingJob implements Serializable {
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to polygon spatial data stream
 				DataStream<LineString> spatialLineStringStream = Deserialization.TrajectoryStreamLineString(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, "timestamp", "oID", uGrid);
-				DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<LineString, Double>>>> kNNPQStream = new LineStringPointKNNQuery(windowConf, uGrid).run(spatialLineStringStream, qPoint, radius, k);
+				DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<LineString, Double>>>> kNNPQStream = new LineStringPointKNNQuery(windowConf, uGrid).run(spatialLineStringStream, (Point) (qPointSet.toArray())[0], radius, k);
 				//kNNPQStream.print();
 				break;}
 			case 82: { // KNN (Real-time) - LineString-Stream-Point-Query
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to polygon spatial data stream
 				DataStream<LineString> spatialLineStringStream = Deserialization.TrajectoryStreamLineString(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, "timestamp", "oID", uGrid);
-				DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<LineString, Double>>>> kNNPQStream = new LineStringPointKNNQuery(realtimeConf, uGrid).run(spatialLineStringStream, qPoint, radius, k);
+				DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<LineString, Double>>>> kNNPQStream = new LineStringPointKNNQuery(realtimeConf, uGrid).run(spatialLineStringStream, (Point) (qPointSet.toArray())[0], radius, k);
 				//kNNPQStream.print();
 				break;}
 
@@ -786,14 +810,14 @@ public class StreamingJob implements Serializable {
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to polygon spatial data stream
 				DataStream<LineString> spatialLineStringStream = Deserialization.TrajectoryStreamLineString(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, "timestamp", "oID", uGrid);
-				DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<LineString, Double>>>> kNNPQStream = new LineStringPolygonKNNQuery(windowConf, uGrid).run(spatialLineStringStream, queryPolygon, radius, k);
+				DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<LineString, Double>>>> kNNPQStream = new LineStringPolygonKNNQuery(windowConf, uGrid).run(spatialLineStringStream, (Polygon) (queryPolygonSet.toArray())[0], radius, k);
 				//kNNPQStream.print();
 				break;}
 			case 87: { // KNN (Real-time) - LineString-Stream-Polygon-Query
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to polygon spatial data stream
 				DataStream<LineString> spatialLineStringStream = Deserialization.TrajectoryStreamLineString(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, "timestamp", "oID", uGrid);
-				DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<LineString, Double>>>> kNNPQStream = new LineStringPolygonKNNQuery(realtimeConf, uGrid).run(spatialLineStringStream, queryPolygon, radius, k);
+				DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<LineString, Double>>>> kNNPQStream = new LineStringPolygonKNNQuery(realtimeConf, uGrid).run(spatialLineStringStream, (Polygon) (queryPolygonSet.toArray())[0], radius, k);
 				//kNNPQStream.print();
 				break;}
 
@@ -802,14 +826,14 @@ public class StreamingJob implements Serializable {
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to polygon spatial data stream
 				DataStream<LineString> spatialLineStringStream = Deserialization.TrajectoryStreamLineString(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, "timestamp", "oID", uGrid);
-				DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<LineString, Double>>>> kNNPQStream = new LineStringLineStringKNNQuery(windowConf, uGrid).run(spatialLineStringStream, queryLineString, radius, k);
+				DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<LineString, Double>>>> kNNPQStream = new LineStringLineStringKNNQuery(windowConf, uGrid).run(spatialLineStringStream, (LineString) (queryLineStringSet.toArray())[0], radius, k);
 				//kNNPQStream.print();
 				break;}
 			case 92: { // KNN (Real-time) - LineString-Stream-Polygon-Query
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to polygon spatial data stream
 				DataStream<LineString> spatialLineStringStream = Deserialization.TrajectoryStreamLineString(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, "timestamp", "oID", uGrid);
-				DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<LineString, Double>>>> kNNPQStream = new LineStringLineStringKNNQuery(realtimeConf, uGrid).run(spatialLineStringStream, queryLineString, radius, k);
+				DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<LineString, Double>>>> kNNPQStream = new LineStringLineStringKNNQuery(realtimeConf, uGrid).run(spatialLineStringStream, (LineString) (queryLineStringSet.toArray())[0], radius, k);
 				//kNNPQStream.print();
 				break;}
 
@@ -825,6 +849,7 @@ public class StreamingJob implements Serializable {
 				DataStream<Tuple2<Point, Point>> spatialJoinStream = new PointPointJoinQuery(windowConf, uGrid, qGrid).run(spatialPointStream, queryStream, radius);
 				//spatialJoinStream.print();
 				break;}
+
 			case 102: { // Join (Real-time) - Point-Stream-Point-Query
 				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
 				// Converting GeoJSON,CSV stream to point spatial data stream
@@ -834,6 +859,18 @@ public class StreamingJob implements Serializable {
 				DataStream<Point> queryStream = Deserialization.TrajectoryStream(geoJSONQueryStream, inputFormat, queryDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", qGrid);
 
 				DataStream<Tuple2<Point, Point>> spatialJoinStream =  new PointPointJoinQuery(realtimeConf, uGrid, qGrid).run(spatialPointStream, queryStream, radius);
+				//spatialJoinStream.print();
+				break;}
+
+			case 1020: { // Join (Window-base) - Point-Stream-Point-Query
+				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				// Converting GeoJSON,CSV stream to point spatial data stream
+				DataStream<Point> spatialPointStream = Deserialization.TrajectoryStream(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
+				//Generating query stream
+				DataStream geoJSONQueryStream  = env.addSource(new FlinkKafkaConsumer<>(queryTopicName, new JSONKeyValueDeserializationSchema(false),kafkaProperties).setStartFromLatest());
+				DataStream<Point> queryStream = Deserialization.TrajectoryStream(geoJSONQueryStream, inputFormat, queryDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", qGrid);
+
+				DataStream<Tuple2<Point, Point>> spatialJoinStream = new PointPointJoinQuery(realtimeNaiveConf, uGrid, qGrid).run(spatialPointStream, queryStream, radius);
 				//spatialJoinStream.print();
 				break;}
 
@@ -858,6 +895,17 @@ public class StreamingJob implements Serializable {
 				DataStream<Polygon> queryStream = Deserialization.TrajectoryStreamPolygon(geoJSONQueryStream, inputFormat, queryDateFormat, inputDelimiter1, "timestamp", "oID", qGrid);
 
 				DataStream<Tuple2<Point, Polygon>> spatialJoinStream = new PointPolygonJoinQuery(realtimeConf, uGrid, qGrid).run(spatialPointStream, queryStream, radius);
+				//spatialJoinStream.print();
+				break;}
+			case 1070: { // Join (Real-time Naive) - Point-Stream-Polygon-Query
+				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				// Converting GeoJSON,CSV stream to point spatial data stream
+				DataStream<Point> spatialPointStream = Deserialization.TrajectoryStream(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
+				//Generating query stream
+				DataStream geoJSONQueryStream  = env.addSource(new FlinkKafkaConsumer<>(queryTopicName, new JSONKeyValueDeserializationSchema(false),kafkaProperties).setStartFromLatest());
+				DataStream<Polygon> queryStream = Deserialization.TrajectoryStreamPolygon(geoJSONQueryStream, inputFormat, queryDateFormat, inputDelimiter1, "timestamp", "oID", qGrid);
+
+				DataStream<Tuple2<Point, Polygon>> spatialJoinStream = new PointPolygonJoinQuery(realtimeNaiveConf, uGrid, qGrid).run(spatialPointStream, queryStream, radius);
 				//spatialJoinStream.print();
 				break;}
 			case 108: { // Join (Window-base) - Point-Stream-Polygon-Query
@@ -1181,22 +1229,22 @@ public class StreamingJob implements Serializable {
 				//System.out.println(qPolygonSet);
 				//System.out.println(qPolygonSet.size());
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
-				polygonSet = HelperClass.generateQueryPolygons(k, uGrid);
-				DataStream<Point> outputStream = (DataStream<Point>)new PointPolygonTRangeQuery(realtimeConf).run(spatialTrajectoryStream, polygonSet);
+				queryPolygonSet = HelperClass.generateQueryPolygons(k, gridMinX, gridMinY, gridMaxX, gridMaxY, uGrid);
+				DataStream<Point> outputStream = (DataStream<Point>)new PointPolygonTRangeQuery(realtimeConf).run(spatialTrajectoryStream, queryPolygonSet);
 				//outputStream.print();
 				//outputStream.addSink(new FlinkKafkaProducer<>(outputTopicName, new HelperClass.LatencySinkPoint(queryOption, outputTopicName), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 				break;
 			}
 			case 2030:{ // TRangeQuery Real-time Naive
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
-				polygonSet = HelperClass.generateQueryPolygons(k, uGrid);
+				queryPolygonSet = HelperClass.generateQueryPolygons(k, gridMinX, gridMinY, gridMaxX, gridMaxY, uGrid);
 				//Naive
-				DataStream<Point> outputStream = TRangeQuery.realTimeNaive(polygonSet, spatialTrajectoryStream);
+				DataStream<Point> outputStream = TRangeQuery.realTimeNaive(queryPolygonSet, spatialTrajectoryStream);
 				break;
 			}
 			case 204:{ // TRangeQuery Windowed
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
-				new PointPolygonTRangeQuery(windowConf).run(spatialTrajectoryStream, polygonSet);//.print();
+				new PointPolygonTRangeQuery(windowConf).run(spatialTrajectoryStream, queryPolygonSet);//.print();
 				break;
 			}
 			case 205:{ // TStatsQuery_ Real-time
@@ -1268,21 +1316,21 @@ public class StreamingJob implements Serializable {
 				//System.out.println("qPoint " + qPoint);
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
 				//Real-time kNN
-				DataStream<Tuple2<Point, Double>> outputStream = (DataStream<Tuple2<Point, Double>>)new PointPointTKNNQuery(realtimeConf, uGrid).run(spatialTrajectoryStream, qPoint, radius, k); //.print();
+				DataStream<Tuple2<Point, Double>> outputStream = (DataStream<Tuple2<Point, Double>>)new PointPointTKNNQuery(realtimeConf, uGrid).run(spatialTrajectoryStream, ((Point[])qPointSet.toArray())[0], radius, k); //.print();
 				//outputStream.print();
 				break;
 			}
 			case 2011:{ // TSpatialKNNQuery Real-time Naive
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
 				// Naive
-				DataStream<Tuple2<Point, Double>> outputStream = (DataStream<Tuple2<Point, Double>>)new PointPointTKNNQuery(realtimeConf, uGrid).runNaive(spatialTrajectoryStream, qPoint, radius, k); //.print();
+				DataStream<Tuple2<Point, Double>> outputStream = (DataStream<Tuple2<Point, Double>>)new PointPointTKNNQuery(realtimeConf, uGrid).runNaive(spatialTrajectoryStream, ((Point[])qPointSet.toArray())[0], radius, k); //.print();
 				//outputStream.print();
 				break;
 			}
 			case 212:{ // TSpatialKNNQuery Windowed
 				DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(inputStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
 				//Window-based kNN
-				new PointPointTKNNQuery(windowConf, uGrid).run(spatialTrajectoryStream, qPoint, radius, k);
+				new PointPointTKNNQuery(windowConf, uGrid).run(spatialTrajectoryStream, ((Point[])qPointSet.toArray())[0], radius, k);
 
 				break;
 			}
@@ -1330,7 +1378,7 @@ public class StreamingJob implements Serializable {
 				DataStream<LineString> spatialLineStringStream = Deserialization.LineStringStream(geoJSONStream, "GeoJSON", uGrid);
 				spatialLineStringStream.print();
 				// Point-Polygon Range Query
-				DataStream<LineString> pointLineStringRangeQueryOutput = new LineStringPointRangeQuery(windowConf, uGrid).run(spatialLineStringStream, qPoint, radius);
+				DataStream<LineString> pointLineStringRangeQueryOutput = new LineStringPointRangeQuery(windowConf, uGrid).run(spatialLineStringStream, qPointSet, radius);
 				pointLineStringRangeQueryOutput.print();
 				break;
 			}
@@ -1694,6 +1742,15 @@ public class StreamingJob implements Serializable {
 
 				CheckIn.CheckInQuery(deimCheckInStream, roomCapacities, 24).print();
 				//CheckIn.CheckInQuery(deimCheckInStream, roomCapacities, 24).print();
+				break;
+			}
+
+			case 9999:{ // Format change
+
+				DataStream geoJSONStream  = env.addSource(new FlinkKafkaConsumer<>(inputTopicName, new JSONKeyValueDeserializationSchema(false), kafkaProperties).setStartFromEarliest());
+				DataStream<Point> spatialPointStream = Deserialization.TrajectoryStream(geoJSONStream, inputFormat, inputDateFormat, inputDelimiter1, csvTsvSchemaAttr1, "timestamp", "oID", uGrid);
+				//spatialPointStream.print();
+				spatialPointStream.addSink(new FlinkKafkaProducer<>(outputTopicName, new Serialization.PointToCSVTSVOutputSchema(outputTopicName, inputDateFormat, outputDelimiter, csvTsvSchemaAttr1), kafkaProperties, FlinkKafkaProducer.Semantic.EXACTLY_ONCE));
 			}
 			default:
 				System.out.println("Input Unrecognized. Please select option from 1-10.");

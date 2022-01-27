@@ -39,7 +39,8 @@ public class PointLineStringKNNQuery extends KNNQuery<Point, LineString> {
         //--------------- Real-time - POINT - LINESTRING -----------------//
         if (this.getQueryConfiguration().getQueryType() == QueryType.RealTime) {
             int omegaJoinDurationSeconds = this.getQueryConfiguration().getWindowSize();
-            return realTime(pointStream, queryLineString, queryRadius, k, omegaJoinDurationSeconds, uGrid, allowedLateness, approximateQuery);
+            //return realTime(pointStream, queryLineString, queryRadius, k, omegaJoinDurationSeconds, uGrid, allowedLateness, approximateQuery);
+            return windowBased(pointStream, queryLineString, queryRadius, k, omegaJoinDurationSeconds, omegaJoinDurationSeconds, uGrid, allowedLateness, approximateQuery);
         }
 
         //--------------- Window-based - POINT - LINESTRING -----------------//
@@ -55,6 +56,7 @@ public class PointLineStringKNNQuery extends KNNQuery<Point, LineString> {
     }
 
     // REAL-TIME
+    /*
     private DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> realTime(DataStream<Point> pointStream, LineString queryLineString, double queryRadius, Integer k, int omegaJoinDurationSeconds, UniformGrid uGrid, int allowedLateness, boolean approximateQuery) throws IOException {
 
         Set<String> guaranteedNeighboringCells = uGrid.getGuaranteedNeighboringCells(queryRadius, queryLineString);
@@ -99,20 +101,24 @@ public class PointLineStringKNNQuery extends KNNQuery<Point, LineString> {
                                     distance = DistanceFunctions.getDistance(point, queryLineString);
                                 }
 
-                                kNNPQ.offer(new Tuple2<Point, Double>(point, distance));
+                                if(distance <= queryRadius) {
+                                    kNNPQ.offer(new Tuple2<Point, Double>(point, distance));
+                                }
                             } else {
                                 if(approximateQuery) {
                                     distance = DistanceFunctions.getPointLineStringMinEuclideanDistance(point, queryLineString);
                                 }else{
                                     distance = DistanceFunctions.getDistance(point, queryLineString);
                                 }
-                                // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
-                                assert kNNPQ.peek() != null;
-                                double largestDistInPQ = kNNPQ.peek().f1;
+                                if(distance <= queryRadius) {
+                                    // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
+                                    assert kNNPQ.peek() != null;
+                                    double largestDistInPQ = kNNPQ.peek().f1;
 
-                                if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
-                                    kNNPQ.poll();
-                                    kNNPQ.offer(new Tuple2<Point, Double>(point, distance));
+                                    if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
+                                        kNNPQ.poll();
+                                        kNNPQ.offer(new Tuple2<Point, Double>(point, distance));
+                                    }
                                 }
                             }
                         }
@@ -129,7 +135,7 @@ public class PointLineStringKNNQuery extends KNNQuery<Point, LineString> {
         return windowedKNN
                 .windowAll(TumblingEventTimeWindows.of(Time.seconds(omegaJoinDurationSeconds)))
                 .apply(new kNNWinAllEvaluationPointStream(k));
-    }
+    }*/
 
     // WINDOW BASED
     private DataStream<Tuple3<Long, Long, PriorityQueue<Tuple2<Point, Double>>>> windowBased(DataStream<Point> pointStream, LineString queryLineString, double queryRadius, Integer k, int windowSize, int windowSlideStep, UniformGrid uGrid, int allowedLateness, boolean approximateQuery) throws IOException {

@@ -4,18 +4,28 @@ import java.util.Map;
 
 public class ConfigType {
     private boolean clusterMode;
+    private int parallelism;
     private String kafkaBootStrapServers;
     private Map<String, Object> inputStream1;
     private Map<String, Object> inputStream2;
     private Map<String, Object> outputStream;
     private Map<String, Object> query;
     private Map<String, Object> window;
+
     public boolean isClusterMode() {
         return clusterMode;
     }
 
     public void setClusterMode(boolean clusterMode) {
         this.clusterMode = clusterMode;
+    }
+
+    public int getParallelism() {
+        return parallelism;
+    }
+
+    public void setParallelism(int parallelism) {
+        this.parallelism = parallelism;
     }
 
     public String getKafkaBootStrapServers() {
