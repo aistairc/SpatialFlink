@@ -1,35 +1,41 @@
-# GeoFlink: A Distributed Framework for the Real-Time Processing of Spatial Data Streams
+# GeoFlink and TStream: Distributed Frameworks for the Real-Time Processing of Spatial Data Streams and Trajectory Streams, Respectively
 
 ## Table of Contents
 
- 1. [ Introduction ](#intro)
- 2. [ Spatial Stream Processing via GeoFlink ](#streamProcessing)
-    1. [ Creating a Grid Index ](#gridIndex)
-    2. [ Defining a Spatial Data Stream ](#defineSpatialStream)
-    3. [ Continuous Spatial Range Query ](#range)
-	    1. [Point-point](#pointPointRange) 
-	    2. [Point-polygon](#pointPolygonRange) 
-	    3. [ Polygon-polygon ](#polygonPolygonRange)
-    4. [ Continuous Spatial *k*NN Query ](#kNN)
-	   <!--  1. [Fixed Radius *k*NN](#FkNN)  
-	    2. [Iterative *k*NN](#IkNN) -->
-    5. [ Continuous Spatial Join Query ](#join)
-3. [ Getting Started ](#gettingStarted)
-    1. [ Requirements ](#requirements)
-    2. [ Running Your First GeoFlink Job ](#firstJob)
-4. [ Sample GeoFlink Code for a Spatial Range Query ](#sampleCode)
-5. [ Publications ](#publications)
-6. [ Contact Us! ](#contact)
+- [Introduction](#introduction)
+- [GeoFlink: Spatial Stream Processing](#geoFlinkStreamProcessing)
+  * [Creating a Grid Index](#creating-a-grid-index)
+  * [Defining a Spatial Data Stream](#defining-a-spatial-data-stream)
+  * [Continuous Spatial Range Query](#continuous-spatial-range-query)
+    + [1-Point-Point Spatial Range Query](#1-point-point-spatial-range-query)
+    + [2-Point-Polygon Spatial Range Query](#2-point-polygon-spatial-range-query)
+    + [3-Polygon-Polygon Spatial Range Query](#3-polygon-polygon-spatial-range-query)
+  * [Continuous Spatial kNN Query](#continuous-spatial-knn-query)
+  * [Continuous Spatial Join Query](#continuous-spatial-join-query)
+  * [Sample GeoFlink Code for a Spatial Range Query](#sample-geoflink-code-for-a-spatial-range-query)
+- [TStream: Trajectory Stream Processing](#tStreamProcessing)
+  * [TStream Queries](#tstream-queries)
+    + [Continuous Range Query](#continuous-range-query)
+    + [Continuous kNN Query](#continuous-knn-query)
+    + [Continuous Join Query](#continuous-join-query)
+- [Getting Started](#getting-started)
+  * [Requirements](#requirements)
+  * [Running Your First GeoFlink/TStream Job](#firstJob)
+- [Publications](#publications)
+- [Contact Us!](#contact)
 
 
-<a name="intro"></a>
+
 ## Introduction
-GeoFlink is an extension of Apache Flink — a scalable opensource distributed streaming engine — for the real-time processing of unbounded spatial streams. GeoFlink leverages a grid-based index for preserving spatial data proximity and pruning of objects which cannot be part of a spatial query result. Thus, providing effective data distribution that guarantees reduced query processing time.
+<a name="intro"></a>
+**GeoFlink** is an extension of Apache Flink — a scalable opensource distributed streaming engine — for the real-time processing of unbounded spatial streams. GeoFlink leverages a grid-based index for preserving spatial data proximity and pruning of objects which cannot be part of a spatial query result. Thus, providing effective data distribution that guarantees reduced query processing time.
 
 GeoFlink supports spatial range, spatial *k*NN and spatial join queries. Please refer to the [ Publications ](#publications) section for details of the architecture and experimental study demonstrating GeoFlink achieving higher query performance than other ordinary distributed approaches.
 
-<a name="streamProcessing"></a>
-## Spatial Stream Processing via GeoFlink
+**TStream** is a distributed and scalable open source framework for the real-time processing of trajectory data streams. TStream supports range, *k*NN and join queries on trajectory streams.
+
+<a name="geoFlinkStreamProcessing"></a>
+## GeoFlink: Spatial Stream Processing
 
 GeoFlink currently supports GeoJSON and CSV input formats from Apache Kafka and Point spatial object. Future releases will extend support to other input formats and spatial object types including line and polygon.
 
@@ -151,7 +157,7 @@ where *spatialStream* is a spatial data stream, *queryPoint* denotes a query poi
 
 <a name="kNN"></a>
 <a name="FkNN"></a>
-### Continuous Spatial *k*NN Query
+### Continuous Spatial kNN Query
 Given a data stream *S*, a query point *q*, a query radius *r*, a positive integer *k* and window parameters, *k*NN query returns the nearest *k* *r*-neighbours of *q* in *S* for each slide of the aggregation window. If less than *k* nearest neighbours of *q* lie within the *r* distance of *q* in *S*, then all the *r*-neighbours are returned.
 
 To execute a spatial *k*NN query in GeoFlink, *SpatialKNNQuery* method of the *KNNQuery* class is used.
@@ -175,7 +181,7 @@ where *k* denotes the number of points required in the *k*NN output, *spatialStr
 
 <!--
 <a name="IkNN"></a>
-### Continuous Iterative Spatial *k*NN Query
+### Continuous Iterative Spatial kNN Query
 
 Given a data stream *S*, a query point *q*, a positive integer *k* and window parameters, *k*NN query returns *k* nearest neighbours of *q* in *S* for each slide of the aggregation window.
 
@@ -222,31 +228,9 @@ DataStream<Tuple2<String,String>>outputStream = JoinQuery.SpatialJoinQuery(spati
 ```
 where *spatialStream* and *queryStream* denote the ordinary stream and query stream, respectively and *uGrid* denotes the grid index. 
  The query output is generated continuously for each window slide based on the *windowSize* and *windowSlideStep*.
-
-<a name="gettingStarted"></a>
-## Getting Started
-<a name="requirements"></a>
- ### Requirements
- - Java 8
- - Maven 3.0.4 (or higher)
-- Scala 2.11 or 2.12 (optional for running Scala API)
-- Apache Flink cluster v.1.9.x or higher
-- Apache Kafka cluster  v.2.x.x
-
-Please ensure that your Apache Flink and Apache Kafka clusters are configured correctly before running GeoFlink. 
-
-<a name="firstJob"></a>
-### Running Your First GeoFlink Job
-- Set up your Kafka cluster and load it with a spatial data stream.
-- Download or clone the GeoFlink from [https://github.com/salmanahmedshaikh/GeoFlink](https://github.com/salmanahmedshaikh/GeoFlink).
-- Use your favourite IDE to open the downloaded GeoFlink project. We recommend using intelliJ Idea IDE.
-- Use ``` StreamingJob ``` class to write your custom code utilizing the GeoFlink's methods discussed above. In the following we provide a sample GeoFlink code for a spatial range query.
-- One can use IntelliJ IDE to execute the GeoFlink's project on a single node.
-- For a cluster execution, a project's jar file need to be created. To generate the ```.jar``` file, go to the project directory through command line and run ```mvn clean package```.
-- The ```.jar``` file can be uploaded and executed through the flink WebUI usually available at [http://localhost:8081](http://localhost:8081/).  
-
-<a name="sampleCode"></a>
-## Sample GeoFlink Code for a Spatial Range Query
+ 
+ <a name="sampleCode"></a>
+### Sample GeoFlink Code for a Spatial Range Query
 
 A sample GeoFlink code written in Java to execute Range Query on a spatial data stream
 
@@ -267,10 +251,118 @@ A sample GeoFlink code written in Java to execute Range Query on a spatial data 
     int queryRadius = 0.5;
     DataStream<Point> rNeighborsStream = RangeQuery.SpatialRangeQuery(spatialStream, queryPoint, radius, windowSize, windowSlideStep, uGrid); 
 
+
+
+<a name="tStreamProcessing"></a>
+## TStream: Trajectory Stream Processing
+TStream takes trajectory stream as input and generates a stream of sub-trajectories corresponding to the window size.
+
+<a name="tStreamQueries"></a>
+### TStream Queries
+- Range
+- *k*NN
+- Join
+
+<a name="tStreamRange"></a>
+#### Continuous Range Query
+
+    //Creating uniform grid index by defining its boundaries
+    double minX = 115.50, maxX = 117.60, minY = 39.60, maxY = 41.10;
+    int gridSize = 100;
+    UniformGrid  uGrid = new UniformGrid(gridSize, minX, maxX, minY, maxY);
+    
+	 //Generating trajecotry stream from Kafka GeoJSON stream
+    DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(kafkaStream, "GeoJSON", ..., uGrid);
+	
+	//Query polygon set creation	
+	Set<Polygon> queryPolygonSet = HelperClass.generateQueryPolygons(n, minX, maxX, minY, maxY, uGrid);
+	
+	//Configuring query window
+	QueryConfiguration windowConf = new QueryConfiguration(QueryType.WindowBased);
+	windowConf.setWindowSize(windowSize);
+	windowConf.setSlideStep(windowSlideStep);
+	
+	// Trajectory range query execution
+	new PointPolygonTRangeQuery(windowConf, uGrid).run(spatialTrajectoryStream, queryPolygonSet);
+
+<a name="tStreamKnn"></a>
+#### Continuous kNN Query
+
+    //Creating uniform grid index by defining its boundaries
+    double minX = 115.50, maxX = 117.60, minY = 39.60, maxY = 41.10;
+    int gridSize = 100;
+    UniformGrid  uGrid = new UniformGrid(gridSize, minX, maxX, minY, maxY);
+	
+	//Declaring query variables
+	double radius = 0.05;
+	int k = 30;
+    
+	 //Generating trajecotry stream from Kafka GeoJSON stream
+    DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(kafkaStream, "GeoJSON", ..., uGrid);
+	
+	//Query point set creation	
+	Set<Point> queryPointSet = HelperClass.generateQueryPoints(n, minX, maxX, minY, maxY, uGrid);
+	
+	//Configuring query window
+	QueryConfiguration windowConf = new QueryConfiguration(QueryType.WindowBased);
+	windowConf.setWindowSize(windowSize);
+	windowConf.setSlideStep(windowSlideStep);
+	
+	// Trajectory knn query execution	
+	new PointPointTKNNQuery(windowConf, uGrid).run(spatialTrajectoryStream, queryPointSet, radius, k);
+
+<a name="tStreamJoin"></a>
+#### Continuous Join Query
+
+    //Creating uniform grid index by defining its boundaries
+    double minX = 115.50, maxX = 117.60, minY = 39.60, maxY = 41.10;
+    int gridSize = 100;
+    UniformGrid  uGrid = new UniformGrid(gridSize, minX, maxX, minY, maxY);
+	
+	//Declaring query variables
+	double radius = 0.05;
+	int k = 30;
+    
+	 //Generating two trajecotry streams from Kafka GeoJSON stream
+    DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(kafkaStream, "GeoJSON", ..., uGrid);
+	DataStream<Point> spatialTrajectoryStream2 = Deserialization.TrajectoryStream(kafkaStream2, "GeoJSON", ..., uGrid);	
+	
+	//Configuring query window
+	QueryConfiguration windowConf = new QueryConfiguration(QueryType.WindowBased);
+	windowConf.setWindowSize(windowSize);
+	windowConf.setSlideStep(windowSlideStep);
+	
+	// Trajectory join query execution	
+	new PointPointTJoinQuery(windowConf, uGrid).run(spatialTrajectoryStream, spatialTrajectoryStream2, radius);
+	
+
+<a name="gettingStarted"></a>
+## Getting Started
+<a name="requirements"></a>
+ ### Requirements
+ - Java 8
+ - Maven 3.0.4 (or higher)
+- Scala 2.11 or 2.12 (optional for running Scala API)
+- Apache Flink cluster v.1.9.x or higher
+- Apache Kafka cluster  v.2.x.x
+
+Please ensure that your Apache Flink and Apache Kafka clusters are configured correctly before running GeoFlink. 
+
+<a name="firstJob"></a>
+### Running Your First GeoFlink/TStream Job
+- Set up your Kafka cluster and load it with a spatial data stream.
+- Download or clone the GeoFlink from [https://github.com/salmanahmedshaikh/GeoFlink](https://github.com/salmanahmedshaikh/GeoFlink).
+- Use your favourite IDE to open the downloaded GeoFlink project. We recommend using intelliJ Idea IDE.
+- Use ``` StreamingJob ``` class to write your custom code utilizing the GeoFlink's methods discussed above. In the following we provide a sample GeoFlink code for a spatial range query.
+- One can use IntelliJ IDE to execute the GeoFlink's project on a single node.
+- For a cluster execution, a project's jar file need to be created. To generate the ```.jar``` file, go to the project directory through command line and run ```mvn clean package```.
+- The ```.jar``` file can be uploaded and executed through the flink WebUI usually available at [http://localhost:8081](http://localhost:8081/).  
+
 <a name="publications"></a>
 ## Publications
 
  - GeoFlink @ CIKM2020 [GeoFlink: A Distributed and Scalable Framework for the Real-time Processing of Spatial Streams](https://dl.acm.org/doi/10.1145/3340531.3412761) 
+ - GeoFlink @ IEEE Access2022 [GeoFlink: An Efficient and Scalable Spatial Data Stream Management System](https://doi.org/10.1109/ACCESS.2022.3154063) 
  
 
 <a name="contact"></a>
