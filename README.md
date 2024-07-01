@@ -103,11 +103,11 @@ TStream takes trajectory stream as input and generates a stream of sub-trajector
 ## Getting Started
 <a name="requirements"></a>
  ### Requirements
- - Java 8
- - Maven 3.0.4 (or higher)
-- Scala 2.11 or 2.12 (optional for running Scala API)
-- Apache Flink cluster v.1.9.x or higher
-- Apache Kafka cluster  v.2.x.x
+- Maven 3.8.6
+- Java 1.8.0_333
+- Scala 2.11
+- Apache Flink 1.9.1
+- Apache Kafka 2.13-3.2.1
 
 Please ensure that your Apache Flink and Apache Kafka clusters are configured correctly before running GeoFlink. 
 
