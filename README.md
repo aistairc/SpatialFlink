@@ -87,6 +87,171 @@ DataStream<Point> spatialStream = SpatialStream.PointStream(kafkaStream, "GeoJSO
 ```
 where *uGrid* is the grid index.
 
+<a name="range"></a>
+### Continuous Spatial Range Query
+Given a data stream *S*, query point *q*, radius *r* and window parameters, range query returns the *r*-neighbours of *q* in *S* for each aggregation window.
+
+To execute a spatial range query via GeoFlink, Java/Scala API  *SpatialRangeQuery* method of the *RangeQuery* class is used.
+
+GeoFlink supports three kinds of spatial range queries.
+1- Point-Point
+2- Point-Polygon
+3- Polygon-Polygon
+
+<a name="pointPointRange"></a>
+#### 1-Point-Point Spatial Range Query
+Both the query and the spatial stream consist of point objects. An example of point-point spatial range query is as follows:
+```
+// Query point creation using coordinates (longitude, latitude)
+Point queryPoint = new Point(116.414899, 39.920374, uGrid); 
+
+// Continous range query 
+int windowSize = 10; // window size in seconds
+int windowSlideStep = 5; // window slide step in seconds
+int queryRadius = 0.5;
+
+DataStream<Point> rNeighborsStream = RangeQuery.SpatialRangeQuery(spatialStream, queryPoint, queryRadius, windowSize, windowSlideStep, uGrid); 
+```
+where *spatialStream* is a spatial data stream, *queryPoint* denotes a query point, *radius* denotes the range query radius, *windowSize* and *windowSlideStep* denote the sliding window size and slide step respectively and *uGrid* denotes the grid index. The query output is generated continuously for each window slide based on size and slide step.
+
+<a name="pointPolygonRange"></a>
+#### 2-Point-Polygon Spatial Range Query
+The query is a point object and the spatial stream consists of polygon objects. An example of point-polygon spatial range query is as follows:
+```
+// Query point creation using coordinates (longitude, latitude)
+Point queryPoint = new Point(116.414899, 39.920374, uGrid); 
+
+// Continous range query 
+int windowSize = 10; // window size in seconds
+int windowSlideStep = 5; // window slide step in seconds
+int queryRadius = 0.5;
+
+DataStream<Polygon> pointPolygonRangeQueryOutput = RangeQuery.SpatialRangeQuery(spatialPolygonStream, queryPoint, radius, uGrid, windowSize, windowSlideStep); 
+```
+where *spatialStream* is a spatial data stream, *queryPoint* denotes a query point, *radius* denotes the range query radius, *windowSize* and *windowSlideStep* denote the sliding window size and slide step respectively and *uGrid* denotes the grid index. The query output is generated continuously for each window slide based on size and slide step.
+
+<a name="polygonPolygonRange"></a>
+#### 3-Polygon-Polygon Spatial Range Query
+The query is a polygon object and the spatial stream consists of polygon objects. An example of polygon-polygon spatial range query is as follows:
+```
+// Query polygon creation using coordinates (longitude, latitude)
+ArrayList<Coordinate> queryPolygonCoordinates = new ArrayList<Coordinate>();  
+queryPolygonCoordinates.add(new Coordinate(-73.984416, 40.675882));  
+queryPolygonCoordinates.add(new Coordinate(-73.984511, 40.675767));  
+queryPolygonCoordinates.add(new Coordinate(-73.984719, 40.675867));  
+queryPolygonCoordinates.add(new Coordinate(-73.984726, 40.67587));  
+queryPolygonCoordinates.add(new Coordinate(-73.984718, 40.675881));  
+queryPolygonCoordinates.add(new Coordinate(-73.984631, 40.675986));  
+queryPolygonCoordinates.add(new Coordinate(-73.984416, 40.675882));  
+Polygon queryPolygon = new Polygon(queryPolygonCoordinates, uGrid);
+
+// Continous range query 
+int windowSize = 10; // window size in seconds
+int windowSlideStep = 5; // window slide step in seconds
+int queryRadius = 0.5;
+
+DataStream<Polygon> polygonPolygonRangeQueryOutput = RangeQuery.SpatialRangeQuery(spatialPolygonStream, queryPolygon, radius, uGrid, windowSize, windowSlideStep);
+```
+where *spatialStream* is a spatial data stream, *queryPoint* denotes a query point, *radius* denotes the range query radius, *windowSize* and *windowSlideStep* denote the sliding window size and slide step respectively and *uGrid* denotes the grid index. The query output is generated continuously for each window slide based on size and slide step.
+
+
+<a name="kNN"></a>
+<a name="FkNN"></a>
+### Continuous Spatial kNN Query
+Given a data stream *S*, a query point *q*, a query radius *r*, a positive integer *k* and window parameters, *k*NN query returns the nearest *k* *r*-neighbours of *q* in *S* for each slide of the aggregation window. If less than *k* nearest neighbours of *q* lie within the *r* distance of *q* in *S*, then all the *r*-neighbours are returned.
+
+To execute a spatial *k*NN query in GeoFlink, *SpatialKNNQuery* method of the *KNNQuery* class is used.
+```
+// Query point creation
+Point queryPoint = new Point(116.414899, 39.920374, uGrid);
+
+// Define input parameters
+k = 50
+int windowSize = 10; // window size in seconds
+int windowSlideStep = 5; // window slide step in seconds
+int queryRadius = 0.5;
+
+// Register a spatial kNN query
+DataStream <PriorityQueue<Tuple2<Point, Double>>> outputStream = KNNQuery.SpatialKNNQuery(spatialStream, queryPoint, queryRadius, k, windowSize, windowSlideStep, uGrid);
+```
+where *k* denotes the number of points required in the *k*NN output, *spatialStream* denotes a spatial data stream, *queryPoint* denotes a query point,  *queryRadius* denotes the max query radius to search for *k*NN, *windowSize* and *windowSlideStep* denote the sliding window size and slide step respectively and *uGrid* denotes the grid index. 
+
+
+ Please note that the output stream is a stream of priority queue which is a sorted list of *k*NNs with respect to the distance from the query point *q*. The query output is generated continuously for each window slide based on the *windowSize* and *windowSlideStep*.
+
+<!--
+<a name="IkNN"></a>
+### Continuous Iterative Spatial kNN Query
+
+Given a data stream *S*, a query point *q*, a positive integer *k* and window parameters, *k*NN query returns *k* nearest neighbours of *q* in *S* for each slide of the aggregation window.
+
+To execute a spatial *k*NN query in GeoFlink, *SpatialKNNQuery* method of the *KNNQuery* class is used.
+```
+// Query point creation
+Point queryPoint = new Point(116.414899, 39.920374, uGrid);
+
+// Define input parameters
+k = 50
+int windowSize = 10; // window size in seconds
+int windowSlideStep = 5; // window slide step in seconds
+int queryRadius = 0.5;
+
+// Register a spatial *k*NN query
+DataStream <PriorityQueue<Tuple2<Point, Double>>> outputStream = KNNQuery.SpatialKNNQuery(spatialStream, queryPoint, k, windowSize, windowSlideStep, uGrid);
+```
+
+where *k* denotes the number of points required in the *k*NN output, *spatialStream* denotes a spatial data stream, *queryPoint* denotes a query point, *windowSize* and *windowSlideStep* denote the sliding window size and slide step respectively and *uGrid* denotes the grid index. 
+
+
+ Please note that the output stream is a stream of priority queue which is a sorted list of *k*NNs with respect to the distance from the query point *q*. The query output is generated continuously for each window slide based on the *windowSize* and *windowSlideStep*.
+ -->
+
+
+<a name="join"></a>
+### Continuous Spatial Join Query
+Given two streams *S1* (Ordinary stream) and *S2* (Query stream), a radius *r* and window parameters, spatial join query returns all the points in *S1* that lie within the radius *r* of *S2* points for each aggregation window.
+
+To execute a spatial join query via the GeoFlink Java/Scala API  *SpatialJoinQuery* method of the *JoinQuery* class is used. The query output is generated continuously for each window slide based on the *windowSize* and *windowSlideStep*.
+
+```
+// Create a query stream
+DataStream<Point> queryStream = SpatialStream.
+PointStream(geoJSONQryStream,"GeoJSON",uGrid);
+
+// Define input parameters
+int queryRadius = 0.5;
+int windowSize = 10; // window size in seconds
+int windowSlideStep = 5; // window slide step in seconds
+
+// Register a spatial join query
+DataStream<Tuple2<String,String>>outputStream = JoinQuery.SpatialJoinQuery(spatialStream, queryStream, queryRadius, windowSize, windowSlideStep, uGrid);
+```
+where *spatialStream* and *queryStream* denote the ordinary stream and query stream, respectively and *uGrid* denotes the grid index. 
+ The query output is generated continuously for each window slide based on the *windowSize* and *windowSlideStep*.
+ 
+ <a name="sampleCode"></a>
+### Sample GeoFlink Code for a Spatial Range Query
+
+A sample GeoFlink code written in Java to execute Range Query on a spatial data stream
+
+    //Defining dataStream boundaries & creating index
+    double minX = 115.50, maxX = 117.60, minY = 39.60, maxY = 41.10;
+    int gridSize = 100;
+    UniformGrid  uGrid = new UniformGrid(gridSize, minX, maxX, minY, maxY);
+    
+    //Kafka GeoJSON stream to Spatial points stream
+    DataStream<Point> spatialStream = SpatialStream.PointStream(kafkaStream, "GeoJSON", uGrid);
+    
+    //Query point creation
+    Point queryPoint = new Point(116.414899, 39.920374, uGrid);
+    
+    //Continous range query 
+    int windowSize = 10; // window size in seconds
+    int windowSlideStep = 5; // window slide step in seconds
+    int queryRadius = 0.5;
+    DataStream<Point> rNeighborsStream = RangeQuery.SpatialRangeQuery(spatialStream, queryPoint, radius, windowSize, windowSlideStep, uGrid); 
+
+
 
 <a name="tStreamProcessing"></a>
 ## TStream: Trajectory Stream Processing
@@ -98,16 +263,88 @@ TStream takes trajectory stream as input and generates a stream of sub-trajector
 - *k*NN
 - Join
 
+<a name="tStreamRange"></a>
+#### Continuous Range Query
+
+    //Creating uniform grid index by defining its boundaries
+    double minX = 115.50, maxX = 117.60, minY = 39.60, maxY = 41.10;
+    int gridSize = 100;
+    UniformGrid  uGrid = new UniformGrid(gridSize, minX, maxX, minY, maxY);
+    
+	 //Generating trajecotry stream from Kafka GeoJSON stream
+    DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(kafkaStream, "GeoJSON", ..., uGrid);
+	
+	//Query polygon set creation	
+	Set<Polygon> queryPolygonSet = HelperClass.generateQueryPolygons(n, minX, maxX, minY, maxY, uGrid);
+	
+	//Configuring query window
+	QueryConfiguration windowConf = new QueryConfiguration(QueryType.WindowBased);
+	windowConf.setWindowSize(windowSize);
+	windowConf.setSlideStep(windowSlideStep);
+	
+	// Trajectory range query execution
+	new PointPolygonTRangeQuery(windowConf, uGrid).run(spatialTrajectoryStream, queryPolygonSet);
+
+<a name="tStreamKnn"></a>
+#### Continuous kNN Query
+
+    //Creating uniform grid index by defining its boundaries
+    double minX = 115.50, maxX = 117.60, minY = 39.60, maxY = 41.10;
+    int gridSize = 100;
+    UniformGrid  uGrid = new UniformGrid(gridSize, minX, maxX, minY, maxY);
+	
+	//Declaring query variables
+	double radius = 0.05;
+	int k = 30;
+    
+	 //Generating trajecotry stream from Kafka GeoJSON stream
+    DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(kafkaStream, "GeoJSON", ..., uGrid);
+	
+	//Query point set creation	
+	Set<Point> queryPointSet = HelperClass.generateQueryPoints(n, minX, maxX, minY, maxY, uGrid);
+	
+	//Configuring query window
+	QueryConfiguration windowConf = new QueryConfiguration(QueryType.WindowBased);
+	windowConf.setWindowSize(windowSize);
+	windowConf.setSlideStep(windowSlideStep);
+	
+	// Trajectory knn query execution	
+	new PointPointTKNNQuery(windowConf, uGrid).run(spatialTrajectoryStream, queryPointSet, radius, k);
+
+<a name="tStreamJoin"></a>
+#### Continuous Join Query
+
+    //Creating uniform grid index by defining its boundaries
+    double minX = 115.50, maxX = 117.60, minY = 39.60, maxY = 41.10;
+    int gridSize = 100;
+    UniformGrid  uGrid = new UniformGrid(gridSize, minX, maxX, minY, maxY);
+	
+	//Declaring query variables
+	double radius = 0.05;
+	int k = 30;
+    
+	 //Generating two trajecotry streams from Kafka GeoJSON stream
+    DataStream<Point> spatialTrajectoryStream = Deserialization.TrajectoryStream(kafkaStream, "GeoJSON", ..., uGrid);
+	DataStream<Point> spatialTrajectoryStream2 = Deserialization.TrajectoryStream(kafkaStream2, "GeoJSON", ..., uGrid);	
+	
+	//Configuring query window
+	QueryConfiguration windowConf = new QueryConfiguration(QueryType.WindowBased);
+	windowConf.setWindowSize(windowSize);
+	windowConf.setSlideStep(windowSlideStep);
+	
+	// Trajectory join query execution	
+	new PointPointTJoinQuery(windowConf, uGrid).run(spatialTrajectoryStream, spatialTrajectoryStream2, radius);
+	
 
 <a name="gettingStarted"></a>
 ## Getting Started
 <a name="requirements"></a>
  ### Requirements
-- Maven 3.8.6
-- Java 1.8.0_333
-- Scala 2.11
-- Apache Flink 1.9.1
-- Apache Kafka 2.13-3.2.1
+ - Java 8
+ - Maven 3.0.4 (or higher)
+- Scala 2.11 or 2.12 (optional for running Scala API)
+- Apache Flink cluster v.1.9.x or higher
+- Apache Kafka cluster  v.2.x.x
 
 Please ensure that your Apache Flink and Apache Kafka clusters are configured correctly before running GeoFlink. 
 
