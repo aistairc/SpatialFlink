@@ -21,6 +21,7 @@
 - [Getting Started](#getting-started)
   * [Requirements](#requirements)
   * [Running Your First GeoFlink/TStream Job](#firstJob)
+- [Building the JNI RVV Distance Library](#jniRVV)
 - [Publications](#publications)
 - [Contact Us!](#contact)
 
@@ -364,6 +365,55 @@ Please ensure that your Apache Flink and Apache Kafka clusters are configured co
  - GeoFlink @ CIKM2020 [GeoFlink: A Distributed and Scalable Framework for the Real-time Processing of Spatial Streams](https://dl.acm.org/doi/10.1145/3340531.3412761) 
  - GeoFlink @ IEEE Access2022 [GeoFlink: An Efficient and Scalable Spatial Data Stream Management System](https://doi.org/10.1109/ACCESS.2022.3154063) 
  
+
+<a name="jniRVV"></a>
+## Building the JNI RVV Distance Library
+
+Note on Java-only build
+- The project can be built and run with Java-only code without compiling the C/RVV JNI library. A pure-Java build (e.g., mvn clean package) succeeds without the native .so.
+- The JNI RVV library is optional and only needed if you want RISC-V Vector (RVV) accelerated distance computations.
+
+Prerequisites
+- JDK installed and JAVA_HOME set
+- RISC-V cross compiler: riscv64-unknown-linux-gnu-gcc available in PATH
+- A Linux target runtime for the produced librvvdist.so (the Makefile targets Linux headers include/linux and generates a riscv64 .so)
+
+1) Generate JNI headers
+- From the project's Java source directory, generate the header for the RvvDistanceCalculator native class:
+  cd src/main/java
+  javac -h ../c GeoFlink/utils/RvvDistanceCalculator.java
+- This creates GeoFlink_utils_RvvDistanceCalculator.h under src/main/c.
+
+2) Configure Makefile
+- Open src/main/c/Makefile and set JAVA_HOME to your local JDK installation path (it must contain include/jni.h and include/linux/jni_md.h).
+- Ensure riscv64-unknown-linux-gnu-gcc is in PATH.
+
+3) Build the shared library
+- From src/main/c, build the library:
+  make
+- Output: librvvdist.so in src/main/c.
+
+4) Make the library discoverable at runtime
+- Java will load librvvdist.so via System.loadLibrary("rvvdist"). Ensure the library path includes src/main/c or place the .so in a standard library directory.
+  Options:
+  - Run with JVM option:
+    -Djava.library.path=src/main/c
+  - Or set LD_LIBRARY_PATH before running:
+    export LD_LIBRARY_PATH=src/main/c:$LD_LIBRARY_PATH
+- Deploying on different architectures:
+  - The provided Makefile builds a riscv64 Linux .so. Load it only on a matching RISC-V Linux runtime. Do not attempt to load it on x86_64 hosts.
+
+5) Clean
+- From src/main/c:
+  make clean
+
+Troubleshooting
+- jni.h not found: Check JAVA_HOME and header paths (JAVA_HOME/include and JAVA_HOME/include/linux must exist).
+- riscv64-unknown-linux-gnu-gcc not found: Install the RISC-V cross toolchain and ensure it's in PATH.
+- UnsatisfiedLinkError at runtime:
+  - Verify the library name (rvvdist) matches System.loadLibrary.
+  - Ensure -Djava.library.path or LD_LIBRARY_PATH contains the directory holding librvvdist.so.
+  - Confirm the target architecture (riscv64) matches the runtime system.
 
 <a name="contact"></a>
 ## Contact Us!

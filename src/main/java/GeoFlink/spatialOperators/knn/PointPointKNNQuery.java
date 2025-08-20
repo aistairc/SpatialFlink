@@ -164,23 +164,49 @@ public class PointPointKNNQuery extends KNNQuery<Point, Point> {
                     public void apply(String gridID, TimeWindow timeWindow, Iterable<Point> inputTuples, Collector<PriorityQueue<Tuple2<Point, Double>>> outputStream) throws Exception {
                         kNNPQ.clear();
 
-                        for (Point p : inputTuples) {
+                        // Step 1: Collect all points from the window to enable batch processing.
+                        java.util.List<Point> pointList = new java.util.ArrayList<>();
+                        inputTuples.forEach(pointList::add);
 
-                            if (kNNPQ.size() < k) {
-                                double distance = DistanceFunctions.getDistance(queryPoint, p);
-                                if(distance <= queryRadius) {
-                                    kNNPQ.offer(new Tuple2<Point, Double>(p, distance));
-                                }
+                        int numPoints = pointList.size();
+                        if (numPoints == 0) {
+                            outputStream.collect(kNNPQ);
+                            return;
+                        }
 
-                            } else {
-                                double distance = DistanceFunctions.getDistance(queryPoint, p);
-                                if(distance <= queryRadius) {
-                                    // PQ is maintained in descending order with the object with the largest distance from query point at the top/peek
+                        // Step 2: Prepare coordinate arrays for the JNI call.
+                        double[] streamX = new double[numPoints];
+                        double[] streamY = new double[numPoints];
+                        int i = 0;
+                        for (Point p : pointList) {
+                            streamX[i] = p.point.getX();
+                            streamY[i] = p.point.getY();
+                            i++;
+                        }
+
+                        // Step 3: Perform batch distance calculation using RVV-optimized native code or a Java fallback.
+                        double[] distances;
+                        if (GeoFlink.utils.RvvDistanceCalculator.isLibraryLoaded()) {
+                            System.out.println("Using Native RVV distance calculation.");
+                            distances = GeoFlink.utils.RvvDistanceCalculator.calculateDistances(queryPoint.point.getX(), queryPoint.point.getY(), streamX, streamY);
+                        } else {
+                            System.out.println("Falling back to Java distance calculation.");
+                            distances = GeoFlink.utils.RvvDistanceCalculator.calculateDistancesJava(queryPoint.point.getX(), queryPoint.point.getY(), streamX, streamY);
+                        }
+
+                        // Step 4: Process the results to find the k-nearest neighbors.
+                        for (i = 0; i < numPoints; i++) {
+                            double distance = distances[i];
+                            Point p = pointList.get(i);
+
+                            if (distance <= queryRadius) {
+                                if (kNNPQ.size() < k) {
+                                    kNNPQ.offer(new Tuple2<>(p, distance));
+                                } else {
                                     assert kNNPQ.peek() != null;
-                                    double largestDistInPQ = kNNPQ.peek().f1;
-                                    if (largestDistInPQ > distance) { // remove element with the largest distance and add the new element
+                                    if (kNNPQ.peek().f1 > distance) {
                                         kNNPQ.poll();
-                                        kNNPQ.offer(new Tuple2<Point, Double>(p, distance));
+                                        kNNPQ.offer(new Tuple2<>(p, distance));
                                     }
                                 }
                             }
@@ -200,4 +226,3 @@ public class PointPointKNNQuery extends KNNQuery<Point, Point> {
                 .apply(new kNNWinAllEvaluationPointStream(k));
     }
 }
-
